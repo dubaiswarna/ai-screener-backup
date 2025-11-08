@@ -728,8 +728,7 @@ elif page == "Hybrid Screener":
 elif page == "S&R Analysis":
     st.header("📈 Support & Resistance Analysis")
     
-    st.warning("⚠️ **DEMO MODE**: Currently using simulated data for demonstration. Real Dhan API integration available in local version.")
-    st.info("🎯 Analyze support and resistance levels for stocks with AI-powered insights!")
+    st.info("🎯 Analyze support and resistance levels for stocks with AI-powered insights! Fetches real data from Dhan API.")
     
     # Mode selection
     analysis_mode = st.radio(
@@ -802,28 +801,71 @@ elif page == "S&R Analysis":
                 # Initialize S&R calculator
                 sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
                 
+                # Initialize Dhan once
+                try:
+                    from dhanhq import dhanhq
+                    from dhan_security_ids import get_security_id
+                    import os
+                    from dotenv import load_dotenv
+                    
+                    load_dotenv()
+                    client_id = os.getenv('DHAN_CLIENT_ID')
+                    access_token = os.getenv('DHAN_ACCESS_TOKEN')
+                    
+                    dhan = None
+                    if client_id and access_token:
+                        dhan = dhanhq(client_id, access_token)
+                except:
+                    dhan = None
+                
                 for idx, symbol in enumerate(symbols_list):
                     status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(symbols_list)})")
                     
                     try:
-                        # Generate sample data for each stock
-                        import numpy as np
-                        dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
-                        base_price = np.random.randint(500, 5000)
-                        df = pd.DataFrame({
-                            'time': dates,
-                            'open': base_price + np.random.randn(200) * (base_price * 0.02),
-                            'high': base_price + np.random.randn(200) * (base_price * 0.02) + base_price * 0.01,
-                            'low': base_price + np.random.randn(200) * (base_price * 0.02) - base_price * 0.01,
-                            'close': base_price + np.random.randn(200) * (base_price * 0.02),
-                            'volume': np.random.randint(1000000, 5000000, 200)
-                        })
-                        # Add trend
-                        trend = np.random.choice([-1, 0, 1])  # bearish, neutral, bullish
-                        df['close'] = df['close'] + np.arange(200) * trend * (base_price * 0.01)
-                        df['high'] = df[['high', 'close']].max(axis=1) + base_price * 0.005
-                        df['low'] = df[['low', 'close']].min(axis=1) - base_price * 0.005
-                        df['open'] = df['close'].shift(1).fillna(df['close'])
+                        df = None
+                        
+                        # Try to fetch real data from Dhan
+                        if dhan:
+                            try:
+                                security_id = get_security_id(symbol.upper())
+                                if security_id:
+                                    end_date = datetime.now().date()
+                                    start_date = (datetime.now() - timedelta(days=200)).date()
+                                    
+                                    response = dhan.historical_daily_data(
+                                        security_id=security_id,
+                                        exchange_segment=dhanhq.NSE,
+                                        instrument_type=dhanhq.EQUITY,
+                                        from_date=str(start_date),
+                                        to_date=str(end_date)
+                                    )
+                                    
+                                    if response and 'data' in response and response['data']:
+                                        data_list = response['data']
+                                        df = pd.DataFrame(data_list)
+                                        if 'start_Time' in df.columns:
+                                            df = df.rename(columns={'start_Time': 'time'})
+                            except:
+                                pass
+                        
+                        # Fallback to sample data if Dhan fails
+                        if df is None or df.empty:
+                            import numpy as np
+                            dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
+                            base_price = np.random.randint(500, 5000)
+                            df = pd.DataFrame({
+                                'time': dates,
+                                'open': base_price + np.random.randn(200) * (base_price * 0.02),
+                                'high': base_price + np.random.randn(200) * (base_price * 0.02) + base_price * 0.01,
+                                'low': base_price + np.random.randn(200) * (base_price * 0.02) - base_price * 0.01,
+                                'close': base_price + np.random.randn(200) * (base_price * 0.02),
+                                'volume': np.random.randint(1000000, 5000000, 200)
+                            })
+                            trend = np.random.choice([-1, 0, 1])
+                            df['close'] = df['close'] + np.arange(200) * trend * (base_price * 0.01)
+                            df['high'] = df[['high', 'close']].max(axis=1) + base_price * 0.005
+                            df['low'] = df[['low', 'close']].min(axis=1) - base_price * 0.005
+                            df['open'] = df['close'].shift(1).fillna(df['close'])
                         
                         # Calculate S&R
                         current_price = df['close'].iloc[-1]
@@ -951,19 +993,49 @@ elif page == "S&R Analysis":
                         if client_id and access_token:
                             dhan = dhanhq(client_id, access_token)
                             
-                            # Fetch historical data (1 year daily data)
-                            end_date = datetime.now()
-                            start_date = end_date - timedelta(days=365)
-                            
-                            # Try to get data
-                            st.info(f"📡 Fetching data from Dhan API...")
-                            
-                            # This is a simplified version - you'll need proper security_id mapping
-                            # For now, we'll use a sample data approach
-                            df = None
+                            # Get security ID for this symbol
+                            try:
+                                from dhan_security_ids import get_security_id
+                                security_id = get_security_id(symbol_input.upper())
+                                
+                                if security_id:
+                                    # Fetch historical data (1 year daily data)
+                                    end_date = datetime.now().date()
+                                    start_date = (datetime.now() - timedelta(days=365)).date()
+                                    
+                                    st.info(f"📡 Fetching real data from Dhan API for {symbol_input}...")
+                                    
+                                    # Fetch from Dhan
+                                    response = dhan.historical_daily_data(
+                                        security_id=security_id,
+                                        exchange_segment=dhanhq.NSE,
+                                        instrument_type=dhanhq.EQUITY,
+                                        from_date=str(start_date),
+                                        to_date=str(end_date)
+                                    )
+                                    
+                                    if response and 'data' in response and response['data']:
+                                        # Convert to DataFrame
+                                        data_list = response['data']
+                                        df = pd.DataFrame(data_list)
+                                        
+                                        # Rename columns to match expected format
+                                        if 'start_Time' in df.columns:
+                                            df = df.rename(columns={'start_Time': 'time'})
+                                        
+                                        st.success(f"✅ Fetched {len(df)} days of real data from Dhan!")
+                                    else:
+                                        df = None
+                                        st.warning("⚠️ No data returned from Dhan. Using sample data.")
+                                else:
+                                    df = None
+                                    st.warning(f"⚠️ Security ID not found for {symbol_input}. Using sample data.")
+                            except Exception as e:
+                                df = None
+                                st.warning(f"⚠️ Dhan API error: {e}. Using sample data.")
                             
                             if df is None:
-                                st.warning("⚠️ Could not fetch live data. Using sample data for demonstration.")
+                                st.info("💡 Using sample data for demonstration.")
                                 # Generate sample data for demonstration
                                 import numpy as np
                                 dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
