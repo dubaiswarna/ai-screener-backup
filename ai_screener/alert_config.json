@@ -1,0 +1,29 @@
+{
+  "email": {
+    "enabled": false,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "your_email@gmail.com",
+    "sender_password": "your_app_password",
+    "recipient_emails": ["your_email@gmail.com"]
+  },
+  "telegram": {
+    "enabled": true,
+    "bot_token": "8468688837:AAHlaGGVwDUylHHwcjza9XnQruVL6omPh-Q",
+    "chat_ids": ["6513104075"]
+  },
+  "sms": {
+    "enabled": false,
+    "twilio_account_sid": "YOUR_ACCOUNT_SID",
+    "twilio_auth_token": "YOUR_AUTH_TOKEN",
+    "twilio_phone": "+1234567890",
+    "recipient_phones": ["+1234567890"]
+  },
+  "alert_rules": {
+    "min_confidence": 0.70,
+    "signals": ["buy", "sell"],
+    "stocks": [],
+    "min_interval_minutes": 5
+  }
+}
+

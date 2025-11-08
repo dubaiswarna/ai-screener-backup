@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MAXHEALTH - AI Signal Chart</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0e1117;
+            color: white;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        .info-panel {
+            background: #1e222d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .info-card {
+            background: #262b3d;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .info-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        .legend {
+            background: #1e222d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .legend-item {
+            display: inline-block;
+            margin-right: 25px;
+            margin-bottom: 10px;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+        #chart {
+            background: #1e222d;
+            border-radius: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 MAXHEALTH - AI Trading Signal</h1>
+            <p>Last 60 Days | VWAP Ladder Strategy</p>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <div class="info-label">Current Price</div>
+                <div class="info-value">Rs 1152.20</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">AI Signal</div>
+                <div class="info-value" style="color: #00ff00;">BUY</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">10% Target</div>
+                <div class="info-value" style="color: #ffd700;">Rs 1267.42</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Upside Potential</div>
+                <div class="info-value" style="color: #00d4ff;">+10%</div>
+            </div>
+        </div>
+        
+        <div id="chart"></div>
+        
+        <div class="legend">
+            <h3 style="margin-bottom: 15px;">📌 Entry & Exit Levels</h3>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ff4444;"></span>
+                <span>E1: Prev LOW (Rs 1172.30)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ff6666;"></span>
+                <span>E2: Prev LOW-1% (Rs 1160.58)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ff8844;"></span>
+                <span>E3: Prev VWAP (Rs 1179.93)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ffaa66;"></span>
+                <span>E4: Prev VWAP-1% (Rs 1168.13)</span>
+            </div>
+            <br>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #00ff00;"></span>
+                <span>Target 3% (Rs 1186.77)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #00ff88;"></span>
+                <span>Target 6% (Rs 1221.33)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #00ffff;"></span>
+                <span>Target 10% (Rs 1267.42)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #4444ff;"></span>
+                <span>VWAP Line</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        var chartData = {"dates": ["2025-08-05", "2025-08-06", "2025-08-07", "2025-08-08", "2025-08-11", "2025-08-12", "2025-08-13", "2025-08-14", "2025-08-18", "2025-08-19", "2025-08-20", "2025-08-21", "2025-08-22", "2025-08-25", "2025-08-26", "2025-08-28", "2025-08-29", "2025-09-01", "2025-09-02", "2025-09-03", "2025-09-04", "2025-09-05", "2025-09-08", "2025-09-09", "2025-09-10", "2025-09-11", "2025-09-12", "2025-09-15", "2025-09-16", "2025-09-17", "2025-09-18", "2025-09-19", "2025-09-22", "2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26", "2025-09-29", "2025-09-30", "2025-10-01", "2025-10-03", "2025-10-06", "2025-10-07", "2025-10-08", "2025-10-09", "2025-10-10", "2025-10-13", "2025-10-14", "2025-10-15", "2025-10-16", "2025-10-17", "2025-10-20", "2025-10-21", "2025-10-23", "2025-10-24", "2025-10-27", "2025-10-28", "2025-10-29", "2025-10-30", "2025-10-31"], "open": [1245.6, 1289.9, 1260.0, 1265.0, 1245.3, 1268.0, 1270.0, 1275.0, 1216.1, 1212.6, 1227.8, 1239.8, 1255.0, 1240.0, 1212.0, 1196.0, 1151.0, 1154.3, 1185.0, 1160.0, 1189.0, 1169.9, 1174.5, 1153.0, 1158.8, 1168.5, 1184.0, 1184.2, 1161.0, 1162.5, 1145.1, 1170.0, 1165.9, 1174.7, 1154.0, 1138.4, 1135.0, 1134.6, 1115.7, 1119.7, 1098.0, 1101.0, 1134.0, 1130.0, 1148.0, 1156.0, 1154.0, 1149.0, 1161.5, 1161.4, 1188.0, 1211.9, 1214.9, 1200.0, 1213.7, 1180.0, 1186.3, 1185.0, 1186.5, 1167.8], "high": [1280.0, 1289.9, 1272.1, 1271.4, 1270.6, 1276.4, 1301.7, 1275.0, 1233.0, 1236.8, 1234.0, 1256.0, 1255.0, 1252.5, 1217.8, 1196.0, 1173.9, 1186.0, 1185.0, 1165.6, 1189.0, 1171.6, 1174.5, 1159.1, 1184.0, 1181.0, 1187.7, 1186.9, 1173.2, 1166.5, 1176.7, 1176.4, 1179.6, 1175.0, 1157.0, 1144.9, 1136.9, 1139.5, 1127.6, 1121.2, 1110.3, 1144.7, 1140.0, 1147.4, 1163.0, 1163.0, 1169.3, 1165.0, 1172.7, 1177.4, 1212.8, 1217.6, 1217.8, 1221.9, 1213.7, 1188.4, 1192.6, 1194.4, 1189.0, 1172.5], "low": [1237.5, 1256.1, 1240.6, 1242.3, 1243.3, 1256.0, 1251.4, 1204.1, 1206.6, 1208.0, 1210.9, 1229.1, 1228.1, 1211.2, 1177.4, 1152.4, 1147.6, 1153.9, 1151.4, 1150.6, 1156.9, 1159.0, 1146.5, 1140.3, 1155.0, 1168.0, 1171.3, 1171.3, 1148.1, 1141.3, 1145.1, 1151.2, 1160.6, 1149.0, 1125.3, 1133.9, 1107.0, 1103.6, 1108.0, 1107.1, 1060.0, 1093.3, 1115.0, 1128.0, 1131.7, 1139.2, 1140.0, 1141.6, 1154.3, 1159.0, 1178.7, 1203.0, 1201.0, 1197.0, 1181.5, 1175.5, 1172.1, 1181.7, 1172.3, 1151.0], "close": [1273.9, 1271.1, 1265.9, 1245.3, 1263.3, 1260.6, 1267.1, 1220.7, 1211.6, 1229.4, 1225.6, 1250.1, 1234.7, 1221.4, 1183.4, 1160.2, 1154.3, 1181.2, 1161.8, 1162.0, 1160.2, 1170.0, 1149.6, 1152.9, 1180.7, 1179.3, 1184.2, 1175.4, 1158.7, 1153.8, 1173.4, 1159.7, 1171.6, 1157.0, 1133.2, 1137.7, 1123.4, 1112.0, 1114.7, 1113.2, 1069.2, 1139.7, 1130.7, 1144.4, 1155.8, 1156.4, 1143.3, 1161.5, 1155.8, 1175.3, 1202.7, 1209.6, 1204.0, 1211.0, 1184.1, 1186.4, 1179.7, 1189.5, 1178.5, 1152.2], "vwap": [1263.8, 1272.3666666666666, 1259.5333333333333, 1253.0, 1259.0666666666666, 1264.3333333333333, 1273.4, 1233.2666666666669, 1217.0666666666666, 1224.7333333333331, 1223.5, 1245.0666666666666, 1239.2666666666669, 1228.3666666666666, 1192.8666666666666, 1169.5333333333335, 1158.6, 1173.7, 1166.0666666666666, 1159.4, 1168.7, 1166.8666666666666, 1156.8666666666666, 1150.7666666666669, 1173.2333333333331, 1176.1, 1181.0666666666666, 1177.8666666666666, 1160.0, 1153.8666666666668, 1165.0666666666668, 1162.4333333333334, 1170.6, 1160.3333333333333, 1138.5, 1138.8333333333333, 1122.4333333333334, 1118.3666666666666, 1116.7666666666669, 1113.8333333333333, 1079.8333333333333, 1125.9, 1128.5666666666666, 1139.9333333333334, 1150.1666666666667, 1152.8666666666666, 1150.8666666666668, 1156.0333333333333, 1160.9333333333334, 1170.5666666666666, 1198.0666666666666, 1210.0666666666666, 1207.6, 1209.9666666666667, 1193.1, 1183.4333333333334, 1181.4666666666665, 1188.5333333333335, 1179.9333333333334, 1158.5666666666666], "volume": [1607681, 1095951, 2365386, 548971, 807096, 740292, 3268236, 5657114, 2557331, 2076532, 1779980, 2051298, 1488893, 1637753, 4500351, 4412704, 1977662, 1720121, 3028687, 1922382, 1797984, 1271671, 1316394, 1790082, 3661895, 1837622, 2487969, 2376299, 4075700, 4160131, 3746782, 4839925, 3370928, 4729220, 3419746, 5022322, 2327943, 48051997, 5570839, 3266312, 5969792, 8494611, 3577437, 3169556, 3052853, 2722755, 2376338, 1965357, 1762144, 2364667, 5239734, 2133962, 131329, 2981438, 858989, 979181, 1810857, 1516489, 1187989, 2007598]};
+        
+        // Candlestick trace
+        var candlestick = {
+            type: 'candlestick',
+            x: chartData.dates,
+            open: chartData.open,
+            high: chartData.high,
+            low: chartData.low,
+            close: chartData.close,
+            name: 'MAXHEALTH',
+            increasing: {line: {color: '#00ff00'}, fillcolor: '#00ff00'},
+            decreasing: {line: {color: '#ff0000'}, fillcolor: '#ff0000'}
+        };
+        
+        // VWAP line
+        var vwap = {
+            type: 'scatter',
+            x: chartData.dates,
+            y: chartData.vwap,
+            name: 'VWAP',
+            line: {color: '#4444ff', width: 2},
+            mode: 'lines'
+        };
+        
+        // Entry levels (horizontal lines)
+        var e1_line = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1172.3, 1172.3],
+            name: 'E1: Prev LOW',
+            line: {color: '#ff4444', width: 2, dash: 'dash'},
+            mode: 'lines'
+        };
+        
+        var e2_line = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1160.577, 1160.577],
+            name: 'E2: LOW-1%',
+            line: {color: '#ff6666', width: 2, dash: 'dash'},
+            mode: 'lines'
+        };
+        
+        var e3_line = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1179.9333333333334, 1179.9333333333334],
+            name: 'E3: Prev VWAP',
+            line: {color: '#ff8844', width: 2, dash: 'dash'},
+            mode: 'lines'
+        };
+        
+        var e4_line = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1168.134, 1168.134],
+            name: 'E4: VWAP-1%',
+            line: {color: '#ffaa66', width: 2, dash: 'dash'},
+            mode: 'lines'
+        };
+        
+        // Target levels
+        var target_3 = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1186.766, 1186.766],
+            name: 'Target 3%',
+            line: {color: '#00ff00', width: 2, dash: 'dot'},
+            mode: 'lines'
+        };
+        
+        var target_6 = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1221.332, 1221.332],
+            name: 'Target 6%',
+            line: {color: '#00ff88', width: 2, dash: 'dot'},
+            mode: 'lines'
+        };
+        
+        var target_10 = {
+            type: 'scatter',
+            x: [chartData.dates[chartData.dates.length-10], chartData.dates[chartData.dates.length-1]],
+            y: [1267.42, 1267.42],
+            name: 'Target 10%',
+            line: {color: '#00ffff', width: 2, dash: 'dot'},
+            mode: 'lines'
+        };
+        
+        // Volume bars
+        var volume = {
+            type: 'bar',
+            x: chartData.dates,
+            y: chartData.volume,
+            name: 'Volume',
+            marker: {color: 'rgba(100, 100, 200, 0.3)'},
+            yaxis: 'y2'
+        };
+        
+        var data = [candlestick, vwap, e1_line, e2_line, e3_line, e4_line, 
+                    target_3, target_6, target_10, volume];
+        
+        var layout = {
+            title: {
+                text: 'MAXHEALTH - VWAP Ladder Strategy',
+                font: {size: 24, color: 'white'}
+            },
+            paper_bgcolor: '#1e222d',
+            plot_bgcolor: '#262b3d',
+            xaxis: {
+                title: 'Date',
+                gridcolor: '#333',
+                color: 'white',
+                rangeslider: {visible: false}
+            },
+            yaxis: {
+                title: 'Price (Rs)',
+                gridcolor: '#333',
+                color: 'white',
+                side: 'right'
+            },
+            yaxis2: {
+                title: 'Volume',
+                overlaying: 'y',
+                side: 'left',
+                showgrid: false,
+                color: 'white'
+            },
+            legend: {
+                font: {color: 'white'},
+                bgcolor: 'rgba(30, 34, 45, 0.8)',
+                bordercolor: '#666',
+                borderwidth: 1
+            },
+            hovermode: 'x unified',
+            height: 700,
+            margin: {l: 80, r: 80, t: 80, b: 80}
+        };
+        
+        var config = {
+            displayModeBar: true,
+            displaylogo: false,
+            responsive: true
+        };
+        
+        Plotly.newPlot('chart', data, layout, config);
+    </script>
+</body>
+</html>

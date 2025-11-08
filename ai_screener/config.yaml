@@ -1,0 +1,117 @@
+# AI Stock Screener Configuration
+
+# Trading parameters
+trading:
+  profit_target: 0.03        # 3% profit target
+  stop_loss: 0.015           # 1.5% stop loss
+  forward_days: 5            # Days forward to check for labels (5 days for VWAP strategy)
+  initial_capital: 100000    # Starting capital
+  threshold_amount: 500000   # 5L threshold for VWAP strategy
+  max_investment: 15000      # 15K max investment per day
+
+# Model parameters
+models:
+  # XGBoost
+  xgboost:
+    max_depth: 5
+    n_estimators: 200
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.9
+    
+  # CNN-LSTM
+  cnn_lstm:
+    sequence_length: 20
+    n_features: 7
+    epochs: 50
+    batch_size: 32
+    learning_rate: 0.001
+    
+  # Ensemble
+  ensemble:
+    cnn_lstm_weight: 0.7     # 70% weight for CNN-LSTM
+    xgboost_weight: 0.3      # 30% weight for XGBoost
+    min_confidence: 0.70     # Minimum combined confidence
+    
+# Data parameters
+data:
+  train_split: 0.70          # 70% for training
+  val_split: 0.15            # 15% for validation
+  test_split: 0.15           # 15% for testing
+  data_dir: "../Nify50_data" # Directory with CSV files (10 year data)
+  use_vwap_strategy: true    # Use VWAP ladder strategy for labeling
+
+# Feature selection
+features:
+  core_features:
+    - return_1d
+    - return_5d
+    - return_10d
+    - hl_range_pct
+    - gap_pct
+  
+  candle_features:
+    - body_ratio
+    - upper_wick_ratio
+    - lower_wick_ratio
+    - is_doji
+    - is_hammer
+    - is_shooting_star
+    - bullish_engulfing
+    - bearish_engulfing
+    - consecutive_green
+    - consecutive_red
+  
+  trend_features:
+    - sma_20
+    - sma_50
+    - ema_20
+    - price_vs_sma20
+    - price_vs_sma50
+    - sma20_slope
+    - sma50_slope
+    - ma_cross
+    - ma_death_cross
+  
+  momentum_features:
+    - rsi_14
+    - macd
+    - macd_signal
+    - macd_histogram
+    - macd_cross
+    - stoch_k
+    - stoch_d
+    - williams_r
+    - cci
+    - roc_10
+  
+  volatility_features:
+    - atr_pct
+    - bb_width_pct
+    - bb_position
+    - bb_squeeze
+    - price_vs_bb
+  
+  volume_features:
+    - volume_ratio
+    - volume_spike
+    - obv_change
+    - vwm
+  
+  vwap_features:
+    - vwap_deviation_pct
+    - vwap_slope
+    - vwap_above
+
+# Backtesting
+backtesting:
+  commission: 0.001          # 0.1% commission per trade
+  slippage: 0.0005          # 0.05% slippage
+  max_position_size: 0.1    # 10% of capital per position
+
+# Screener UI
+screener:
+  refresh_interval: 60       # Refresh every 60 seconds
+  max_results: 50            # Maximum stocks to show
+  sort_by: confidence        # Sort by: confidence, symbol, signal
+

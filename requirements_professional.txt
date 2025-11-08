@@ -1,0 +1,109 @@
+# ============================================================
+# PROFESSIONAL AI SCREENER - REQUIREMENTS
+# ============================================================
+
+# Core Python packages
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+tensorflow>=2.13.0  # For LSTM models
+keras>=2.13.0
+
+# Database
+psycopg2-binary>=2.9.7  # PostgreSQL adapter
+SQLAlchemy>=2.0.0  # ORM
+
+# API & Web Framework
+fastapi>=0.103.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+
+# WebSocket
+websocket-client>=1.6.0
+python-socketio>=5.9.0
+
+# Market Data
+yfinance>=0.2.28
+pandas-ta>=0.3.14b  # Technical analysis
+
+# Broker APIs
+dhanhq>=1.3.5  # Dhan API (RECOMMENDED!)
+# kiteconnect>=4.2.0  # Zerodha (uncomment if using)
+# upstox-python-sdk>=2.0.0  # Upstox (uncomment if using)
+
+# Visualization
+plotly>=5.16.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Streamlit (Current UI)
+streamlit>=1.27.0
+streamlit-aggrid>=0.3.4
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0
+requests>=2.31.0
+pytz>=2023.3
+
+# Telegram
+python-telegram-bot>=20.5
+
+# Testing & Monitoring
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Performance
+joblib>=1.3.0
+dask>=2023.9.0  # Parallel computing
+
+# Risk Management
+empyrical>=0.5.5  # Financial risk metrics
+
+# Data Validation
+cerberus>=1.3.5
+
+# Logging
+coloredlogs>=15.0.1
+
+# ============================================================
+# OPTIONAL PACKAGES (For Advanced Features)
+# ============================================================
+
+# React Dashboard (Future)
+# npm install react react-dom axios recharts
+
+# Time Series
+# prophet>=1.1.4  # Facebook Prophet for forecasting
+# statsmodels>=0.14.0  # Statistical models
+
+# Alternative Data
+# tweepy>=4.14.0  # Twitter API
+# newsapi-python>=0.2.7  # News sentiment
+
+# Cloud Deployment
+# boto3>=1.28.0  # AWS
+# google-cloud-storage>=2.10.0  # GCP
+
+# ============================================================
+# INSTALLATION COMMANDS
+# ============================================================
+
+# Basic Installation:
+# pip install -r requirements_professional.txt
+
+# With PostgreSQL (Windows):
+# Download from: https://www.postgresql.org/download/windows/
+# Then: pip install psycopg2-binary
+
+# With Dhan API:
+# pip install dhanhq
+
+# Full Development Setup:
+# pip install -r requirements_professional.txt
+# pip install -e .  # If you have setup.py
+

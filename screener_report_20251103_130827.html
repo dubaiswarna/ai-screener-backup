@@ -1,0 +1,370 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Stock Screener - 2025-11-03</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .summary-card h2 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .summary-card p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .tier-section {
+            margin-bottom: 40px;
+        }
+        
+        .tier-header {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .tier1-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .tier2-header {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+        }
+        
+        .tier3-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        
+        .signal-card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .signal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .tier1-card {
+            border-left: 8px solid #28a745;
+            background: #f8fff9;
+        }
+        
+        .tier2-card {
+            border-left: 8px solid #ffc107;
+            background: #fffef8;
+        }
+        
+        .tier3-card {
+            border-left: 8px solid #dc3545;
+            background: #fff8f8;
+        }
+        
+        .signal-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .signal-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .confidence-high {
+            color: #28a745;
+        }
+        
+        .confidence-medium {
+            color: #ffc107;
+        }
+        
+        .confidence-low {
+            color: #dc3545;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .action-plan {
+            background: #e7f3ff;
+            border-left: 5px solid #0066cc;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 40px;
+        }
+        
+        .action-plan h2 {
+            color: #0066cc;
+            margin-bottom: 20px;
+        }
+        
+        .action-plan ol {
+            font-size: 1.1rem;
+            line-height: 2rem;
+            margin-left: 20px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+            color: #666;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .refresh-btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 AI Stock Screener</h1>
+            <p>Daily Scan for VWAP Ladder Strategy</p>
+            <p style="font-size: 1rem; color: #999;">Monday, November 03, 2025 • 01:08 PM</p>
+        </div>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <h2>42</h2>
+                <p>Stocks Scanned</p>
+            </div>
+            <div class="summary-card">
+                <h2>3</h2>
+                <p>BUY Signals</p>
+            </div>
+            <div class="summary-card">
+                <h2>2</h2>
+                <p>Tier 1 (HIGH)</p>
+            </div>
+            <div class="summary-card">
+                <h2>77.6%</h2>
+                <p>Avg Confidence</p>
+            </div>
+        </div>
+
+        <div class="tier-section">
+            <div class="tier-header tier1-header">
+                🌟 TIER 1 - HIGH CONFIDENCE SIGNALS (Trade These!)
+            </div>
+
+            <div class="signal-card tier1-card">
+                <h3>🎯 RELINFRA</h3>
+                <div class="signal-info">
+                    <div class="info-item">
+                        <div class="info-label">Confidence</div>
+                        <div class="info-value confidence-high">90.8%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Buy Probability</div>
+                        <div class="info-value">90.8%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Current Price</div>
+                        <div class="info-value">Rs 213.98</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Date</div>
+                        <div class="info-value">2025-10-31</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="signal-card tier1-card">
+                <h3>🎯 MAXHEALTH</h3>
+                <div class="signal-info">
+                    <div class="info-item">
+                        <div class="info-label">Confidence</div>
+                        <div class="info-value confidence-high">79.6%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Buy Probability</div>
+                        <div class="info-value">79.6%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Current Price</div>
+                        <div class="info-value">Rs 1152.20</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Date</div>
+                        <div class="info-value">2025-10-31</div>
+                    </div>
+                </div>
+            </div>
+</div>
+        <div class="tier-section">
+            <div class="tier-header tier3-header">
+                ⚠️ TIER 3 - LOW CONFIDENCE SIGNALS (1 stocks - Not Recommended)
+            </div>
+            <p style="padding: 15px; background: #fff3cd; border-radius: 8px;">
+                These signals are from low-volatility stocks. Not suitable for VWAP Ladder strategy.
+            </p>
+        </div>
+
+        <div class="action-plan">
+            <h2>📋 Recommended Action Plan</h2>
+            <ol>
+
+                <li><strong>PRIORITY:</strong> Focus on 2 Tier 1 stocks above
+                    <ul style="margin-top: 10px;">
+                        <li>Copy their CSV files from Nify50_data folder</li>
+                        <li>Run VWAP Filter backtest: <code>python RVwapfilter_ssc.py</code></li>
+                        <li>Leave profit % blank for comparison mode (3%, 6%, 10%)</li>
+                        <li>Select best 2-3 stocks based on profit potential</li>
+                    </ul>
+                </li>
+
+                <li><strong>EXECUTE:</strong> Trade selected stocks using VWAP Ladder Strategy
+                    <ul style="margin-top: 10px;">
+                        <li>4 entry levels: E1=Prev LOW, E2=LOW-1%, E3=Prev VWAP, E4=VWAP-1%</li>
+                        <li>Target: 3%, 6%, or 10% based on backtest</li>
+                        <li>Exit when target hit</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+        
+        <div class="footer">
+            <p><strong>AI Stock Screener</strong> | VWAP Ladder Strategy</p>
+            <p>Models trained on {datetime.now().strftime('%Y-%m-%d')} | Average Buy Precision: 28.6%</p>
+            <p style="margin-top: 15px; font-size: 0.9rem;">
+                ⚠️ <em>Use signals as screening tool only. Always verify with VWAP backtest and your own analysis.</em>
+            </p>
+        </div>
+    </div>
+    
+    <a href="javascript:location.reload()" class="refresh-btn">🔄 Refresh</a>
+    
+    <script>
+        // Auto-refresh every 5 minutes
+        setTimeout(function(){{
+            location.reload();
+        }}, 300000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MCX Commodity Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .timestamp {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .commodity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .commodity-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .commodity-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .commodity-icon {
+            font-size: 3em;
+            margin-right: 15px;
+        }
+        
+        .commodity-title {
+            font-size: 2em;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .price-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .current-price {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .price-change {
+            font-size: 1.2em;
+        }
+        
+        .price-change.positive {
+            color: #4CAF50;
+        }
+        
+        .price-change.negative {
+            color: #f44336;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .ai-signal {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .ai-signal.buy {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+        
+        .ai-signal.hold {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+        
+        .stats-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+        
+        .stats-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        
+        .footer {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            color: #666;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .refresh-btn:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 MCX Commodity Trading Dashboard</h1>
+            <p>AI-Powered Insights for Gold & Silver</p>
+            <div class="timestamp">Last Updated: 2025-11-04 12:13:13</div>
+            <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Dashboard</button>
+        </div>
+        
+        <div class="commodity-grid">
+
+            <div class="commodity-card">
+                <div class="commodity-header">
+                    <div class="commodity-icon">🥇</div>
+                    <div class="commodity-title">GOLD</div>
+                </div>
+                
+                <div class="price-display">
+                    <div class="current-price">$3977.70</div>
+                    <div class="price-change negative">
+                        -22.60 (-0.56%)
+                    </div>
+                </div>
+                
+                <div class="ai-signal hold">
+                    ⏸️ AI SIGNAL: HOLD
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">Low (10Y)</div>
+                        <div class="metric-value">$1050.80</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">High (10Y)</div>
+                        <div class="metric-value">$4336.40</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Average</div>
+                        <div class="metric-value">$1783.88</div>
+                    </div>
+                </div>
+                
+                <div class="stats-section">
+                    <div class="stats-title">📈 Historical Returns</div>
+                    <div class="stat-row">
+                        <span>1 Month Return:</span>
+                        <strong style="color: green">+6.58%</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>3 Months Return:</span>
+                        <strong style="color: green">+19.21%</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>1 Year Return:</span>
+                        <strong style="color: green">+45.16%</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>Data Points:</span>
+                        <strong>2,514 days</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>Date Range:</span>
+                        <strong>2015-11-04 to 2025-11-04</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="commodity-card">
+                <div class="commodity-header">
+                    <div class="commodity-icon">🥈</div>
+                    <div class="commodity-title">SILVER</div>
+                </div>
+                
+                <div class="price-display">
+                    <div class="current-price">$47.24</div>
+                    <div class="price-change negative">
+                        -0.64 (-1.34%)
+                    </div>
+                </div>
+                
+                <div class="ai-signal hold">
+                    ⏸️ AI SIGNAL: HOLD
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">Low (10Y)</div>
+                        <div class="metric-value">$11.73</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">High (10Y)</div>
+                        <div class="metric-value">$53.02</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Average</div>
+                        <div class="metric-value">$21.85</div>
+                    </div>
+                </div>
+                
+                <div class="stats-section">
+                    <div class="stats-title">📈 Historical Returns</div>
+                    <div class="stat-row">
+                        <span>1 Month Return:</span>
+                        <strong style="color: green">+7.92%</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>3 Months Return:</span>
+                        <strong style="color: green">+30.94%</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>1 Year Return:</span>
+                        <strong style="color: green">+44.68%</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>Data Points:</span>
+                        <strong>2,514 days</strong>
+                    </div>
+                    <div class="stat-row">
+                        <span>Date Range:</span>
+                        <strong>2015-11-04 to 2025-11-04</strong>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="footer">
+            <p><strong>Note:</strong> AI predictions are based on historical patterns. Past performance does not guarantee future results.</p>
+            <p style="margin-top: 10px;">Data Source: Yahoo Finance | AI Model: XGBoost with 89 Technical Features</p>
+        </div>
+    </div>
+</body>
+</html>
