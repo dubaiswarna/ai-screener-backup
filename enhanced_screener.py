@@ -842,9 +842,19 @@ elif page == "S&R Analysis":
                                     
                                     if response and 'data' in response and response['data']:
                                         data_list = response['data']
-                                        df = pd.DataFrame(data_list)
-                                        if 'start_Time' in df.columns:
-                                            df = df.rename(columns={'start_Time': 'time'})
+                                        
+                                        if isinstance(data_list, list) and len(data_list) > 0:
+                                            df = pd.DataFrame(data_list)
+                                            
+                                            # Rename time column
+                                            if 'start_Time' in df.columns:
+                                                df = df.rename(columns={'start_Time': 'time'})
+                                            elif 'timestamp' in df.columns:
+                                                df = df.rename(columns={'timestamp': 'time'})
+                                            else:
+                                                df['time'] = pd.date_range(end=datetime.now(), periods=len(df), freq='D')
+                                        else:
+                                            df = None
                             except:
                                 pass
                         
@@ -1017,13 +1027,27 @@ elif page == "S&R Analysis":
                                     if response and 'data' in response and response['data']:
                                         # Convert to DataFrame
                                         data_list = response['data']
-                                        df = pd.DataFrame(data_list)
                                         
-                                        # Rename columns to match expected format
-                                        if 'start_Time' in df.columns:
-                                            df = df.rename(columns={'start_Time': 'time'})
-                                        
-                                        st.success(f"✅ Fetched {len(df)} days of real data from Dhan!")
+                                        if isinstance(data_list, list) and len(data_list) > 0:
+                                            df = pd.DataFrame(data_list)
+                                            
+                                            # Ensure required columns exist
+                                            required_cols = ['open', 'high', 'low', 'close', 'volume']
+                                            if all(col in df.columns for col in required_cols):
+                                                # Rename time column if needed
+                                                if 'start_Time' in df.columns:
+                                                    df = df.rename(columns={'start_Time': 'time'})
+                                                elif 'timestamp' in df.columns:
+                                                    df = df.rename(columns={'timestamp': 'time'})
+                                                else:
+                                                    df['time'] = pd.date_range(end=datetime.now(), periods=len(df), freq='D')
+                                                
+                                                st.success(f"✅ Fetched {len(df)} days of REAL data from Dhan API!")
+                                            else:
+                                                df = None
+                                                st.warning(f"⚠️ Missing required columns in Dhan data.")
+                                        else:
+                                            df = None
                                     else:
                                         df = None
                                         st.warning("⚠️ No data returned from Dhan. Using sample data.")
