@@ -366,7 +366,7 @@ class MultiModeBacktestEngine:
 
 def load_stock_data(symbols, start_date, end_date):
     stock_data = {}
-    data_dir = Path("../Nifty200_Data")
+    data_dir = Path(__file__).parent / "data_till_feb2025"
     
     for symbol in symbols:
         data_file = data_dir / f"NSE_{symbol}_1D.csv"

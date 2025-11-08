@@ -140,9 +140,10 @@ st.sidebar.subheader("📍 Navigation")
 page = st.sidebar.radio(
     "Go to:",
     ["Dashboard", "Active Signals", "Generate New Signal", "S&R Analysis", 
-     "Backtest - Technical", "Backtest - Hybrid", "Backtest - Multi-Mode",
      "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
+
+# Note: Backtest pages removed from live version (they run locally with data files)
 
 # ============================================================
 # PAGE: DASHBOARD
