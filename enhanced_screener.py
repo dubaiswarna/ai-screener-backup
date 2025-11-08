@@ -352,6 +352,7 @@ elif page == "Generate New Signal":
 elif page == "AI Screener":
     st.header("🤖 AI Screener - Pure AI Predictions")
     
+    st.warning("⚠️ **DEMO MODE**: Using simulated predictions for demonstration. Connect real Dhan API in local version for live data.")
     st.info("🎯 Uses AI models (XGBoost + CNN-LSTM ensemble) to screen stocks. Only shows high-confidence AI predictions (70%+).")
     
     st.markdown("""
@@ -476,6 +477,7 @@ elif page == "AI Screener":
 elif page == "Hybrid Screener":
     st.header("🔀 Hybrid Screener - AI + Technical Fallback")
     
+    st.warning("⚠️ **DEMO MODE**: Using simulated predictions for demonstration. Connect real Dhan API in local version for live data.")
     st.info("🎯 Smart screening: Uses AI when confident (60%+), falls back to proven Technical Analysis patterns when AI is uncertain.")
     
     st.markdown("""
@@ -726,6 +728,7 @@ elif page == "Hybrid Screener":
 elif page == "S&R Analysis":
     st.header("📈 Support & Resistance Analysis")
     
+    st.warning("⚠️ **DEMO MODE**: Currently using simulated data for demonstration. Real Dhan API integration available in local version.")
     st.info("🎯 Analyze support and resistance levels for stocks with AI-powered insights!")
     
     # Mode selection
