@@ -32,8 +32,8 @@ print()
 
 response = dhan.historical_daily_data(
     security_id=security_id,
-    exchange_segment=dhanhq.NSE,
-    instrument_type=dhanhq.EQUITY,
+    exchange_segment='NSE',
+    instrument_type='EQUITY',
     from_date=str(start_date),
     to_date=str(end_date)
 )
