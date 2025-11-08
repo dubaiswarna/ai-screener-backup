@@ -1,0 +1,94 @@
+# FEB 2025 BACKTEST - EXCEL FILE LOCATION
+
+## File Details
+
+**File Name:** signals_feb2025_20251107_113835.xlsx
+
+**Full Path:** C:\python\MG AI\Feb2025_Experiment\signals_feb2025_20251107_113835.xlsx
+
+## What's Inside
+
+### Sheet 1: All Signals (30 signals)
+Complete list of all generated signals with:
+- Symbol
+- Signal (BUY/SELL)
+- Confidence (65-95%)
+- Entry Price
+- Target Price (+10%)
+- Stop Loss (-7%)
+- RSI
+- Momentum
+- Validation Details
+
+### Sheet 2: High Confidence - 90%+ (9 signals)
+Top tier signals:
+1. SRF - 95.0%
+2. JKCEMENT - 93.6%
+3. KOTAKBANK - 93.4%
+4. COROMANDEL - 93.3%
+5. BIOCON - 93.1%
+6. SHREECEM - 92.2%
+7. PAGEIND - 92.1%
+8. NAVINFLUOR - 91.4%
+9. (One more 90%+ signal)
+
+### Sheet 3: Strong Confidence - 80-89% (7 signals)
+- JUBLFOOD - 89.4%
+- COFORGE - 85.4%
+- EICHERMOT - 84.8%
+- AXISBANK - 82.7%
+- NAUKRI - 82.6%
+- LUPIN - 81.8%
+- HCLTECH - 81.0%
+
+### Sheet 4: Good Confidence - 70-79% (8 signals)
+- ICICIBANK - 79.9%
+- INFY - 78.0%
+- BHARTIARTL - 76.6%
+- BAJFINANCE - 76.9%
+- INDHOTEL - 75.4%
+- TATASTEEL - 73.3%
+- PAYTM - 73.2%
+- JSWSTEEL - 71.7%
+
+### Sheet 5: Testing - 65-69% (6 signals)
+Lower confidence signals for testing
+
+### Sheet 6: Summary
+Statistics and overview of all signals
+
+## Key Insights
+
+**Market Sentiment (Feb 2025):** BEARISH
+- BUY Signals: 1
+- SELL Signals: 29
+
+**Signal Quality:**
+- Average Confidence: ~78%
+- Highest: 95.0% (SRF)
+- Lowest: 65.3% (WIPRO)
+
+## How to Use
+
+1. **For Trading:** Focus on Sheet 2 (90%+ confidence)
+2. **For Portfolio:** Combine Sheets 2 + 3 (80%+ confidence)
+3. **For Analysis:** Review all signals in Sheet 1
+4. **For Stats:** Check Sheet 6 summary
+
+## Important Notes
+
+⚠️ These are HISTORICAL signals (Feb 2025 data)
+⚠️ For LIVE trading, generate signals with CURRENT data
+⚠️ Most signals are SELL (bearish market in Feb 2025)
+⚠️ Testing mode: 65% confidence threshold (relaxed)
+
+## Files Available
+
+1. **Excel:** signals_feb2025_20251107_113835.xlsx (THIS FILE)
+2. **CSV:** signals_feb2025_20251107_113835.csv (Raw data)
+3. **Report:** FEB2025_SIGNALS_COMPLETE.md (Detailed analysis)
+
+---
+
+Excel file opening now! 📊✨
+
