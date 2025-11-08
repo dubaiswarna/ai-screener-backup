@@ -728,7 +728,7 @@ elif page == "Hybrid Screener":
 elif page == "S&R Analysis":
     st.header("📈 Support & Resistance Analysis")
     
-    st.info("🎯 Analyze support and resistance levels for stocks with AI-powered insights! Fetches real data from Dhan API.")
+    st.info("🎯 Analyze support and resistance levels for stocks with AI-powered insights! Fetches REAL data from Yahoo Finance (no API key needed!)")
     
     # Mode selection
     analysis_mode = st.radio(
@@ -801,22 +801,8 @@ elif page == "S&R Analysis":
                 # Initialize S&R calculator
                 sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
                 
-                # Initialize Dhan once
-                try:
-                    from dhanhq import dhanhq
-                    from dhan_security_ids import get_security_id
-                    import os
-                    from dotenv import load_dotenv
-                    
-                    load_dotenv()
-                    client_id = os.getenv('DHAN_CLIENT_ID')
-                    access_token = os.getenv('DHAN_ACCESS_TOKEN')
-                    
-                    dhan = None
-                    if client_id and access_token:
-                        dhan = dhanhq(client_id, access_token)
-                except:
-                    dhan = None
+                # Use yfinance for real data (free, no API key needed!)
+                import yfinance as yf
                 
                 for idx, symbol in enumerate(symbols_list):
                     status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(symbols_list)})")
@@ -824,41 +810,24 @@ elif page == "S&R Analysis":
                     try:
                         df = None
                         
-                        # Try to fetch real data from Dhan
-                        if dhan:
-                            try:
-                                security_id = get_security_id(symbol.upper())
-                                if security_id:
-                                    end_date = datetime.now().date()
-                                    start_date = (datetime.now() - timedelta(days=200)).date()
-                                    
-                                    response = dhan.historical_daily_data(
-                                        security_id=security_id,
-                                        exchange_segment='NSE',
-                                        instrument_type='EQUITY',
-                                        from_date=str(start_date),
-                                        to_date=str(end_date)
-                                    )
-                                    
-                                    if response and 'data' in response and response['data']:
-                                        data_list = response['data']
-                                        
-                                        if isinstance(data_list, list) and len(data_list) > 0:
-                                            df = pd.DataFrame(data_list)
-                                            
-                                            # Rename time column
-                                            if 'start_Time' in df.columns:
-                                                df = df.rename(columns={'start_Time': 'time'})
-                                            elif 'timestamp' in df.columns:
-                                                df = df.rename(columns={'timestamp': 'time'})
-                                            else:
-                                                df['time'] = pd.date_range(end=datetime.now(), periods=len(df), freq='D')
-                                        else:
-                                            df = None
-                            except:
-                                pass
+                        # Fetch from Yahoo Finance
+                        try:
+                            ticker = yf.Ticker(f"{symbol.upper()}.NS")
+                            df_raw = ticker.history(period="6mo", interval="1d")
+                            
+                            if not df_raw.empty and len(df_raw) > 50:
+                                df = pd.DataFrame({
+                                    'time': df_raw.index,
+                                    'open': df_raw['Open'].values,
+                                    'high': df_raw['High'].values,
+                                    'low': df_raw['Low'].values,
+                                    'close': df_raw['Close'].values,
+                                    'volume': df_raw['Volume'].values
+                                })
+                        except:
+                            pass
                         
-                        # Fallback to sample data if Dhan fails
+                        # Fallback to sample data if yfinance fails
                         if df is None or df.empty:
                             import numpy as np
                             dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
@@ -989,77 +958,35 @@ elif page == "S&R Analysis":
                     # Initialize S&R calculator
                     sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
                     
-                    # Try to get data from Dhan
+                    # Try to get data from yfinance (free, no API key needed!)
                     try:
+                        import yfinance as yf
                         from datetime import datetime, timedelta
-                        from dhanhq import dhanhq
-                        import os
-                        from dotenv import load_dotenv
                         
-                        load_dotenv()
-                        client_id = os.getenv('DHAN_CLIENT_ID')
-                        access_token = os.getenv('DHAN_ACCESS_TOKEN')
+                        st.info(f"📡 Fetching REAL data from Yahoo Finance for {symbol_input}...")
                         
-                        if client_id and access_token:
-                            dhan = dhanhq(client_id, access_token)
+                        # yfinance uses .NS suffix for NSE stocks
+                        ticker = yf.Ticker(f"{symbol_input.upper()}.NS")
+                        
+                        # Fetch 1 year of data
+                        df_raw = ticker.history(period="1y", interval="1d")
+                        
+                        if not df_raw.empty and len(df_raw) > 50:
+                            # Convert to expected format
+                            df = pd.DataFrame({
+                                'time': df_raw.index,
+                                'open': df_raw['Open'].values,
+                                'high': df_raw['High'].values,
+                                'low': df_raw['Low'].values,
+                                'close': df_raw['Close'].values,
+                                'volume': df_raw['Volume'].values
+                            })
                             
-                            # Get security ID for this symbol
-                            try:
-                                from dhan_security_ids import get_security_id
-                                security_id = get_security_id(symbol_input.upper())
-                                
-                                if security_id:
-                                    # Fetch historical data (1 year daily data)
-                                    end_date = datetime.now().date()
-                                    start_date = (datetime.now() - timedelta(days=365)).date()
-                                    
-                                    st.info(f"📡 Fetching real data from Dhan API for {symbol_input}...")
-                                    
-                                    # Fetch from Dhan
-                                    response = dhan.historical_daily_data(
-                                        security_id=security_id,
-                                        exchange_segment='NSE',
-                                        instrument_type='EQUITY',
-                                        from_date=str(start_date),
-                                        to_date=str(end_date)
-                                    )
-                                    
-                                    if response and 'data' in response and response['data']:
-                                        # Convert to DataFrame
-                                        data_list = response['data']
-                                        
-                                        if isinstance(data_list, list) and len(data_list) > 0:
-                                            df = pd.DataFrame(data_list)
-                                            
-                                            # Ensure required columns exist
-                                            required_cols = ['open', 'high', 'low', 'close', 'volume']
-                                            if all(col in df.columns for col in required_cols):
-                                                # Rename time column if needed
-                                                if 'start_Time' in df.columns:
-                                                    df = df.rename(columns={'start_Time': 'time'})
-                                                elif 'timestamp' in df.columns:
-                                                    df = df.rename(columns={'timestamp': 'time'})
-                                                else:
-                                                    df['time'] = pd.date_range(end=datetime.now(), periods=len(df), freq='D')
-                                                
-                                                st.success(f"✅ Fetched {len(df)} days of REAL data from Dhan API!")
-                                            else:
-                                                df = None
-                                                st.warning(f"⚠️ Missing required columns in Dhan data.")
-                                        else:
-                                            df = None
-                                    else:
-                                        df = None
-                                        st.warning("⚠️ No data returned from Dhan. Using sample data.")
-                                else:
-                                    df = None
-                                    st.warning(f"⚠️ Security ID not found for {symbol_input}. Using sample data.")
-                            except Exception as e:
-                                df = None
-                                st.warning(f"⚠️ Dhan API error: {e}. Using sample data.")
-                            
-                            if df is None:
-                                st.info("💡 Using sample data for demonstration.")
+                            st.success(f"✅ Fetched {len(df)} days of REAL data from Yahoo Finance!")
+                            st.caption(f"Latest price: ₹{df['close'].iloc[-1]:.2f}")
+                        else:
+                            df = None
+                            st.warning(f"⚠️ No data found for {symbol_input}.NS on Yahoo Finance.")
                                 # Generate sample data for demonstration
                                 import numpy as np
                                 dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
