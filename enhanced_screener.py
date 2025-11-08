@@ -987,62 +987,10 @@ elif page == "S&R Analysis":
                         else:
                             df = None
                             st.warning(f"⚠️ No data found for {symbol_input}.NS on Yahoo Finance.")
-                                # Generate sample data for demonstration
-                                import numpy as np
-                                dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
-                                base_price = 2500
-                                df = pd.DataFrame({
-                                    'time': dates,
-                                    'open': base_price + np.random.randn(200) * 50,
-                                    'high': base_price + np.random.randn(200) * 50 + 20,
-                                    'low': base_price + np.random.randn(200) * 50 - 20,
-                                    'close': base_price + np.random.randn(200) * 50,
-                                    'volume': np.random.randint(1000000, 5000000, 200)
-                                })
-                                # Add trend
-                                df['close'] = df['close'] + np.arange(200) * 2
-                                df['high'] = df[['high', 'close']].max(axis=1) + 10
-                                df['low'] = df[['low', 'close']].min(axis=1) - 10
-                                df['open'] = df['close'].shift(1).fillna(df['close'])
-                        else:
-                            st.warning("⚠️ Dhan credentials not found. Using sample data.")
-                            # Generate sample data
-                            import numpy as np
-                            dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
-                            base_price = 2500
-                            df = pd.DataFrame({
-                                'time': dates,
-                                'open': base_price + np.random.randn(200) * 50,
-                                'high': base_price + np.random.randn(200) * 50 + 20,
-                                'low': base_price + np.random.randn(200) * 50 - 20,
-                                'close': base_price + np.random.randn(200) * 50,
-                                'volume': np.random.randint(1000000, 5000000, 200)
-                            })
-                            # Add trend
-                            df['close'] = df['close'] + np.arange(200) * 2
-                            df['high'] = df[['high', 'close']].max(axis=1) + 10
-                            df['low'] = df[['low', 'close']].min(axis=1) - 10
-                            df['open'] = df['close'].shift(1).fillna(df['close'])
-                            
+                    
                     except Exception as e:
-                        st.warning(f"⚠️ Could not fetch live data: {e}. Using sample data.")
-                        # Generate sample data
-                        import numpy as np
-                        dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
-                        base_price = 2500
-                        df = pd.DataFrame({
-                            'time': dates,
-                            'open': base_price + np.random.randn(200) * 50,
-                            'high': base_price + np.random.randn(200) * 50 + 20,
-                            'low': base_price + np.random.randn(200) * 50 - 20,
-                            'close': base_price + np.random.randn(200) * 50,
-                            'volume': np.random.randint(1000000, 5000000, 200)
-                        })
-                        # Add trend
-                        df['close'] = df['close'] + np.arange(200) * 2
-                        df['high'] = df[['high', 'close']].max(axis=1) + 10
-                        df['low'] = df[['low', 'close']].min(axis=1) - 10
-                        df['open'] = df['close'].shift(1).fillna(df['close'])
+                        df = None
+                        st.warning(f"⚠️ Error fetching data: {e}")
                     
                     if df is not None and not df.empty:
                         # Calculate S&R levels
