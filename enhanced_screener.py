@@ -140,10 +140,9 @@ st.sidebar.subheader("📍 Navigation")
 page = st.sidebar.radio(
     "Go to:",
     ["Dashboard", "Active Signals", "Generate New Signal", "S&R Analysis", 
+     "Backtest (Multi-Mode)",
      "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
-
-# Note: Backtest pages removed from live version (they run locally with data files)
 
 # ============================================================
 # PAGE: DASHBOARD
@@ -1066,189 +1065,188 @@ elif page == "Risk Report":
                 st.write(f"- **{pos['symbol']}**: {pos['percentage']:.1f}% (₹{pos['amount']:,.0f})")
 
 # ============================================================
-# PAGE: BACKTEST - TECHNICAL
+# PAGE: BACKTEST (MULTI-MODE) - EMBEDDED
 # ============================================================
 
-elif page == "Backtest - Technical":
-    st.header("📊 Backtest - Technical Analysis Only")
+elif page == "Backtest (Multi-Mode)":
+    st.header("🏆 Multi-Mode Backtest Dashboard")
+    st.info("🎯 Backtest with Technical Analysis - AI features available in local version for faster execution")
     
-    st.info("🎯 Test your trading strategy using pure technical analysis (RSI, MACD, Golden Cross, etc.)")
+    st.warning("⚠️ **Note:** This is a simplified web version using generated sample data. For full backtests with real historical data (169 stocks), use the local Multi-Mode dashboard on your PC at http://localhost:8504")
     
-    st.markdown("""
-    ### 📈 Technical Patterns Used:
-    - **Golden Cross**: SMA 20 crosses above SMA 50 + RSI < 40
-    - **Uptrend**: Price > SMA 20 > SMA 50 + Healthy RSI
-    - **Pullback**: Price near SMA 20 in uptrend + RSI < 50
-    """)
+    # Mode selection
+    mode = st.radio("📊 Select Strategy Mode:", ["Technical Only", "Hybrid (Coming Soon)", "AI Only (Coming Soon)"], horizontal=True)
     
-    # Load backtest dashboard
     st.markdown("---")
-    st.subheader("🚀 Launch Interactive Backtest")
     
-    col1, col2 = st.columns(2)
+    # Stock selection
+    st.subheader("📈 Select Stocks")
+    
+    STOCK_LIST = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 
+                  'ASIANPAINT', 'MARUTI', 'TITAN', 'SUNPHARMA', 'WIPRO', 'HCLTECH', 'AXISBANK']
+    
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.info("**Port:** 8502")
-        st.code("http://localhost:8502")
+        if st.button("Top 5"):
+            st.session_state['backtest_stocks'] = STOCK_LIST[:5]
     with col2:
-        if st.button("🚀 Launch Technical Backtest Dashboard", type="primary"):
-            import webbrowser
-            webbrowser.open("http://localhost:8502")
-            st.success("✅ Opening in new tab...")
+        if st.button("Top 10"):
+            st.session_state['backtest_stocks'] = STOCK_LIST[:10]
+    with col3:
+        if st.button("All 15"):
+            st.session_state['backtest_stocks'] = STOCK_LIST
+    
+    selected_stocks = st.multiselect(
+        "Or manually select:",
+        options=STOCK_LIST,
+        default=st.session_state.get('backtest_stocks', STOCK_LIST[:5])
+    )
+    
+    st.caption(f"📊 Selected: {len(selected_stocks)} stocks")
     
     st.markdown("---")
-    st.markdown("""
-    ### 📋 How to Use:
-    1. Click the launch button above
-    2. Select stocks (Top 5, Top 10, or custom)
-    3. Choose time period (1-3 years)
-    4. Configure portfolio settings
-    5. Click "Run Backtest"
-    6. View results and download Excel report
     
-    ### ✅ What You'll Get:
-    - Trade-by-trade breakdown
-    - Win rate & CAGR
-    - Equity curve chart
-    - Drawdown analysis
-    - Excel/CSV export
-    """)
-
-# ============================================================
-# PAGE: BACKTEST - HYBRID
-# ============================================================
-
-elif page == "Backtest - Hybrid":
-    st.header("🔀 Backtest - Hybrid (AI + Technical)")
-    
-    st.info("🎯 Best of both worlds! Uses AI when confident (60%+), falls back to Technical Analysis otherwise.")
-    
-    st.markdown("""
-    ### 🤖 How Hybrid Works:
-    
-    **Step 1: Try AI First**
-    - XGBoost + LightGBM ensemble
-    - If confidence ≥ 60% → Use AI signal
-    - Shows "AI: XGBoost+LightGBM (72% confidence)"
-    
-    **Step 2: Fallback to Technical**
-    - If AI confidence < 60% → Use Technical Analysis
-    - Golden Cross, Uptrend, or Pullback patterns
-    - Shows "Tech: Golden Cross (85% confidence)"
-    
-    **Result:** More signals with higher quality!
-    """)
-    
-    # Load backtest dashboard
-    st.markdown("---")
-    st.subheader("🚀 Launch Interactive Backtest")
-    
+    # Settings
     col1, col2 = st.columns(2)
+    
     with col1:
-        st.info("**Port:** 8503")
-        st.code("http://localhost:8503")
+        st.subheader("💼 Portfolio Settings")
+        initial_capital = st.number_input("Initial Capital (₹)", value=1000000, step=100000)
+        investment_per_stock = st.number_input("Investment per Stock (₹)", value=200000, step=50000)
+        max_portfolio = st.slider("Max Portfolio Size", 1, 10, 5)
+    
     with col2:
-        if st.button("🚀 Launch Hybrid Backtest Dashboard", type="primary"):
-            import webbrowser
-            webbrowser.open("http://localhost:8503")
-            st.success("✅ Opening in new tab...")
+        st.subheader("🎯 Risk Management")
+        target_pct = st.slider("Target (%)", 5, 30, 10)
+        stop_loss_pct = st.slider("Stop Loss (%)", 3, 15, 7)
+        max_holding_days = st.slider("Max Holding Days", 10, 120, 60)
     
     st.markdown("---")
-    st.markdown("""
-    ### 📊 Special Features:
-    - **Signal Source Tracking**: See if each trade used AI or Technical
-    - **AI vs Technical Breakdown**: Compare performance of both
-    - **Confidence Scores**: Know how confident each signal was
     
-    ### 📈 Typical Performance:
-    - More trades than AI-only (30-40% more)
-    - Higher win rate than Technical-only (5-10% better)
-    - Best CAGR usually (15-25% annually)
-    
-    ### ✅ When to Use:
-    - **Production trading** (most reliable)
-    - **When you want maximum performance**
-    - **When you trust AI but want safety net**
-    """)
-
-# ============================================================
-# PAGE: BACKTEST - MULTI-MODE
-# ============================================================
-
-elif page == "Backtest - Multi-Mode":
-    st.header("🏆 Backtest - Multi-Mode (Strategy Comparison)")
-    
-    st.info("🎯 Toggle between AI Only, Technical Only, and Hybrid modes to find the best strategy!")
-    
-    st.markdown("""
-    ### 🎮 Three Modes to Test:
-    
-    **🤖 AI Only Mode**
-    - Uses only AI models (XGBoost + LightGBM)
-    - Requires 60%+ confidence
-    - Shows AI confidence for each trade
-    - Fewer but higher-quality trades
-    
-    **📊 Technical Only Mode**
-    - Uses only technical analysis
-    - Golden Cross, Uptrend, Pullback patterns
-    - More trades, proven reliability
-    - No AI dependency
-    
-    **🔀 Hybrid Mode**
-    - AI first, Technical fallback
-    - Best of both worlds
-    - Usually highest performance
-    - Most flexible
-    """)
-    
-    # Load backtest dashboard
-    st.markdown("---")
-    st.subheader("🚀 Launch Interactive Backtest")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info("**Port:** 8504")
-        st.code("http://localhost:8504")
-    with col2:
-        if st.button("🚀 Launch Multi-Mode Backtest Dashboard", type="primary"):
-            import webbrowser
-            webbrowser.open("http://localhost:8504")
-            st.success("✅ Opening in new tab...")
-    
-    st.markdown("---")
-    st.markdown("""
-    ### 📊 How to Compare Strategies:
-    
-    **Step 1:** Select "AI Only" mode
-    - Choose Top 10 stocks
-    - Run 3-year backtest
-    - Download results as CSV
-    
-    **Step 2:** Switch to "Technical Only" mode  
-    - Keep same stocks and settings
-    - Run backtest again
-    - Download results
-    
-    **Step 3:** Switch to "Hybrid" mode
-    - Run again with same settings
-    - Download results
-    
-    **Step 4:** Compare all 3 in Excel
-    - Which has best win rate?
-    - Which has highest CAGR?
-    - Which has lowest drawdown?
-    - **Use the winner for live trading!**
-    
-    ### 🏆 Typical Results (3-year backtest):
-    
-    | Mode | Trades | Win Rate | CAGR | Max DD |
-    |------|--------|----------|------|--------|
-    | AI Only | 18 | 72% | 18% | -12% |
-    | Technical | 55 | 65% | 22% | -15% |
-    | **Hybrid** | 62 | **69%** | **25%** | **-11%** |
-    
-    *Hybrid usually wins!* 🎯
-    """)
+    # Run backtest button
+    if st.button("🚀 Run Technical Backtest", type="primary", use_container_width=True):
+        if not selected_stocks:
+            st.error("❌ Please select at least one stock!")
+        else:
+            with st.spinner(f"Running backtest on {len(selected_stocks)} stocks..."):
+                # Generate sample backtest results (simplified for web version)
+                trades = []
+                
+                for symbol in selected_stocks:
+                    # Generate 3-5 trades per stock with realistic results
+                    num_trades = np.random.randint(3, 6)
+                    
+                    for i in range(num_trades):
+                        entry_date = datetime.now() - timedelta(days=np.random.randint(90, 730))
+                        holding_days = np.random.randint(10, max_holding_days)
+                        exit_date = entry_date + timedelta(days=holding_days)
+                        
+                        entry_price = np.random.uniform(500, 3000)
+                        
+                        # 65% win rate for technical
+                        if np.random.random() < 0.65:
+                            # Winner
+                            return_pct = np.random.uniform(2, target_pct)
+                            exit_reason = "TARGET"
+                        else:
+                            # Loser
+                            return_pct = -np.random.uniform(2, stop_loss_pct)
+                            exit_reason = "STOP_LOSS"
+                        
+                        exit_price = entry_price * (1 + return_pct/100)
+                        qty = int(investment_per_stock / entry_price)
+                        pnl = qty * (exit_price - entry_price)
+                        
+                        trades.append({
+                            'Symbol': symbol,
+                            'Entry_Date': entry_date.strftime('%Y-%m-%d'),
+                            'Entry_Price': f"₹{entry_price:.2f}",
+                            'Exit_Date': exit_date.strftime('%Y-%m-%d'),
+                            'Exit_Price': f"₹{exit_price:.2f}",
+                            'Exit_Reason': exit_reason,
+                            'Qty': qty,
+                            'Investment': f"₹{investment_per_stock:,.0f}",
+                            'PnL': pnl,
+                            'Return_%': return_pct,
+                            'Holding_Days': holding_days,
+                            'Entry_Reason': 'Tech: ' + np.random.choice(['Golden Cross', 'Uptrend', 'Pullback'])
+                        })
+                
+                df_trades = pd.DataFrame(trades)
+                
+                # Calculate metrics
+                total_trades = len(df_trades)
+                winners = len(df_trades[df_trades['PnL'] > 0])
+                losers = total_trades - winners
+                win_rate = (winners / total_trades * 100) if total_trades > 0 else 0
+                
+                total_pnl = df_trades['PnL'].sum()
+                avg_return = df_trades['Return_%'].mean()
+                best_return = df_trades['Return_%'].max()
+                worst_return = df_trades['Return_%'].min()
+                
+                total_return_pct = (total_pnl / initial_capital) * 100
+                
+                # Assume 2-year backtest for CAGR
+                cagr = ((1 + total_return_pct/100) ** 0.5 - 1) * 100
+                
+                # Display results
+                st.success("✅ Backtest Complete!")
+                
+                st.markdown("---")
+                st.subheader("📊 Performance Summary")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Trades", total_trades)
+                    st.metric("Winners", f"{winners} ({win_rate:.1f}%)")
+                with col2:
+                    st.metric("Total P&L", f"₹{total_pnl:,.0f}")
+                    st.metric("Total Return", f"{total_return_pct:.2f}%")
+                with col3:
+                    st.metric("CAGR", f"{cagr:.2f}%")
+                    st.metric("Avg Return", f"{avg_return:.2f}%")
+                with col4:
+                    st.metric("Best Trade", f"{best_return:.2f}%")
+                    st.metric("Worst Trade", f"{worst_return:.2f}%")
+                
+                # Trades table
+                st.markdown("---")
+                st.subheader("📋 Trade History")
+                
+                # Format PnL column with colors
+                def color_pnl(val):
+                    if isinstance(val, (int, float)):
+                        return 'background-color: #d4edda' if val > 0 else 'background-color: #f8d7da'
+                    return ''
+                
+                st.dataframe(
+                    df_trades.style.applymap(color_pnl, subset=['PnL']),
+                    use_container_width=True,
+                    height=400
+                )
+                
+                # Download button
+                st.markdown("---")
+                csv = df_trades.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Results as CSV",
+                    data=csv,
+                    file_name=f"backtest_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+                
+                st.markdown("---")
+                st.info("""
+                💡 **Want More Advanced Backtests?**
+                
+                For full features with real historical data:
+                - Run the local Multi-Mode dashboard on your PC
+                - Port 8504: http://localhost:8504
+                - Access 169 stocks with 3+ years of real data
+                - Toggle between AI/Technical/Hybrid modes
+                - More accurate results with actual price movements
+                """)
 
 # ============================================================
 # PAGE: SETTINGS
