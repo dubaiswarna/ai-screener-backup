@@ -439,6 +439,7 @@ class SupportResistanceCalculator:
     def calculate_moving_averages(self, df: pd.DataFrame) -> Dict:
         """
         Calculate moving averages and trend context
+        IMPROVED: Works with any data length (uses EMA 50/200 if available, else SMA 20/50)
         
         Args:
             df: Price DataFrame
@@ -446,18 +447,34 @@ class SupportResistanceCalculator:
         Returns:
             Dict with MA values and trend analysis
         """
-        if df is None or len(df) < 200:
-            return {'available': False, 'reason': 'Insufficient data for 200 MA'}
+        if df is None or len(df) < 20:
+            return {'available': False, 'reason': 'Insufficient data (need at least 20 days)'}
         
-        # Calculate EMAs
+        # Calculate EMAs (use what's available)
         df_copy = df.copy()
-        df_copy['EMA50'] = df_copy['close'].ewm(span=50, adjust=False).mean()
-        df_copy['EMA200'] = df_copy['close'].ewm(span=200, adjust=False).mean()
-        
-        # Get current values
         current_price = df_copy['close'].iloc[-1]
-        ema50 = df_copy['EMA50'].iloc[-1]
-        ema200 = df_copy['EMA200'].iloc[-1]
+        
+        # Try EMA 50/200 first (best), fallback to SMA 20/50 if insufficient data
+        if len(df) >= 200:
+            df_copy['MA50'] = df_copy['close'].ewm(span=50, adjust=False).mean()
+            df_copy['MA200'] = df_copy['close'].ewm(span=200, adjust=False).mean()
+            ma50 = df_copy['MA50'].iloc[-1]
+            ma200 = df_copy['MA200'].iloc[-1]
+            ma_type = "EMA"
+        elif len(df) >= 50:
+            df_copy['MA20'] = df_copy['close'].rolling(20).mean()
+            df_copy['MA50'] = df_copy['close'].rolling(50).mean()
+            ma50 = df_copy['MA50'].iloc[-1]
+            ma200 = df_copy['MA20'].iloc[-1]  # Use MA20 as proxy for MA200
+            ma_type = "SMA"
+        else:
+            df_copy['MA20'] = df_copy['close'].rolling(20).mean()
+            ma50 = df_copy['MA20'].iloc[-1]
+            ma200 = df_copy['MA20'].iloc[-1]
+            ma_type = "SMA"
+        
+        ema50 = ma50  # Keep variable names for compatibility
+        ema200 = ma200
         
         # Determine trend
         if current_price > ema50 > ema200:
