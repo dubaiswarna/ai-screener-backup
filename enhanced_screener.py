@@ -36,6 +36,29 @@ except ImportError:
     ALL_ASSETS = []
 
 # ============================================================
+# HELPER: Symbol Mapping for Yahoo Finance
+# ============================================================
+
+def get_yfinance_symbol(symbol):
+    """
+    Convert symbol to Yahoo Finance format.
+    
+    Commodities use different symbols:
+    - GOLD -> GC=F (Gold Futures)
+    - SILVER -> SI=F (Silver Futures)
+    - Stocks -> SYMBOL.NS (NSE stocks)
+    """
+    commodity_map = {
+        'GOLD': 'GC=F',      # Gold Futures (COMEX)
+        'SILVER': 'SI=F',    # Silver Futures (COMEX)
+    }
+    
+    if symbol.upper() in commodity_map:
+        return commodity_map[symbol.upper()]
+    else:
+        return f"{symbol}.NS"
+
+# ============================================================
 # PAGE CONFIGURATION
 # ============================================================
 
@@ -530,11 +553,11 @@ elif page == "Technical Screener":
                         hist = load_local_data(symbol, lookback_days + 50)  # Extra days for MA calculation
                         if hist is None or hist.empty or len(hist) < 20:
                             # Fall back to Yahoo Finance if local data not available
-                            ticker = yf.Ticker(f"{symbol}.NS")
+                            ticker = yf.Ticker(get_yfinance_symbol(symbol))
                             hist = ticker.history(period=f"{lookback_days}d")
                     else:
                         # Fetch from Yahoo Finance
-                        ticker = yf.Ticker(f"{symbol}.NS")
+                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
                         hist = ticker.history(period=f"{lookback_days}d")
                     
                     if hist.empty or len(hist) < 20:
@@ -944,7 +967,7 @@ elif page == "S&R Analysis":
                         
                         # Fetch from Yahoo Finance
                         try:
-                            ticker = yf.Ticker(f"{symbol.upper()}.NS")
+                            ticker = yf.Ticker(get_yfinance_symbol(symbol))
                             df_raw = ticker.history(period="6mo", interval="1d")
                             
                             if not df_raw.empty and len(df_raw) > 50:
@@ -1106,7 +1129,7 @@ elif page == "S&R Analysis":
                         st.info(f"📡 Fetching REAL data from Yahoo Finance for {symbol_input}...")
                         
                         # yfinance uses .NS suffix for NSE stocks
-                        ticker = yf.Ticker(f"{symbol_input.upper()}.NS")
+                        ticker = yf.Ticker(get_yfinance_symbol(symbol_input))
                         
                         # Fetch 1 year of data
                         df_raw = ticker.history(period="1y", interval="1d")
