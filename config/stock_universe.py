@@ -19,7 +19,8 @@ NIFTY_50 = [
     'JSWSTEEL', 'INDUSINDBK', 'CIPLA', 'GRASIM', 'DRREDDY',
     'HEROMOTOCO', 'HINDALCO', 'EICHERMOT', 'APOLLOHOSP', 'COALINDIA',
     'BRITANNIA', 'SBILIFE', 'DIVISLAB', 'BPCL', 'ADANIPORTS',
-    'UPL', 'TATACONSUM', 'BAJAJ-AUTO', 'HDFCLIFE', 'SHREECEM'
+    'UPL', 'TATACONSUM', 'BAJAJ-AUTO', 'HDFCLIFE', 'SHREECEM',
+    'JIOFIN'  # Jio Financial Services (new)
 ]
 
 # ============================================================
