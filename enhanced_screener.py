@@ -23,7 +23,7 @@ from support_resistance.sr_calculator import SupportResistanceCalculator
 
 # Import expanded stock universe
 try:
-    from config.stock_universe import NIFTY_50, NIFTY_200, NIFTY_500, SMALLCAP_250, ALL_STOCKS
+    from config.stock_universe import NIFTY_50, NIFTY_200, NIFTY_500, SMALLCAP_250, ALL_STOCKS, COMMODITIES, ALL_ASSETS
     EXPANDED_UNIVERSE_AVAILABLE = True
 except ImportError:
     EXPANDED_UNIVERSE_AVAILABLE = False
@@ -32,6 +32,8 @@ except ImportError:
     NIFTY_500 = []
     SMALLCAP_250 = []
     ALL_STOCKS = []
+    COMMODITIES = []
+    ALL_ASSETS = []
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -390,7 +392,9 @@ elif page == "Technical Screener":
                 "Nifty 200 (200 stocks) ⭐",
                 "Nifty 500 (500 stocks)",
                 "Smallcap 250 (250 stocks)",
-                "ALL (750+ stocks) 🚀"
+                "Commodities (Gold, Silver)",
+                "ALL Stocks (750+)",
+                "ALL Assets (Stocks + Commodities) 🚀"
             ]
         else:
             universe_options = ["Top 10 (Quick)", "Top 20 (Standard)", "Top 50"]
@@ -435,6 +439,10 @@ elif page == "Technical Screener":
         stocks = NIFTY_500 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
     elif "Smallcap 250" in universe_size:
         stocks = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    elif "Commodities" in universe_size:
+        stocks = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else []
+    elif "ALL Assets" in universe_size:
+        stocks = ALL_ASSETS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
     elif "ALL" in universe_size:
         stocks = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
     else:
@@ -785,6 +793,7 @@ elif page == "S&R Analysis":
             if EXPANDED_UNIVERSE_AVAILABLE:
                 # Create categorized stock list
                 stock_categories = {
+                    '--- COMMODITIES (Gold, Silver) ---': COMMODITIES,
                     '--- NIFTY 50 ---': NIFTY_50,
                     '--- NIFTY 200 (Mid-cap) ---': [s for s in NIFTY_200 if s not in NIFTY_50],
                     '--- NIFTY 500 ---': [s for s in NIFTY_500 if s not in NIFTY_200],
@@ -2010,7 +2019,7 @@ elif page == "Backtest (Multi-Mode)":
     if EXPANDED_UNIVERSE_AVAILABLE:
         universe_selection = st.radio(
             "Choose Stock Universe:",
-            ["Nifty 50", "Nifty 200", "Nifty 500", "Smallcap 250", "ALL (750+ stocks)", "Custom Selection"],
+            ["Nifty 50", "Nifty 200", "Nifty 500", "Smallcap 250", "Commodities (Gold, Silver)", "ALL Stocks (750+)", "ALL Assets (Stocks + Commodities)", "Custom Selection"],
             horizontal=True
         )
         
@@ -2027,11 +2036,17 @@ elif page == "Backtest (Multi-Mode)":
         elif universe_selection == "Smallcap 250":
             available_stocks = SMALLCAP_250
             default_selection = SMALLCAP_250[:20]
-        elif universe_selection == "ALL (750+ stocks)":
+        elif universe_selection == "Commodities (Gold, Silver)":
+            available_stocks = COMMODITIES
+            default_selection = COMMODITIES
+        elif universe_selection == "ALL Assets (Stocks + Commodities)":
+            available_stocks = ALL_ASSETS
+            default_selection = ALL_ASSETS[:50]
+        elif universe_selection == "ALL Stocks (750+)":
             available_stocks = ALL_STOCKS
             default_selection = ALL_STOCKS[:50]
         else:  # Custom
-            available_stocks = ALL_STOCKS
+            available_stocks = ALL_ASSETS
             default_selection = []
     else:
         # Fallback if stock universe not available

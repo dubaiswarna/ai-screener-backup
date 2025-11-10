@@ -229,10 +229,21 @@ SMALLCAP_250 = [
 ]
 
 # ============================================================
+# COMMODITIES (MCX)
+# ============================================================
+COMMODITIES = [
+    'GOLD',    # MCX Gold
+    'SILVER'   # MCX Silver
+]
+
+# ============================================================
 # COMBINED UNIVERSE
 # ============================================================
 ALL_STOCKS = list(set(NIFTY_500 + SMALLCAP_250))  # Remove duplicates
 ALL_STOCKS.sort()
+
+# ALL ASSETS (Stocks + Commodities)
+ALL_ASSETS = ALL_STOCKS + COMMODITIES
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -243,7 +254,7 @@ def get_stock_universe(universe_type: str = 'nifty50') -> list:
     Get stock universe based on type.
     
     Args:
-        universe_type: 'nifty50', 'nifty200', 'nifty500', 'smallcap250', or 'all'
+        universe_type: 'nifty50', 'nifty200', 'nifty500', 'smallcap250', 'commodities', or 'all'
     
     Returns:
         List of stock symbols
@@ -253,7 +264,9 @@ def get_stock_universe(universe_type: str = 'nifty50') -> list:
         'nifty200': NIFTY_200,
         'nifty500': NIFTY_500,
         'smallcap250': SMALLCAP_250,
-        'all': ALL_STOCKS
+        'commodities': COMMODITIES,
+        'all': ALL_STOCKS,
+        'all_assets': ALL_ASSETS  # Stocks + Commodities
     }
     
     return universe_map.get(universe_type.lower(), NIFTY_50)
@@ -278,9 +291,17 @@ def get_universe_info():
             'count': len(SMALLCAP_250),
             'description': '250 quality small-cap stocks'
         },
+        'commodities': {
+            'count': len(COMMODITIES),
+            'description': 'MCX Commodities (Gold, Silver)'
+        },
         'all': {
             'count': len(ALL_STOCKS),
             'description': 'All unique stocks (Nifty 500 + Smallcap 250)'
+        },
+        'all_assets': {
+            'count': len(ALL_ASSETS),
+            'description': 'All stocks + commodities'
         }
     }
 
