@@ -146,7 +146,7 @@ class MCXDataFetcher:
         
         results = {}
         for symbol, name, description in commodities:
-            print(f"\n📊 {description}")
+            print(f"\n{description}")
             success = self.fetch_commodity_data(symbol, name)
             results[name] = success
         
