@@ -584,11 +584,11 @@ elif page == "Technical Screener":
                                 'Symbol': symbol,
                                 'Pattern': 'Golden Cross',
                                 'Strength': f"{strength:.1f}/10",
-                                'Price': f"₹{price:.2f}",
-                                'Target': f"₹{price * 1.03:.2f}",
-                                'Stop': f"₹{price * 0.98:.2f}",
+                                'Price': f"{price:.2f}",
+                                'Target': f"{price * 1.03:.2f}",
+                                'Stop': f"{price * 0.98:.2f}",
                                 'RSI': f"{rsi:.0f}",
-                                'SMA200': f"₹{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
+                                'SMA200': f"{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
                                 'Info': f"Vol {vol_ratio:.1f}x"
                             })
                     
@@ -601,11 +601,11 @@ elif page == "Technical Screener":
                                 'Symbol': symbol,
                                 'Pattern': '🚀 Super Golden Cross',
                                 'Strength': f"{strength:.1f}/10",
-                                'Price': f"₹{price:.2f}",
-                                'Target': f"₹{price * 1.05:.2f}",
-                                'Stop': f"₹{price * 0.97:.2f}",
+                                'Price': f"{price:.2f}",
+                                'Target': f"{price * 1.05:.2f}",
+                                'Stop': f"{price * 0.97:.2f}",
                                 'RSI': f"{rsi:.0f}",
-                                'SMA200': f"₹{sma_200:.2f}",
+                                'SMA200': f"{sma_200:.2f}",
                                 'Info': 'SMA50 > SMA200 🔥'
                             })
                     
@@ -618,11 +618,11 @@ elif page == "Technical Screener":
                                 'Symbol': symbol,
                                 'Pattern': 'Above SMA 200',
                                 'Strength': f"{strength:.1f}/10",
-                                'Price': f"₹{price:.2f}",
-                                'Target': f"₹{price * 1.04:.2f}",
-                                'Stop': f"₹{sma_200:.2f}",
+                                'Price': f"{price:.2f}",
+                                'Target': f"{price * 1.04:.2f}",
+                                'Stop': f"{sma_200:.2f}",
                                 'RSI': f"{rsi:.0f}",
-                                'SMA200': f"₹{sma_200:.2f}",
+                                'SMA200': f"{sma_200:.2f}",
                                 'Info': 'Strong trend'
                             })
                     
@@ -635,11 +635,11 @@ elif page == "Technical Screener":
                                 'Symbol': symbol,
                                 'Pattern': 'RSI Oversold',
                                 'Strength': f"{strength:.1f}/10",
-                                'Price': f"₹{price:.2f}",
-                                'Target': f"₹{price * 1.04:.2f}",
-                                'Stop': f"₹{price * 0.97:.2f}",
+                                'Price': f"{price:.2f}",
+                                'Target': f"{price * 1.04:.2f}",
+                                'Stop': f"{price * 0.97:.2f}",
                                 'RSI': f"{rsi:.0f}",
-                                'SMA200': f"₹{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
+                                'SMA200': f"{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
                                 'Info': 'Bullish reversal'
                             })
                     
@@ -652,11 +652,11 @@ elif page == "Technical Screener":
                                 'Symbol': symbol,
                                 'Pattern': 'MACD Bullish',
                                 'Strength': f"{strength:.1f}/10",
-                                'Price': f"₹{price:.2f}",
-                                'Target': f"₹{price * 1.035:.2f}",
-                                'Stop': f"₹{price * 0.98:.2f}",
+                                'Price': f"{price:.2f}",
+                                'Target': f"{price * 1.035:.2f}",
+                                'Stop': f"{price * 0.98:.2f}",
                                 'RSI': f"{rsi:.0f}",
-                                'SMA200': f"₹{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
+                                'SMA200': f"{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
                                 'Info': f"MACD+ Vol {vol_ratio:.1f}x"
                             })
                     
@@ -672,11 +672,11 @@ elif page == "Technical Screener":
                                     'Symbol': symbol,
                                     'Pattern': f'🎯 Fib {float(fib_level)*100:.1f}% Bounce',
                                     'Strength': f"{strength:.1f}/10",
-                                    'Price': f"₹{price:.2f}",
-                                    'Target': f"₹{fib_levels['0.382']:.2f}",
-                                    'Stop': f"₹{fib_levels['0.786']:.2f}",
+                                    'Price': f"{price:.2f}",
+                                    'Target': f"{fib_levels['0.382']:.2f}",
+                                    'Stop': f"{fib_levels['0.786']:.2f}",
                                     'RSI': f"{rsi:.0f}",
-                                    'SMA200': f"₹{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
+                                    'SMA200': f"{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
                                     'Info': f'@Fib {fib_level}'
                                 })
                         # Resistance at 0.236, 0.382 levels
@@ -688,11 +688,11 @@ elif page == "Technical Screener":
                                     'Symbol': symbol,
                                     'Pattern': f'📈 Fib {float(fib_level)*100:.1f}% Break',
                                     'Strength': f"{strength:.1f}/10",
-                                    'Price': f"₹{price:.2f}",
-                                    'Target': f"₹{period_high:.2f}",
-                                    'Stop': f"₹{fib_levels['0.500']:.2f}",
+                                    'Price': f"{price:.2f}",
+                                    'Target': f"{period_high:.2f}",
+                                    'Stop': f"{fib_levels['0.500']:.2f}",
                                     'RSI': f"{rsi:.0f}",
-                                    'SMA200': f"₹{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
+                                    'SMA200': f"{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
                                     'Info': f'Near Fib {fib_level}'
                                 })
                     
@@ -706,12 +706,12 @@ elif page == "Technical Screener":
                                 'Symbol': symbol,
                                 'Pattern': 'Support Bounce',
                                 'Strength': f"{strength:.1f}/10",
-                                'Price': f"₹{price:.2f}",
-                                'Target': f"₹{price * 1.03:.2f}",
-                                'Stop': f"₹{support * 0.99:.2f}",
+                                'Price': f"{price:.2f}",
+                                'Target': f"{price * 1.03:.2f}",
+                                'Stop': f"{support * 0.99:.2f}",
                                 'RSI': f"{rsi:.0f}",
-                                'SMA200': f"₹{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
-                                'Info': f"Support ₹{support:.0f}"
+                                'SMA200': f"{sma_200:.2f}" if len(hist) >= 200 else 'N/A',
+                                'Info': f"Support {support:.0f}"
                             })
                 
                 except:
@@ -978,12 +978,12 @@ elif page == "S&R Analysis":
                         batch_results.append({
                             'Generated': analysis_time,
                             'Symbol': symbol,
-                            'Price': f"₹{current_price:.2f}",
+                            'Price': f"{current_price:.2f}",
                             'Signal': signal['signal'],
                             'Confidence': f"{signal['confidence_score']}%",
                             'Trend': ma_data['trend'] if ma_data.get('available') else 'N/A',
-                            'Support': f"₹{nearest_support['level']:.2f} ({nearest_support['distance_pct']:.1f}%)" if nearest_support else "N/A",
-                            'Resistance': f"₹{nearest_resistance['level']:.2f} ({nearest_resistance['distance_pct']:.1f}%)" if nearest_resistance else "N/A",
+                            'Support': f"{nearest_support['level']:.2f} ({nearest_support['distance_pct']:.1f}%)" if nearest_support else "N/A",
+                            'Resistance': f"{nearest_resistance['level']:.2f} ({nearest_resistance['distance_pct']:.1f}%)" if nearest_resistance else "N/A",
                             'Sup Strength': f"{nearest_support['strength']:.0f}" if nearest_support else "N/A",
                             'Res Strength': f"{nearest_resistance['strength']:.0f}" if nearest_resistance else "N/A",
                         })
