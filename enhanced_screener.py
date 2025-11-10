@@ -780,7 +780,35 @@ elif page == "S&R Analysis":
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
+            if EXPANDED_UNIVERSE_AVAILABLE:
+                # Create categorized stock list
+                stock_categories = {
+                    '--- NIFTY 50 ---': NIFTY_50,
+                    '--- NIFTY 200 (Mid-cap) ---': [s for s in NIFTY_200 if s not in NIFTY_50],
+                    '--- NIFTY 500 ---': [s for s in NIFTY_500 if s not in NIFTY_200],
+                    '--- SMALLCAP 250 ---': SMALLCAP_250
+                }
+                
+                # Build options list
+                stock_options = []
+                for category, stocks in stock_categories.items():
+                    if stocks:
+                        stock_options.append(category)
+                        stock_options.extend(sorted(stocks))
+                
+                symbol_input = st.selectbox(
+                    "Select Stock:", 
+                    stock_options,
+                    index=stock_options.index('RELIANCE') if 'RELIANCE' in stock_options else 0,
+                    help="Select from 750+ stocks (Nifty 50/200/500 + Smallcap 250)"
+                )
+                
+                # Skip if category header selected
+                if symbol_input.startswith('---'):
+                    st.warning("⚠️ Please select a stock symbol, not a category header")
+                    symbol_input = 'RELIANCE'
+            else:
+                symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
         
         with col2:
             sensitivity = st.slider("Sensitivity", 3, 10, 5, help="Lower = more levels, Higher = fewer strong levels")
