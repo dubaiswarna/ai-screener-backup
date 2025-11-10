@@ -1417,8 +1417,14 @@ elif page == "VWAP Strategy":
                     )
                     
                     # Load data
-                    if not system.load_data_from_dataframe(df):
-                        st.error("Failed to load data. Please check your file format.")
+                    try:
+                        if not system.load_data_from_dataframe(df):
+                            st.error("Failed to load data. Please check your file format.")
+                            st.stop()
+                    except Exception as load_error:
+                        st.error(f"❌ Data Loading Error: {str(load_error)}")
+                        st.info("💡 **Required columns:** Date, High, Low (VWAP, Close optional)")
+                        st.info(f"📋 **Your columns:** {', '.join(df.columns.tolist())}")
                         st.stop()
                     
                     # Run backtest

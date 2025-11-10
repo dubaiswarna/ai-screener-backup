@@ -97,34 +97,72 @@ class VWAPFlexibleSystem:
     def load_data_from_dataframe(self, df):
         """Load data from pandas DataFrame"""
         try:
+            # Make a copy to avoid modifying original
+            df = df.copy()
+            
             # Normalize column names
             df.columns = [str(c).strip().lower() for c in df.columns]
             
-            # Ensure required columns
-            required_cols = ['date', 'high', 'low']
-            for col in required_cols:
-                if col not in df.columns:
-                    raise ValueError(f"Missing required column: {col}")
+            # Try to find date column (might be 'date', 'time', 'datetime', etc.)
+            date_col = None
+            for col in ['date', 'time', 'datetime', 'timestamp']:
+                if col in df.columns:
+                    date_col = col
+                    break
+            
+            if date_col is None:
+                # Try first column if it looks like a date
+                first_col = df.columns[0]
+                try:
+                    pd.to_datetime(df[first_col].iloc[0])
+                    date_col = first_col
+                except:
+                    raise ValueError(f"Could not find date column. Available columns: {', '.join(df.columns)}")
+            
+            # Rename to 'date'
+            if date_col != 'date':
+                df = df.rename(columns={date_col: 'date'})
             
             # Parse date
             df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
             df = df.dropna(subset=['date'])
             
+            if len(df) == 0:
+                raise ValueError("No valid dates found in data")
+            
+            # Check for required columns
+            required_cols = ['high', 'low']
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            if missing_cols:
+                raise ValueError(f"Missing required columns: {', '.join(missing_cols)}. Available: {', '.join(df.columns)}")
+            
             # Clean numeric columns
             for col in ['open', 'high', 'low', 'close', 'vwap', 'volume']:
                 if col in df.columns:
+                    # Remove commas if present
+                    if df[col].dtype == 'object':
+                        df[col] = df[col].astype(str).str.replace(',', '').str.replace(' ', '')
                     df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+            # Drop rows with invalid high/low
+            df = df.dropna(subset=['high', 'low'])
+            
+            if len(df) == 0:
+                raise ValueError("No valid price data found")
             
             # Set index
             df = df.sort_values('date').set_index('date')
             
+            # If no VWAP column, calculate it
+            if 'vwap' not in df.columns or df['vwap'].isna().all():
+                if 'close' in df.columns:
+                    df['vwap'] = df['close']
+                else:
+                    df['vwap'] = (df['high'] + df['low']) / 2
+            
             # Calculate reference levels
             df['r_low'] = df['low'] * (1 - self.r_low_discount)
-            if 'vwap' in df.columns:
-                df['r_vwap'] = df['vwap'] * (1 - self.r_vwap_discount)
-            else:
-                ref_col = 'close' if 'close' in df.columns else 'high'
-                df['r_vwap'] = df[ref_col] * (1 - self.r_vwap_discount)
+            df['r_vwap'] = df['vwap'] * (1 - self.r_vwap_discount)
             
             self.data = df
             
