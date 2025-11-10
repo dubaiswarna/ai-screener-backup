@@ -7,6 +7,9 @@ Reusable class for VWAP ladder strategy backtesting
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from io import BytesIO
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -263,6 +266,7 @@ class VWAPFlexibleSystem:
         # Reset
         self.capital = self.initial_capital
         self.daily_transactions = []
+        self.yearly_summary = []
         self.total_shares_held = 0
         self.total_cost = 0
         self.average_cost = 0
@@ -273,6 +277,9 @@ class VWAPFlexibleSystem:
             daily_transaction = self.simulate_daily_trading(date)
             if daily_transaction:
                 self.daily_transactions.append(daily_transaction)
+        
+        # Generate yearly summary
+        self.generate_yearly_summary()
         
         return True
     
@@ -423,6 +430,395 @@ class VWAPFlexibleSystem:
             self.target_price_value = 0
         
         return daily_transaction
+    
+    def generate_yearly_summary(self):
+        """Generate yearly performance summary"""
+        if not self.daily_transactions:
+            return
+        
+        df = pd.DataFrame(self.daily_transactions)
+        df['year'] = df['date'].dt.year
+        
+        yearly_data = []
+        
+        for year in sorted(df['year'].unique()):
+            year_df = df[df['year'] == year]
+            
+            total_buy_qty = year_df['total_buy_qty'].sum()
+            total_sell_qty = year_df['sell_qty'].sum()
+            total_profit = year_df['profit'].sum()
+            total_return_pct = (total_profit / self.initial_capital) * 100 if self.initial_capital > 0 else 0
+            
+            total_buy_value = year_df['total_buy_value'].sum()
+            avg_buy_price = total_buy_value / total_buy_qty if total_buy_qty > 0 else 0
+            
+            total_sell_value = year_df['sell_value'].sum()
+            avg_sell_price = total_sell_value / total_sell_qty if total_sell_qty > 0 else 0
+            
+            yearly_data.append({
+                'Year': year,
+                'Total_Buy_Qty': total_buy_qty,
+                'Avg_Buy_Price': round(avg_buy_price, 2),
+                'Total_Sell_Qty': total_sell_qty,
+                'Avg_Sell_Price': round(avg_sell_price, 2),
+                'Profit_Booked': round(total_profit, 2),
+                'Return_Percentage': round(total_return_pct, 2),
+                'Trading_Days': len(year_df),
+                'Profitable_Days': len(year_df[year_df['profit'] > 0])
+            })
+        
+        self.yearly_summary = yearly_data
+    
+    def export_to_bytesio(self):
+        """Export results to BytesIO for Streamlit download"""
+        output = BytesIO()
+        
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+        
+        self.create_daily_transactions_sheet(wb)
+        self.create_yearly_summary_sheet(wb)
+        self.create_performance_summary_sheet(wb)
+        
+        wb.save(output)
+        output.seek(0)
+        
+        return output
+    
+    def create_daily_transactions_sheet(self, wb):
+        """Create daily transactions sheet"""
+        ws = wb.create_sheet("Daily Transactions")
+        
+        if not self.daily_transactions:
+            return
+        
+        df = pd.DataFrame(self.daily_transactions)
+        
+        # Build dynamic columns
+        columns = ['Date', 'High', 'Low', 'VWAP']
+        
+        if self.sma_period:
+            columns.append('SMA')
+        if self.supertrend_enabled:
+            columns.append('Supertrend')
+        if self.ha_enabled:
+            columns.append('HA_Low')
+        
+        # Entry prices
+        price_cols = ['E1_Price (Low)', 'E2_Price (Low-1%)']
+        qty_cols = ['E1_Qty', 'E2_Qty']
+        
+        if self.vwap_entries_enabled:
+            price_cols.extend(['E3_Price (VWAP)', 'E4_Price (VWAP-1%)'])
+            qty_cols.extend(['E3_Qty', 'E4_Qty'])
+        
+        if self.sma_entries_enabled:
+            price_cols.extend(['E5_Price (SMA)', 'E6_Price (SMA-1%)'])
+            qty_cols.extend(['E5_Qty', 'E6_Qty'])
+        
+        if self.ha_entries_enabled:
+            price_cols.extend(['E7_Price (HA Low)', 'E8_Price (HA Low-1%)'])
+            qty_cols.extend(['E7_Qty', 'E8_Qty'])
+        
+        columns.extend(price_cols)
+        columns.extend(qty_cols)
+        columns.extend([
+            'Total_Buy_Qty', 'Avg_Buy_Price', 'Total_Buy_Value',
+            'Sell_Qty', 'Sell_Price', 'Sell_Value',
+            'Profit', 'Return_%', 'Execution',
+            'Profit_Target', 'Exceeded_Threshold',
+            'Total_Shares_Held', 'Total_Cost', 'Average_Cost', 'Target_Price'
+        ])
+        
+        # Headers
+        for col, header in enumerate(columns, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        
+        # Data rows
+        for row_idx, (_, row) in enumerate(df.iterrows(), 2):
+            col = 1
+            ws.cell(row=row_idx, column=col, value=row['date'].date())
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['high'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['low'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['vwap'], 2))
+            col += 1
+            
+            if self.sma_period:
+                ws.cell(row=row_idx, column=col, value=round(row.get('sma', 0), 2) if pd.notna(row.get('sma')) else 0)
+                col += 1
+            if self.supertrend_enabled:
+                ws.cell(row=row_idx, column=col, value=round(row.get('supertrend', 0), 2) if pd.notna(row.get('supertrend')) else 0)
+                col += 1
+            if self.ha_enabled:
+                ws.cell(row=row_idx, column=col, value=round(row.get('ha_low', 0), 2) if pd.notna(row.get('ha_low')) else 0)
+                col += 1
+            
+            # Entry prices
+            for e in ['E1', 'E2']:
+                ws.cell(row=row_idx, column=col, value=round(row.get(f'{e}_price', 0), 2))
+                col += 1
+            
+            if self.vwap_entries_enabled:
+                for e in ['E3', 'E4']:
+                    ws.cell(row=row_idx, column=col, value=round(row.get(f'{e}_price', 0), 2))
+                    col += 1
+            
+            if self.sma_entries_enabled:
+                for e in ['E5', 'E6']:
+                    ws.cell(row=row_idx, column=col, value=round(row.get(f'{e}_price', 0), 2))
+                    col += 1
+            
+            if self.ha_entries_enabled:
+                for e in ['E7', 'E8']:
+                    ws.cell(row=row_idx, column=col, value=round(row.get(f'{e}_price', 0), 2))
+                    col += 1
+            
+            # Entry quantities
+            for e in ['E1', 'E2']:
+                ws.cell(row=row_idx, column=col, value=row.get(f'{e}_qty', 0))
+                col += 1
+            
+            if self.vwap_entries_enabled:
+                for e in ['E3', 'E4']:
+                    ws.cell(row=row_idx, column=col, value=row.get(f'{e}_qty', 0))
+                    col += 1
+            
+            if self.sma_entries_enabled:
+                for e in ['E5', 'E6']:
+                    ws.cell(row=row_idx, column=col, value=row.get(f'{e}_qty', 0))
+                    col += 1
+            
+            if self.ha_entries_enabled:
+                for e in ['E7', 'E8']:
+                    ws.cell(row=row_idx, column=col, value=row.get(f'{e}_qty', 0))
+                    col += 1
+            
+            # Rest
+            ws.cell(row=row_idx, column=col, value=row['total_buy_qty'])
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['avg_buy_price'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['total_buy_value'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row['sell_qty'])
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['sell_price'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['sell_value'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['profit'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['return_pct'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row['execution'])
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row.get('profit_target_used', f'{self.target_percentage}%'))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row.get('exceeded_threshold', 'No'))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row['total_shares_held'])
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['total_cost'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['average_cost'], 2))
+            col += 1
+            ws.cell(row=row_idx, column=col, value=round(row['target_price'], 2))
+        
+        # Auto-adjust widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 20)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def create_yearly_summary_sheet(self, wb):
+        """Create yearly summary sheet"""
+        ws = wb.create_sheet("Yearly Summary")
+        
+        if not self.yearly_summary:
+            return
+        
+        headers = ['Year', 'Total Buy Qty', 'Avg Buy Price', 'Total Sell Qty', 
+                  'Avg Sell Price', 'Profit Booked', 'Return %', 'Trading Days', 'Profitable Days']
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        
+        for row_idx, year_data in enumerate(self.yearly_summary, 2):
+            ws.cell(row=row_idx, column=1, value=year_data['Year'])
+            ws.cell(row=row_idx, column=2, value=year_data['Total_Buy_Qty'])
+            ws.cell(row=row_idx, column=3, value=year_data['Avg_Buy_Price'])
+            ws.cell(row=row_idx, column=4, value=year_data['Total_Sell_Qty'])
+            ws.cell(row=row_idx, column=5, value=year_data['Avg_Sell_Price'])
+            ws.cell(row=row_idx, column=6, value=year_data['Profit_Booked'])
+            ws.cell(row=row_idx, column=7, value=year_data['Return_Percentage'])
+            ws.cell(row=row_idx, column=8, value=year_data['Trading_Days'])
+            ws.cell(row=row_idx, column=9, value=year_data['Profitable_Days'])
+        
+        # Auto-adjust widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 20)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def create_performance_summary_sheet(self, wb):
+        """Create performance summary sheet"""
+        ws = wb.create_sheet("Performance Summary")
+        
+        if not self.daily_transactions:
+            return
+        
+        df = pd.DataFrame(self.daily_transactions)
+        
+        total_trades = len(df[df['profit'] > 0])
+        total_profit = df['profit'].sum()
+        total_return = (total_profit / self.initial_capital) * 100
+        final_capital = self.initial_capital + total_profit
+        
+        # Count fills
+        e5_fills = len(df[df.get('E5_qty', pd.Series([0])) > 0]) if 'E5_qty' in df.columns else 0
+        e6_fills = len(df[df.get('E6_qty', pd.Series([0])) > 0]) if 'E6_qty' in df.columns else 0
+        e7_fills = len(df[df.get('E7_qty', pd.Series([0])) > 0]) if 'E7_qty' in df.columns else 0
+        e8_fills = len(df[df.get('E8_qty', pd.Series([0])) > 0]) if 'E8_qty' in df.columns else 0
+        
+        # Threshold metrics
+        trades_normal = df[(df.get('exceeded_threshold', 'No') == 'No') & (df['execution'] == 'Sell')]
+        count_normal = len(trades_normal)
+        profit_normal = trades_normal['profit'].sum() if count_normal > 0 else 0
+        
+        trades_above = df[(df.get('exceeded_threshold', 'No') == 'Yes') & (df['execution'] == 'Sell')]
+        count_above = len(trades_above)
+        profit_above = trades_above['profit'].sum() if count_above > 0 else 0
+        
+        metrics = [
+            ['Metric', 'Value'],
+            ['Strategy', f'VWAP Ladder ({self.target_percentage}% / 1% targets)'],
+            ['Target Profit', f'{self.target_percentage}% (below Rs {self.threshold_lakhs}L)'],
+            ['Threshold', f'Rs {self.threshold_lakhs}L ({self.threshold_amount:,})'],
+            ['Reduced Target', f'1% (above Rs {self.threshold_lakhs}L)'],
+            ['', ''],
+            ['Initial Capital', f'Rs {self.initial_capital:,}'],
+            ['Final Capital', f'Rs {final_capital:,.2f}'],
+            ['Total Profit', f'Rs {total_profit:,.2f}'],
+            ['Total Return %', f'{total_return:.2f}%'],
+            ['', ''],
+            ['Total Trades', total_trades],
+            [f'  - Trades with {self.target_percentage}% target', f'{count_normal} trades, Rs {profit_normal:,.2f} profit'],
+            ['  - Trades with 1% target (>threshold)', f'{count_above} trades, Rs {profit_above:,.2f} profit'],
+            ['Win Rate %', '100.0%' if total_trades > 0 else '0%'],
+            ['Average Profit per Trade', f'Rs {total_profit/total_trades:.2f}' if total_trades > 0 else 'Rs 0'],
+            ['', '']
+        ]
+        
+        # Mode info
+        if self.max_investment:
+            metrics.extend([
+                ['Mode', 'Max Investment (Dynamic Quantity)'],
+                ['Max Investment', f'Rs {self.max_investment:,}'],
+                ['Quantity Calculation', 'Dynamic (based on price)']
+            ])
+        else:
+            total_e = 2
+            if self.vwap_entries_enabled:
+                total_e += 2
+            if self.sma_entries_enabled:
+                total_e += 2
+            if self.ha_entries_enabled:
+                total_e += 2
+            metrics.extend([
+                ['Mode', 'Fixed Quantity'],
+                ['Fixed Quantity per Order', f'{self.fixed_qty} shares'],
+                ['Total Quantity (All Orders)', f'{self.fixed_qty * total_e} shares']
+            ])
+        
+        # Entry points
+        total_e = 2
+        if self.vwap_entries_enabled:
+            total_e += 2
+        if self.sma_entries_enabled:
+            total_e += 2
+        if self.ha_entries_enabled:
+            total_e += 2
+        
+        metrics.extend([
+            ['', ''],
+            ['Entry Points', f'{total_e} ENTRIES'],
+            ['  - E1', 'Previous Day Low'],
+            ['  - E2', 'Previous Day Low - 1%']
+        ])
+        
+        if self.vwap_entries_enabled:
+            metrics.extend([
+                ['  - E3', 'Previous Day VWAP'],
+                ['  - E4', 'Previous Day VWAP - 1%']
+            ])
+        
+        if self.sma_entries_enabled:
+            metrics.extend([
+                ['  - E5', f'Previous Day SMA({self.sma_period})'],
+                ['  - E6', f'Previous Day SMA({self.sma_period}) - 1%'],
+                ['E5 Fills', f'{e5_fills} times'],
+                ['E6 Fills', f'{e6_fills} times']
+            ])
+        
+        if self.ha_entries_enabled:
+            metrics.extend([
+                ['  - E7', 'Previous Day HA Low'],
+                ['  - E8', 'Previous Day HA Low - 1%'],
+                ['E7 Fills', f'{e7_fills} times'],
+                ['E8 Fills', f'{e8_fills} times']
+            ])
+        
+        metrics.extend([
+            ['', ''],
+            ['Transaction Charges', '1.0% (0.7% charges + 0.3% brokerage)'],
+            ['Strategy Period', f"{self.data.index.min().date()} to {self.data.index.max().date()}"],
+            ['Total Trading Days', len(self.data)]
+        ])
+        
+        # Write to sheet
+        for row_idx, (metric, value) in enumerate(metrics, 1):
+            ws.cell(row=row_idx, column=1, value=metric)
+            ws.cell(row=row_idx, column=2, value=value)
+            
+            if row_idx == 1:
+                ws.cell(row=row_idx, column=1).font = Font(bold=True)
+                ws.cell(row=row_idx, column=2).font = Font(bold=True)
+                ws.cell(row=row_idx, column=1).fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+                ws.cell(row=row_idx, column=2).fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        
+        # Auto-adjust widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 40)
+            ws.column_dimensions[column_letter].width = adjusted_width
     
     def get_summary(self):
         """Get performance summary"""

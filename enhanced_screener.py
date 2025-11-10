@@ -1489,27 +1489,19 @@ elif page == "VWAP Strategy":
                         
                         # Download Full Excel Report
                         st.markdown("---")
-                        st.subheader("💾 Download Full Report")
+                        st.subheader("💾 Download Complete Excel Report")
+                        st.info("📊 Includes: Daily Transactions, Yearly Summary, Performance Summary (Full Details)")
                         
-                        # Create Excel in memory
-                        output = BytesIO()
-                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                            transactions_df.to_excel(writer, sheet_name='Transactions', index=False)
-                            
-                            # Summary sheet
-                            summary_df = pd.DataFrame([{
-                                'Metric': k,
-                                'Value': v
-                            } for k, v in summary.items()])
-                            summary_df.to_excel(writer, sheet_name='Summary', index=False)
-                        
-                        excel_data = output.getvalue()
+                        # Generate complete Excel report
+                        excel_output = system.export_to_bytesio()
+                        excel_data = excel_output.getvalue()
                         
                         st.download_button(
-                            label="📥 Download Excel Report",
+                            label="📥 Download Complete Excel Report",
                             data=excel_data,
                             file_name=f"VWAP_Backtest_{uploaded_file.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            type="primary"
                         )
                 
                 except Exception as e:
