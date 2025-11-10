@@ -419,7 +419,7 @@ elif page == "Technical Screener":
         'ADANIPORTS', 'JSWSTEEL', 'BAJAJFINSV', 'INDUSINDBK', 'COALINDIA', 'DIVISLAB',
         'GRASIM', 'HINDALCO', 'BRITANNIA', 'DRREDDY', 'SHREECEM', 'EICHERMOT', 'CIPLA',
         'TATACONSUM', 'HEROMOTOCO', 'UPL', 'APOLLOHOSP', 'BPCL', 'BAJAJ-AUTO', 'TATAMOTORS',
-        'ADANIENT', 'SBILIFE', 'HDFCLIFE'
+        'ADANIENT', 'SBILIFE', 'HDFCLIFE', 'JIOFIN'
     ]
     
     # Select stocks based on universe
