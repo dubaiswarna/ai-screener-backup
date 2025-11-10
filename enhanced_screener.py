@@ -1657,7 +1657,7 @@ elif page == "VWAP Strategy":
                     
                     # Style the dataframe
                     st.dataframe(
-                        pivot_profit.style.format("₹{:,.0f}").background_gradient(cmap='RdYlGn', axis=1, subset=[c['name'] for c in configurations]),
+                        pivot_profit.style.format("₹{:,.0f}"),
                         use_container_width=True
                     )
                     
