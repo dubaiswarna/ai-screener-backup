@@ -465,14 +465,16 @@ elif page == "Technical Screener":
             
             import yfinance as yf
             import os
-            from datetime import datetime
+            from datetime import datetime, timezone, timedelta
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             signals = []
             
-            # Current timestamp for all signals in this run
-            signal_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Current timestamp in IST (Indian Standard Time = UTC+5:30)
+            ist_offset = timedelta(hours=5, minutes=30)
+            ist_time = datetime.now(timezone.utc) + ist_offset
+            signal_time = ist_time.strftime("%Y-%m-%d %H:%M:%S IST")
             
             def calc_rsi(prices, period=14):
                 """Real RSI calculation"""
@@ -877,9 +879,11 @@ elif page == "S&R Analysis":
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
-                # Current timestamp for all signals in this batch
-                from datetime import datetime
-                analysis_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                # Current timestamp in IST (Indian Standard Time = UTC+5:30)
+                from datetime import datetime, timezone, timedelta
+                ist_offset = timedelta(hours=5, minutes=30)
+                ist_time = datetime.now(timezone.utc) + ist_offset
+                analysis_time = ist_time.strftime("%Y-%m-%d %H:%M:%S IST")
                 
                 # Initialize S&R calculator
                 sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
