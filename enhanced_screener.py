@@ -830,19 +830,55 @@ elif page == "S&R Analysis":
             with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
                 nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE\nJIOFIN"
                 st.code(nifty50_list, language=None)
-                st.caption("👆 Copy all and paste in text area below")
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Bank
+            with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
+                bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
+                st.code(bank_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty IT
+            with st.expander("💻 Nifty IT (10 stocks)", expanded=False):
+                it_list = "TCS\nINFY\nHCLTECH\nWIPRO\nTECHM\nLTIM\nCOFORGE\nPERSISTENT\nMPHASIS\nLTTS"
+                st.code(it_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Auto
+            with st.expander("🚗 Nifty Auto (15 stocks)", expanded=False):
+                auto_list = "MARUTI\nTATAMOTORS\nM&M\nBAJAJ-AUTO\nEICHERMOT\nHEROMOTOCO\nTVSMOTOR\nASHOKLEY\nMOTHERSON\nBOSCHLTD\nEXIDEIND\nMRF\nAPOLLOTYRE\nBALKRISIND\nBHFORGE"
+                st.code(auto_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Pharma
+            with st.expander("💊 Nifty Pharma (20 stocks)", expanded=False):
+                pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nDIVISLAB\nAUROPHARMA\nLUPIN\nTORNTPHARM\nALKEM\nBIOCON\nCADILAHC\nGLENMARK\nIPCALAB\nLAURUSLABS\nGRANULES\nALEMBIC\nSYNGENE\nNATCOPHARM\nLALPATHLAB\nMAXHEALTH\nFORTIS"
+                st.code(pharma_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Metal
+            with st.expander("🔩 Nifty Metal (15 stocks)", expanded=False):
+                metal_list = "TATASTEEL\nJSWSTEEL\nHINDALCO\nVEDL\nCOALINDIA\nNMDC\nJINDALSTEL\nSAIL\nHINDZINC\nNALCO\nNMDC\nAPL\nRATNAMANI\nMOIL\nJSPL"
+                st.code(metal_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Energy
+            with st.expander("⚡ Nifty Energy (10 stocks)", expanded=False):
+                energy_list = "RELIANCE\nONGC\nNTPC\nPOWERGRID\nBPCL\nIOC\nGAIL\nHINDPETRO\nADANIGREEN\nTATAPOWER"
+                st.code(energy_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty FMCG
+            with st.expander("🛒 Nifty FMCG (15 stocks)", expanded=False):
+                fmcg_list = "HINDUNILVR\nITC\nNESTLEIND\nBRITANNIA\nDABUR\nGODREJCP\nMARICO\nCOLGATE\nTATACONSUM\nVBL\nPIDILITIND\nHAVELLS\nGODREJAGRO\nEMAMILTD\nJYOTHYLAB"
+                st.code(fmcg_list, language=None)
+                st.caption("👆 Copy and paste in text area")
             
             # Top 20 preset
-            with st.expander("⚡ Top 20 Stocks", expanded=False):
+            with st.expander("⚡ Top 20 Liquid Stocks", expanded=False):
                 top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
                 st.code(top20_list, language=None)
-                st.caption("👆 Copy all and paste in text area below")
-            
-            # Pharma preset
-            with st.expander("💊 Pharma Stocks", expanded=False):
-                pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nBIOCON\nAUROBINDO\nLUPIN\nTORNTPHARM\nALKEM\nDIVISLAB\nGLENMARK"
-                st.code(pharma_list, language=None)
-                st.caption("👆 Copy all and paste in text area below")
+                st.caption("👆 Copy and paste in text area")
             
             st.markdown("**Analysis Settings:**")
             sensitivity = st.slider("Sensitivity", 3, 10, 3, help="Lower = more nearby levels (recommended), Higher = fewer major levels", key="batch_sens")
