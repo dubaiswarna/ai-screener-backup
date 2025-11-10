@@ -1146,7 +1146,7 @@ elif page == "S&R Analysis":
                             })
                             
                             st.success(f"✅ Fetched {len(df)} days of REAL data from Yahoo Finance!")
-                            st.caption(f"Latest price: ₹{df['close'].iloc[-1]:.2f}")
+                            st.caption(f"Latest price: {df['close'].iloc[-1]:.2f}")
                         else:
                             df = None
                             st.warning(f"⚠️ No data found for {symbol_input}.NS on Yahoo Finance.")
@@ -1180,7 +1180,7 @@ elif page == "S&R Analysis":
                         col1, col2, col3, col4 = st.columns(4)
                         
                         with col1:
-                            st.metric("Current Price", f"₹{sr_data['current_price']:.2f}")
+                            st.metric("Current Price", f"{sr_data['current_price']:.2f}")
                         
                         with col2:
                             signal_color = "🟢" if "BUY" in signal['signal'] else ("🔴" if "SELL" in signal['signal'] else "🟡")
@@ -1207,8 +1207,16 @@ elif page == "S&R Analysis":
                             st.subheader("🛡️ Support Levels")
                             if sr_data['supports']:
                                 df_supports = pd.DataFrame(sr_data['supports'])
+                                # Format for display
+                                display_supports = df_supports[['level', 'distance_pct', 'touches', 'volume_factor', 'strength']].copy()
+                                display_supports.columns = ['Level', 'Distance %', 'Touches', 'Volume Factor', 'Strength']
                                 st.dataframe(
-                                    df_supports[['level', 'distance_pct', 'touches', 'strength']],
+                                    display_supports.style.format({
+                                        'Level': '{:.2f}',
+                                        'Distance %': '{:.1f}%',
+                                        'Volume Factor': '{:.2f}',
+                                        'Strength': '{:.0f}'
+                                    }),
                                     use_container_width=True
                                 )
                             else:
@@ -1218,8 +1226,16 @@ elif page == "S&R Analysis":
                             st.subheader("🚧 Resistance Levels")
                             if sr_data['resistances']:
                                 df_resistances = pd.DataFrame(sr_data['resistances'])
+                                # Format for display
+                                display_resistances = df_resistances[['level', 'distance_pct', 'touches', 'volume_factor', 'strength']].copy()
+                                display_resistances.columns = ['Level', 'Distance %', 'Touches', 'Volume Factor', 'Strength']
                                 st.dataframe(
-                                    df_resistances[['level', 'distance_pct', 'touches', 'strength']],
+                                    display_resistances.style.format({
+                                        'Level': '{:.2f}',
+                                        'Distance %': '{:.1f}%',
+                                        'Volume Factor': '{:.2f}',
+                                        'Strength': '{:.0f}'
+                                    }),
                                     use_container_width=True
                                 )
                             else:
@@ -1248,7 +1264,7 @@ elif page == "S&R Analysis":
                             y=support['level'],
                             line_dash="dash",
                             line_color="green",
-                            annotation_text=f"Support: ₹{support['level']} (Strength: {support['strength']})",
+                            annotation_text=f"Support: {support['level']:.2f} (Strength: {support['strength']:.0f})",
                             annotation_position="left"
                         )
                     
@@ -1258,7 +1274,7 @@ elif page == "S&R Analysis":
                             y=resistance['level'],
                             line_dash="dash",
                             line_color="red",
-                            annotation_text=f"Resistance: ₹{resistance['level']} (Strength: {resistance['strength']})",
+                            annotation_text=f"Resistance: {resistance['level']:.2f} (Strength: {resistance['strength']:.0f})",
                             annotation_position="right"
                         )
                     
@@ -1298,10 +1314,10 @@ elif page == "S&R Analysis":
                         col1, col2, col3 = st.columns(3)
                         
                         with col1:
-                            st.metric("50 EMA", f"₹{ma_data['EMA50']:.2f}", f"{ma_data['distance_from_50ema']:.2f}%")
+                            st.metric("50 EMA", f"{ma_data['EMA50']:.2f}", f"{ma_data['distance_from_50ema']:.2f}%")
                         
                         with col2:
-                            st.metric("200 EMA", f"₹{ma_data['EMA200']:.2f}", f"{ma_data['distance_from_200ema']:.2f}%")
+                            st.metric("200 EMA", f"{ma_data['EMA200']:.2f}", f"{ma_data['distance_from_200ema']:.2f}%")
                         
                         with col3:
                             trend_color = "🟢" if "BULLISH" in ma_data['trend'] else ("🔴" if "BEARISH" in ma_data['trend'] else "🟡")
@@ -1322,11 +1338,11 @@ elif page == "S&R Analysis":
                         
                         for br in breakouts['breakouts']:
                             if br['direction'] == 'BULLISH':
-                                st.success(f"🚀 **{br['type']}**: Price broke above ₹{br['level']} with {br['strength']:.1f} strength")
+                                st.success(f"🚀 **{br['type']}**: Price broke above {br['level']:.2f} with {br['strength']:.1f} strength")
                                 if br['volume_confirmation']:
                                     st.info("✅ Confirmed with high volume")
                             else:
-                                st.error(f"📉 **{br['type']}**: Price broke below ₹{br['level']} with {br['strength']:.1f} strength")
+                                st.error(f"📉 **{br['type']}**: Price broke below {br['level']:.2f} with {br['strength']:.1f} strength")
                                 if br['volume_confirmation']:
                                     st.info("✅ Confirmed with high volume")
                     
