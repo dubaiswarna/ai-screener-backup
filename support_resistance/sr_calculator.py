@@ -607,7 +607,8 @@ class SupportResistanceCalculator:
     def generate_trading_signal(self, df: pd.DataFrame, sr_data: Dict, ma_data: Dict, 
                                 breakouts: Dict, reversals: List[Dict]) -> Dict:
         """
-        Generate comprehensive trading signal: STRONG BUY, BUY, HOLD, SELL, STRONG SELL
+        Generate comprehensive trading signal: STRONG BUY, BUY, WAIT, HOLD, SELL, STRONG SELL
+        IMPROVED: Considers trend direction - no BUY in bearish trends!
         
         Returns:
             Dict with signal, strength, reasons, and confidence score
@@ -617,63 +618,102 @@ class SupportResistanceCalculator:
         reasons = []
         strength = 'NEUTRAL'
         
-        # STRONG BUY Conditions
+        # Get trend context FIRST (most important!)
+        trend = ma_data.get('trend', 'NEUTRAL') if ma_data.get('available') else 'NEUTRAL'
+        is_bullish_trend = trend in ['STRONG BULLISH', 'BULLISH']
+        is_bearish_trend = trend in ['STRONG BEARISH', 'BEARISH']
+        
+        # STRONG BUY Conditions (ONLY in bullish or neutral trends!)
         if sr_data['supports']:
             nearest_support = sr_data['supports'][0]
             support_dist = nearest_support['distance_pct']
             
             if support_dist < 2 and nearest_support['strength'] > 70:
-                signal = 'STRONG BUY'
-                reasons.append(f"Near STRONG support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
-                strength = 'VERY HIGH'
-            elif support_dist < 3:
-                if signal == 'HOLD':
+                # Near strong support
+                if is_bullish_trend:
+                    signal = 'STRONG BUY'
+                    reasons.append(f"Near STRONG support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    reasons.append(f"Bullish trend confirmation")
+                    strength = 'VERY HIGH'
+                elif is_bearish_trend:
+                    signal = 'WAIT'
+                    reasons.append(f"Near support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    reasons.append(f"⚠️ BUT bearish trend - wait for reversal!")
+                    strength = 'LOW'
+                else:
                     signal = 'BUY'
-                reasons.append(f"Near support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
-                strength = 'HIGH'
+                    reasons.append(f"Near support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    strength = 'MODERATE'
+                    
+            elif support_dist < 3:
+                if is_bullish_trend:
+                    signal = 'BUY'
+                    reasons.append(f"Near support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    reasons.append("Bullish trend supports entry")
+                    strength = 'HIGH'
+                elif is_bearish_trend:
+                    signal = 'WAIT'
+                    reasons.append(f"Near support but in bearish trend")
+                    strength = 'LOW'
+                else:
+                    signal = 'HOLD'
+                    reasons.append(f"Near support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    strength = 'MODERATE'
         
-        # MA Trend
+        # Trend Analysis
         if ma_data.get('available'):
             if ma_data['trend'] == 'STRONG BULLISH':
                 if signal == 'HOLD':
                     signal = 'BUY'
+                    strength = 'MODERATE'
                 reasons.append("Strong bullish trend")
-                if strength == 'NEUTRAL':
-                    strength = 'MODERATE'
             elif ma_data['trend'] == 'STRONG BEARISH':
-                if signal == 'HOLD':
-                    signal = 'SELL'
-                reasons.append("Strong bearish trend")
-                if strength == 'NEUTRAL':
-                    strength = 'MODERATE'
+                # In strong bearish, even near support is risky
+                if signal in ['STRONG BUY', 'BUY']:
+                    signal = 'WAIT'
+                    strength = 'LOW'
+                    reasons.append("⚠️ Strong bearish trend - avoid longs!")
+                elif signal == 'HOLD':
+                    signal = 'HOLD'
+                    reasons.append("Strong bearish trend")
         
-        # Breakouts
+        # Breakouts (Override trend concerns if strong breakout!)
         if breakouts.get('breakout_detected'):
             for br in breakouts['breakouts']:
                 if br['direction'] == 'BULLISH' and br['volume_confirmation']:
                     signal = 'STRONG BUY'
-                    reasons.append(f"Bullish breakout above ₹{br['level']}")
+                    reasons = [f"🚀 Bullish breakout above ₹{br['level']} with volume!"] + reasons
                     strength = 'VERY HIGH'
                 elif br['direction'] == 'BEARISH' and br['volume_confirmation']:
                     signal = 'STRONG SELL'
-                    reasons.append(f"Bearish breakdown below ₹{br['level']}")
+                    reasons = [f"⚠️ Bearish breakdown below ₹{br['level']} with volume!"] + reasons
                     strength = 'VERY HIGH'
         
-        # STRONG SELL Conditions
+        # Resistance Analysis (for shorting or taking profits)
         if sr_data['resistances']:
             nearest_resistance = sr_data['resistances'][0]
             resistance_dist = nearest_resistance['distance_pct']
             
             if resistance_dist < 2 and nearest_resistance['strength'] > 70:
-                if signal not in ['STRONG BUY', 'BUY']:
-                    signal = 'STRONG SELL'
-                    reasons.append(f"Near STRONG resistance (₹{nearest_resistance['level']}, {resistance_dist:.1f}% away)")
-                    strength = 'VERY HIGH'
+                # Near strong resistance
+                if is_bearish_trend:
+                    if signal not in ['STRONG BUY', 'BUY', 'WAIT']:
+                        signal = 'STRONG SELL'
+                        reasons.append(f"Near STRONG resistance (₹{nearest_resistance['level']}, {resistance_dist:.1f}% away)")
+                        reasons.append("Bearish trend confirmation")
+                        strength = 'VERY HIGH'
+                elif is_bullish_trend:
+                    # In bullish trend, resistance might break
+                    if signal == 'STRONG BUY':
+                        reasons.append(f"⚠️ Resistance at ₹{nearest_resistance['level']} ({resistance_dist:.1f}% away)")
+                else:
+                    if signal == 'HOLD':
+                        signal = 'HOLD'
+                    reasons.append(f"Near resistance (₹{nearest_resistance['level']}, {resistance_dist:.1f}% away)")
             elif resistance_dist < 3:
-                if signal == 'HOLD':
+                if is_bearish_trend and signal == 'HOLD':
                     signal = 'SELL'
-                reasons.append(f"Near resistance (₹{nearest_resistance['level']}, {resistance_dist:.1f}% away)")
-                if strength == 'NEUTRAL':
+                    reasons.append(f"Near resistance in bearish trend")
                     strength = 'HIGH'
         
         # Role Reversals
