@@ -413,7 +413,7 @@ elif page == "Technical Screener":
     # Stock universe selection
     TOP_50_STOCKS = [
         'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
-        'ITC', 'HINDUNILVR', 'KOTAKBANK', 'LT', 'ASIANPAINT', 'MARUTI', 'HCLTECH', 
+        'ITC', 'HINDUNILVR', 'KOTAKBANK', 'LT', 'ASIANPAINTS', 'MARUTI', 'HCLTECH', 
         'WIPRO', 'TITAN', 'SUNPHARMA', 'AXISBANK', 'BAJFINANCE', 'NESTLEIND',
         'ULTRACEMCO', 'M&M', 'NTPC', 'POWERGRID', 'ONGC', 'TATASTEEL', 'TECHM',
         'ADANIPORTS', 'JSWSTEEL', 'BAJAJFINSV', 'INDUSINDBK', 'COALINDIA', 'DIVISLAB',
@@ -838,9 +838,9 @@ elif page == "S&R Analysis":
             
             st.markdown("**Quick Presets:**")
             if st.button("📊 Nifty 50", help="Load Nifty 50 stocks"):
-                symbols_input = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINT\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE"
+                symbols_input = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE"
             if st.button("⚡ Top 20", help="Load top 20 stocks"):
-                symbols_input = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINT\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
+                symbols_input = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
             if st.button("💊 Pharma", help="Load pharma stocks"):
                 symbols_input = "SUNPHARMA\nDRREDDY\nCIPLA\nBIOCON\nAUROBINDO\nLUPIN\nTORNTPHARM\nALKEM\nDIVISLAB\nGLENMARK"
     
@@ -1498,7 +1498,7 @@ elif page == "Backtest (Multi-Mode)":
     st.subheader("📈 Select Stocks")
     
     STOCK_LIST = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 
-                  'ASIANPAINT', 'MARUTI', 'TITAN', 'SUNPHARMA', 'WIPRO', 'HCLTECH', 'AXISBANK']
+                  'ASIANPAINTS', 'MARUTI', 'TITAN', 'SUNPHARMA', 'WIPRO', 'HCLTECH', 'AXISBANK']
     
     col1, col2, col3 = st.columns(3)
     with col1:
