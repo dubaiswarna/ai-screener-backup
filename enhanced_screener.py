@@ -971,17 +971,29 @@ elif page == "S&R Analysis":
                 # Filter options
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    filter_signal = st.multiselect("Filter by Signal", ["BUY", "SELL", "HOLD"], default=["BUY", "SELL", "HOLD"])
+                    all_signals = ["STRONG BUY", "BUY", "WAIT", "HOLD", "SELL", "STRONG SELL", "ERROR"]
+                    filter_signal = st.multiselect(
+                        "Filter by Signal", 
+                        all_signals, 
+                        default=all_signals,
+                        help="Select which signals to show"
+                    )
                 with col2:
-                    filter_trend = st.multiselect("Filter by Trend", ["BULLISH", "BEARISH", "NEUTRAL"], default=["BULLISH", "BEARISH", "NEUTRAL"])
+                    all_trends = ["STRONG BULLISH", "BULLISH", "NEUTRAL", "BEARISH", "STRONG BEARISH", "N/A"]
+                    filter_trend = st.multiselect(
+                        "Filter by Trend", 
+                        all_trends, 
+                        default=all_trends,
+                        help="Select which trends to show"
+                    )
                 with col3:
                     sort_by = st.selectbox("Sort by", ["Symbol", "Signal", "Confidence", "Trend"])
                 
                 # Apply filters
                 if filter_signal:
-                    results_df = results_df[results_df['Signal'].str.contains('|'.join(filter_signal), na=False)]
+                    results_df = results_df[results_df['Signal'].isin(filter_signal)]
                 if filter_trend:
-                    results_df = results_df[results_df['Trend'].str.contains('|'.join(filter_trend), na=False)]
+                    results_df = results_df[results_df['Trend'].isin(filter_trend)]
                 
                 # Sort
                 if sort_by:
