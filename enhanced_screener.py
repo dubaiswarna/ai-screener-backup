@@ -811,7 +811,7 @@ elif page == "S&R Analysis":
                 symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
         
         with col2:
-            sensitivity = st.slider("Sensitivity", 3, 10, 5, help="Lower = more levels, Higher = fewer strong levels")
+            sensitivity = st.slider("Sensitivity", 3, 10, 3, help="Lower = more nearby levels (recommended), Higher = fewer major levels")
         
         with col3:
             min_touches = st.slider("Min Touches", 2, 5, 2, help="Minimum times price must touch a level")
@@ -833,7 +833,7 @@ elif page == "S&R Analysis":
         
         with col2:
             st.markdown("**Analysis Settings:**")
-            sensitivity = st.slider("Sensitivity", 3, 10, 5, help="Lower = more levels, Higher = fewer strong levels", key="batch_sens")
+            sensitivity = st.slider("Sensitivity", 3, 10, 3, help="Lower = more nearby levels (recommended), Higher = fewer major levels", key="batch_sens")
             min_touches = st.slider("Min Touches", 2, 5, 2, help="Minimum times price must touch a level", key="batch_touch")
             
             st.markdown("**Quick Presets:**")

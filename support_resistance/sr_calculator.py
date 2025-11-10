@@ -17,14 +17,16 @@ class SupportResistanceCalculator:
     Uses candle wicks for precision and volume for confirmation
     """
     
-    def __init__(self, sensitivity: int = 5, min_touches: int = 2):
+    def __init__(self, sensitivity: int = 3, min_touches: int = 2):
         """
         Args:
-            sensitivity: Window size for finding peaks/troughs (default: 5)
+            sensitivity: Window size for finding peaks/troughs (default: 3 - finds more nearby levels)
             min_touches: Minimum times price must touch level (default: 2)
         """
         self.sensitivity = sensitivity
         self.min_touches = min_touches
+        self.max_distance_pct = 10.0  # Only show levels within 10% of current price
+        self.prefer_recent_days = 90   # Prioritize levels from last 90 days
     
     def find_swing_highs_lows(self, df: pd.DataFrame) -> Tuple[List[int], List[int]]:
         """
@@ -127,6 +129,7 @@ class SupportResistanceCalculator:
                                      current_price: float = None) -> Dict:
         """
         Main function to calculate Support & Resistance levels
+        IMPROVED: Prioritizes nearby levels (2-10%) and recent price action
         
         Args:
             df: DataFrame with OHLCV data
@@ -155,47 +158,112 @@ class SupportResistanceCalculator:
         
         current_price = current_price or df['close'].iloc[-1]
         
-        # Find swing points
-        swing_highs, swing_lows = self.find_swing_highs_lows(df)
+        # IMPROVEMENT: Prioritize recent data (last 90 days)
+        recent_df = df.tail(self.prefer_recent_days) if len(df) > self.prefer_recent_days else df
+        full_df = df
         
-        # Get resistance levels (from swing highs)
-        resistance_levels = df.iloc[swing_highs]['high'].tolist()
+        # Find swing points in RECENT data first (more relevant)
+        swing_highs_recent, swing_lows_recent = self.find_swing_highs_lows(recent_df)
         
-        # Get support levels (from swing lows)
-        support_levels = df.iloc[swing_lows]['low'].tolist()
+        # Also find from full data but with lower priority
+        swing_highs_full, swing_lows_full = self.find_swing_highs_lows(full_df)
+        
+        # Get resistance levels (from swing highs) - prioritize recent
+        resistance_levels_recent = recent_df.iloc[swing_highs_recent]['high'].tolist() if len(swing_highs_recent) > 0 else []
+        resistance_levels_full = full_df.iloc[swing_highs_full]['high'].tolist() if len(swing_highs_full) > 0 else []
+        resistance_levels = resistance_levels_recent + resistance_levels_full
+        
+        # Get support levels (from swing lows) - prioritize recent
+        support_levels_recent = recent_df.iloc[swing_lows_recent]['low'].tolist() if len(swing_lows_recent) > 0 else []
+        support_levels_full = full_df.iloc[swing_lows_full]['low'].tolist() if len(swing_lows_full) > 0 else []
+        support_levels = support_levels_recent + support_levels_full
         
         # Cluster nearby levels into zones
         resistance_levels = self.cluster_levels(resistance_levels)
         support_levels = self.cluster_levels(support_levels)
         
         # Separate levels above (resistance) and below (support) current price
-        resistances = sorted([r for r in resistance_levels if r > current_price])
-        supports = sorted([s for s in support_levels if s < current_price], reverse=True)
+        # IMPROVEMENT: Filter to only show levels within max_distance_pct
+        resistances = sorted([
+            r for r in resistance_levels 
+            if r > current_price and (r - current_price) / current_price * 100 <= self.max_distance_pct
+        ])
+        
+        supports = sorted([
+            s for s in support_levels 
+            if s < current_price and (current_price - s) / s * 100 <= self.max_distance_pct
+        ], reverse=True)
+        
+        # IMPROVEMENT: If no resistance found, add psychological levels
+        if not resistances:
+            # Add round number resistances above current price
+            round_levels = []
+            for multiplier in [50, 100, 250, 500]:
+                level = (int(current_price / multiplier) + 1) * multiplier
+                if level > current_price and (level - current_price) / current_price * 100 <= self.max_distance_pct:
+                    round_levels.append(float(level))
+            resistances = sorted(round_levels)[:3]
+        
+        # IMPROVEMENT: If no support found, add psychological levels
+        if not supports:
+            # Add round number supports below current price
+            round_levels = []
+            for multiplier in [50, 100, 250, 500]:
+                level = (int(current_price / multiplier)) * multiplier
+                if level < current_price and (current_price - level) / level * 100 <= self.max_distance_pct:
+                    round_levels.append(float(level))
+            supports = sorted(round_levels, reverse=True)[:3]
         
         # Calculate strength for each level
         resistance_data = []
-        for level in resistances[:5]:  # Top 5 resistance levels
+        for level in resistances[:10]:  # Check more levels, will filter by distance
             strength_info = self.calculate_level_strength(df, level)
-            if strength_info['touches'] >= self.min_touches:
-                resistance_data.append({
-                    'level': round(level, 2),
-                    'distance_pct': round(((level - current_price) / current_price) * 100, 2),
-                    'zone_upper': round(level * 1.015, 2),
-                    'zone_lower': round(level * 0.985, 2),
-                    **strength_info
-                })
+            distance_pct = ((level - current_price) / current_price) * 100
+            
+            # IMPROVEMENT: Only include if within max distance or very strong
+            if (distance_pct <= self.max_distance_pct or strength_info['strength'] > 80):
+                if strength_info['touches'] >= self.min_touches or distance_pct <= 3.0:
+                    # Calculate recency bonus (recent levels are more relevant)
+                    recency_bonus = 10 if level in resistance_levels_recent else 0
+                    adjusted_strength = min(100, strength_info['strength'] + recency_bonus)
+                    
+                    resistance_data.append({
+                        'level': round(level, 2),
+                        'distance_pct': round(distance_pct, 2),
+                        'zone_upper': round(level * 1.015, 2),
+                        'zone_lower': round(level * 0.985, 2),
+                        'touches': strength_info['touches'],
+                        'volume_factor': strength_info['volume_factor'],
+                        'strength': round(adjusted_strength, 1)
+                    })
+        
+        # Sort by distance (nearest first)
+        resistance_data = sorted(resistance_data, key=lambda x: x['distance_pct'])[:5]
         
         support_data = []
-        for level in supports[:5]:  # Top 5 support levels
+        for level in supports[:10]:  # Check more levels, will filter by distance
             strength_info = self.calculate_level_strength(df, level)
-            if strength_info['touches'] >= self.min_touches:
-                support_data.append({
-                    'level': round(level, 2),
-                    'distance_pct': round(((current_price - level) / level) * 100, 2),
-                    'zone_upper': round(level * 1.015, 2),
-                    'zone_lower': round(level * 0.985, 2),
-                    **strength_info
-                })
+            distance_pct = ((current_price - level) / level) * 100
+            
+            # IMPROVEMENT: Only include if within max distance or very strong
+            if (distance_pct <= self.max_distance_pct or strength_info['strength'] > 80):
+                if strength_info['touches'] >= self.min_touches or distance_pct <= 3.0:
+                    # Calculate recency bonus
+                    recency_bonus = 10 if level in support_levels_recent else 0
+                    adjusted_strength = min(100, strength_info['strength'] + recency_bonus)
+                    
+                    support_data.append({
+                        'level': round(level, 2),
+                        'distance_pct': round(distance_pct, 2),
+                        'zone_upper': round(level * 1.015, 2),
+                        'zone_lower': round(level * 0.985, 2),
+                        'touches': strength_info['touches'],
+                        'volume_factor': strength_info['volume_factor'],
+                        'strength': round(adjusted_strength, 1)
+                    })
+        
+        # Sort by distance (nearest first)
+        support_data = sorted(support_data, key=lambda x: x['distance_pct'])[:5]
         
         return {
             'supports': support_data,
