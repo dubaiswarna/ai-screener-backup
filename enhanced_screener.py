@@ -819,17 +819,11 @@ elif page == "S&R Analysis":
     else:  # Batch Analysis
         st.subheader("📋 Batch Analysis - Multiple Stocks")
         
-        col1, col2 = st.columns([2, 1])
+        # Initialize session state for batch symbols
+        if 'batch_symbols' not in st.session_state:
+            st.session_state.batch_symbols = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nADANIENT\nAXISBANK"
         
-        with col1:
-            st.markdown("**Enter stock symbols** (one per line or comma-separated):")
-            default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nADANIENT\nAXISBANK"
-            symbols_input = st.text_area(
-                "Stock Symbols:",
-                default_stocks,
-                height=200,
-                help="Enter one symbol per line, or separate with commas"
-            )
+        col1, col2 = st.columns([2, 1])
         
         with col2:
             st.markdown("**Analysis Settings:**")
@@ -837,12 +831,32 @@ elif page == "S&R Analysis":
             min_touches = st.slider("Min Touches", 2, 5, 2, help="Minimum times price must touch a level", key="batch_touch")
             
             st.markdown("**Quick Presets:**")
-            if st.button("📊 Nifty 50", help="Load Nifty 50 stocks"):
-                symbols_input = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE"
-            if st.button("⚡ Top 20", help="Load top 20 stocks"):
-                symbols_input = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
-            if st.button("💊 Pharma", help="Load pharma stocks"):
-                symbols_input = "SUNPHARMA\nDRREDDY\nCIPLA\nBIOCON\nAUROBINDO\nLUPIN\nTORNTPHARM\nALKEM\nDIVISLAB\nGLENMARK"
+            if st.button("📊 Nifty 50", help="Load Nifty 50 stocks", key="btn_nifty50"):
+                if EXPANDED_UNIVERSE_AVAILABLE:
+                    st.session_state.batch_symbols = "\n".join(NIFTY_50)
+                else:
+                    st.session_state.batch_symbols = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE"
+                st.rerun()
+                
+            if st.button("⚡ Top 20", help="Load top 20 stocks", key="btn_top20"):
+                st.session_state.batch_symbols = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
+                st.rerun()
+                
+            if st.button("💊 Pharma", help="Load pharma stocks", key="btn_pharma"):
+                st.session_state.batch_symbols = "SUNPHARMA\nDRREDDY\nCIPLA\nBIOCON\nAUROBINDO\nLUPIN\nTORNTPHARM\nALKEM\nDIVISLAB\nGLENMARK"
+                st.rerun()
+        
+        with col1:
+            st.markdown("**Enter stock symbols** (one per line or comma-separated):")
+            symbols_input = st.text_area(
+                "Stock Symbols:",
+                value=st.session_state.batch_symbols,
+                height=200,
+                help="Enter one symbol per line, or separate with commas",
+                key="batch_symbols_input"
+            )
+            # Update session state when text area changes
+            st.session_state.batch_symbols = symbols_input
     
     if st.button("🔍 Analyze Support & Resistance", type="primary"):
         # Handle batch vs single analysis
@@ -893,24 +907,18 @@ elif page == "S&R Analysis":
                         except:
                             pass
                         
-                        # Fallback to sample data if yfinance fails
+                        # If data fetch failed, skip this stock
                         if df is None or df.empty:
-                            import numpy as np
-                            dates = pd.date_range(end=datetime.now(), periods=200, freq='D')
-                            base_price = np.random.randint(500, 5000)
-                            df = pd.DataFrame({
-                                'time': dates,
-                                'open': base_price + np.random.randn(200) * (base_price * 0.02),
-                                'high': base_price + np.random.randn(200) * (base_price * 0.02) + base_price * 0.01,
-                                'low': base_price + np.random.randn(200) * (base_price * 0.02) - base_price * 0.01,
-                                'close': base_price + np.random.randn(200) * (base_price * 0.02),
-                                'volume': np.random.randint(1000000, 5000000, 200)
+                            batch_results.append({
+                                'Symbol': symbol,
+                                'Signal': 'ERROR',
+                                'Nearest_Support': 'N/A',
+                                'Nearest_Resistance': 'N/A',
+                                'Trend': 'N/A',
+                                'Error': 'Could not fetch data'
                             })
-                            trend = np.random.choice([-1, 0, 1])
-                            df['close'] = df['close'] + np.arange(200) * trend * (base_price * 0.01)
-                            df['high'] = df[['high', 'close']].max(axis=1) + base_price * 0.005
-                            df['low'] = df[['low', 'close']].min(axis=1) - base_price * 0.005
-                            df['open'] = df['close'].shift(1).fillna(df['close'])
+                            progress_bar.progress((idx + 1) / len(symbols_list))
+                            continue
                         
                         # Calculate S&R
                         current_price = df['close'].iloc[-1]
