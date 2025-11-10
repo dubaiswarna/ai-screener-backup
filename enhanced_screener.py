@@ -1652,12 +1652,19 @@ elif page == "VWAP Strategy":
                     
                     # Find winner for each stock
                     winners = pivot_profit.idxmax(axis=1)
-                    pivot_profit['🏆 Best Config'] = winners
-                    pivot_profit['🏆 Best Profit'] = pivot_profit.max(axis=1, numeric_only=True)
+                    
+                    # Create display dataframe
+                    display_pivot = pivot_profit.copy()
+                    display_pivot['🏆 Best Config'] = winners
+                    display_pivot['🏆 Best Profit'] = pivot_profit.max(axis=1, numeric_only=True)
+                    
+                    # Format only numeric columns
+                    numeric_cols = [c['name'] for c in configurations] + ['🏆 Best Profit']
+                    format_dict = {col: "₹{:,.0f}" for col in numeric_cols}
                     
                     # Style the dataframe
                     st.dataframe(
-                        pivot_profit.style.format("₹{:,.0f}"),
+                        display_pivot.style.format(format_dict),
                         use_container_width=True
                     )
                     
