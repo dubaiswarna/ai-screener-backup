@@ -1331,183 +1331,426 @@ elif page == "VWAP Strategy":
         st.error(f"Error importing VWAP system: {e}")
         st.stop()
     
-    # File Upload Section
-    st.subheader("📁 Upload Stock Data")
-    uploaded_file = st.file_uploader("Upload CSV or Excel file", type=['csv', 'xlsx'], help="File must contain: Date, High, Low, VWAP (optional), Close (optional)")
+    # Mode Selection
+    st.subheader("📊 Select Mode")
+    mode = st.radio("", ["Single Stock Backtest", "Batch Comparison (10+ stocks)"], horizontal=True)
     
-    if uploaded_file:
-        # Load data
-        try:
-            if uploaded_file.name.endswith('.csv'):
-                df = pd.read_csv(uploaded_file)
-            else:
-                df = pd.read_excel(uploaded_file)
+    st.markdown("---")
+    
+    if mode == "Single Stock Backtest":
+        # Single File Mode
+        st.subheader("📁 Upload Stock Data")
+        uploaded_file = st.file_uploader("Upload CSV or Excel file", type=['csv', 'xlsx'], help="File must contain: Date, High, Low, VWAP (optional), Close (optional)")
+        
+        if uploaded_file:
+            # Load data
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+                
+                st.success(f"✅ Loaded {len(df)} rows from {uploaded_file.name}")
+                
+                # Show data preview
+                with st.expander("📊 Data Preview"):
+                    st.dataframe(df.head(10))
+            except Exception as e:
+                st.error(f"Error loading file: {e}")
+                st.stop()
             
-            st.success(f"✅ Loaded {len(df)} rows from {uploaded_file.name}")
+            # Parameter Configuration
+            st.subheader("⚙️ Strategy Parameters")
             
-            # Show data preview
-            with st.expander("📊 Data Preview"):
-                st.dataframe(df.head(10))
-        except Exception as e:
-            st.error(f"Error loading file: {e}")
-            st.stop()
-        
-        # Parameter Configuration
-        st.subheader("⚙️ Strategy Parameters")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**📊 Core Settings**")
-            target_pct = st.selectbox("Profit Target", [3.0, 6.0, 10.0, 15.0], index=2, help="Profit target percentage")
-            threshold_lakhs = st.selectbox("Threshold (Lakhs)", [3.0, 4.0, 5.0, 10.0], index=2, help="Above this, profit target reduces to 1%")
-        
-        with col2:
-            st.markdown("**💰 Investment Mode**")
-            investment_mode = st.radio("Mode", ["Amount (Rs)", "Quantity (Shares)"], index=1)
+            col1, col2, col3 = st.columns(3)
             
-            if investment_mode == "Amount (Rs)":
-                max_investment = st.number_input("Daily Investment (Rs)", min_value=1000, max_value=1000000, value=15000, step=1000)
-                fixed_qty = None
-            else:
-                fixed_qty = st.number_input("Fixed Quantity (Shares)", min_value=1, max_value=1000, value=10, step=1)
-                max_investment = None
-        
-        with col3:
-            st.markdown("**🔧 Optional Filters**")
-            vwap_enabled = st.checkbox("Enable VWAP (E3, E4)", value=True, help="Enable VWAP-based entry points")
+            with col1:
+                st.markdown("**📊 Core Settings**")
+                target_pct = st.selectbox("Profit Target", [3.0, 6.0, 10.0, 15.0], index=2, help="Profit target percentage")
+                threshold_lakhs = st.selectbox("Threshold (Lakhs)", [3.0, 4.0, 5.0, 10.0], index=2, help="Above this, profit target reduces to 1%")
             
-            sma_enabled = st.checkbox("Enable SMA (E5, E6)", value=False, help="Enable SMA-based entry points")
-            sma_period = st.number_input("SMA Period", min_value=5, max_value=200, value=9, step=1, disabled=not sma_enabled)
+            with col2:
+                st.markdown("**💰 Investment Mode**")
+                investment_mode = st.radio("Mode", ["Amount (Rs)", "Quantity (Shares)"], index=1)
+                
+                if investment_mode == "Amount (Rs)":
+                    max_investment = st.number_input("Daily Investment (Rs)", min_value=1000, max_value=1000000, value=15000, step=1000)
+                    fixed_qty = None
+                else:
+                    fixed_qty = st.number_input("Fixed Quantity (Shares)", min_value=1, max_value=1000, value=10, step=1)
+                    max_investment = None
             
-            ha_enabled = st.checkbox("Enable Heikin Ashi (E7, E8)", value=False, help="Enable HA-based entry points")
+            with col3:
+                st.markdown("**🔧 Optional Filters**")
+                vwap_enabled = st.checkbox("Enable VWAP (E3, E4)", value=True, help="Enable VWAP-based entry points")
+                
+                sma_enabled = st.checkbox("Enable SMA (E5, E6)", value=False, help="Enable SMA-based entry points")
+                sma_period = st.number_input("SMA Period", min_value=5, max_value=200, value=9, step=1, disabled=not sma_enabled)
+                
+                ha_enabled = st.checkbox("Enable Heikin Ashi (E7, E8)", value=False, help="Enable HA-based entry points")
+                
+                supertrend_enabled = st.checkbox("Enable Supertrend Filter", value=False, help="Block buys when price > Supertrend")
             
-            supertrend_enabled = st.checkbox("Enable Supertrend Filter", value=False, help="Block buys when price > Supertrend")
+            # Entry Points Summary
+            total_entries = 2  # Always E1, E2
+            entry_list = ["E1 (Low)", "E2 (Low-1%)"]
+            if vwap_enabled:
+                total_entries += 2
+                entry_list.extend(["E3 (VWAP)", "E4 (VWAP-1%)"])
+            if sma_enabled and sma_period:
+                total_entries += 2
+                entry_list.extend([f"E5 (SMA{sma_period})", f"E6 (SMA{sma_period}-1%)"])
+            if ha_enabled:
+                total_entries += 2
+                entry_list.extend(["E7 (HA Low)", "E8 (HA Low-1%)"])
+            
+            st.info(f"**{total_entries} Entry Points Active:** {', '.join(entry_list)}")
+            
+            # Run Backtest Button
+            if st.button("🚀 Run Backtest", type="primary"):
+                with st.spinner("Running backtest..."):
+                    try:
+                        # Initialize system
+                        system = VWAPFlexibleSystem(
+                            max_investment=max_investment,
+                            fixed_qty=fixed_qty,
+                            target_percentage=target_pct,
+                            threshold_lakhs=threshold_lakhs,
+                            initial_capital=100000,
+                            vwap_enabled=vwap_enabled,
+                            sma_period=sma_period if sma_enabled else None,
+                            supertrend_enabled=supertrend_enabled,
+                            ha_enabled=ha_enabled
+                        )
+                        
+                        # Load data
+                        try:
+                            if not system.load_data_from_dataframe(df):
+                                st.error("Failed to load data. Please check your file format.")
+                                st.stop()
+                        except Exception as load_error:
+                            st.error(f"❌ Data Loading Error: {str(load_error)}")
+                            st.info("💡 **Required columns:** Date, High, Low (VWAP, Close optional)")
+                            st.info(f"📋 **Your columns:** {', '.join(df.columns.tolist())}")
+                            st.stop()
+                        
+                        # Run backtest
+                        if not system.run_backtest():
+                            st.error("Backtest failed!")
+                            st.stop()
+                        
+                        # Get results
+                        summary = system.get_summary()
+                        
+                        # Display Results
+                        st.success("✅ Backtest Complete!")
+                        
+                        # Key Metrics
+                        st.subheader("📈 Performance Summary")
+                        
+                        col1, col2, col3, col4 = st.columns(4)
+                        
+                        with col1:
+                            st.metric("Total Trades", summary['total_trades'])
+                        
+                        with col2:
+                            profit_color = "normal" if summary['total_profit'] >= 0 else "inverse"
+                            st.metric("Total Profit", f"₹{summary['total_profit']:,.2f}", delta=f"{summary['total_return']:.2f}%")
+                        
+                        with col3:
+                            st.metric("Win Rate", f"{summary['win_rate']:.1f}%")
+                        
+                        with col4:
+                            st.metric("Avg Profit/Trade", f"₹{summary['avg_profit_per_trade']:,.2f}")
+                        
+                        # Capital Growth
+                        st.markdown("---")
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.metric("Initial Capital", f"₹{100000:,.2f}")
+                        
+                        with col2:
+                            st.metric("Final Capital", f"₹{summary['final_capital']:,.2f}", delta=f"₹{summary['total_profit']:,.2f}")
+                        
+                        # Detailed Results
+                        if system.daily_transactions:
+                            st.markdown("---")
+                            st.subheader("📊 Daily Transactions")
+                            
+                            transactions_df = pd.DataFrame(system.daily_transactions)
+                            
+                            # Format for display
+                            display_df = transactions_df[['date', 'total_buy_qty', 'avg_buy_price', 'sell_qty', 'sell_price', 'profit', 'return_pct']].copy()
+                            display_df.columns = ['Date', 'Buy Qty', 'Avg Buy Price', 'Sell Qty', 'Sell Price', 'Profit', 'Return %']
+                            
+                            st.dataframe(
+                                display_df.style.format({
+                                    'Avg Buy Price': '₹{:.2f}',
+                                    'Sell Price': '₹{:.2f}',
+                                    'Profit': '₹{:.2f}',
+                                    'Return %': '{:.2f}%'
+                                }),
+                                use_container_width=True
+                            )
+                            
+                            # Download Full Excel Report
+                            st.markdown("---")
+                            st.subheader("💾 Download Complete Excel Report")
+                            st.info("📊 Includes: Daily Transactions, Yearly Summary, Performance Summary (Full Details)")
+                            
+                            # Generate complete Excel report
+                            excel_output = system.export_to_bytesio()
+                            excel_data = excel_output.getvalue()
+                            
+                            st.download_button(
+                                label="📥 Download Complete Excel Report",
+                                data=excel_data,
+                                file_name=f"VWAP_Backtest_{uploaded_file.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                type="primary"
+                            )
+                    
+                    except Exception as e:
+                        st.error(f"Error during backtest: {e}")
+                        import traceback
+                        st.code(traceback.format_exc())
+    
+    else:  # Batch Comparison Mode
+        st.subheader("📊 Batch Comparison Mode")
+        st.info("🎯 Upload multiple stock files and compare ALL 8 configurations automatically!")
         
-        # Entry Points Summary
-        total_entries = 2  # Always E1, E2
-        entry_list = ["E1 (Low)", "E2 (Low-1%)"]
-        if vwap_enabled:
-            total_entries += 2
-            entry_list.extend(["E3 (VWAP)", "E4 (VWAP-1%)"])
-        if sma_enabled and sma_period:
-            total_entries += 2
-            entry_list.extend([f"E5 (SMA{sma_period})", f"E6 (SMA{sma_period}-1%)"])
-        if ha_enabled:
-            total_entries += 2
-            entry_list.extend(["E7 (HA Low)", "E8 (HA Low-1%)"])
+        # Multiple file upload
+        uploaded_files = st.file_uploader(
+            "Upload multiple CSV/Excel files (10+ stocks recommended)", 
+            type=['csv', 'xlsx'], 
+            accept_multiple_files=True,
+            help="Each file should contain: Date, High, Low, VWAP (optional), Close (optional)"
+        )
         
-        st.info(f"**{total_entries} Entry Points Active:** {', '.join(entry_list)}")
-        
-        # Run Backtest Button
-        if st.button("🚀 Run Backtest", type="primary"):
-            with st.spinner("Running backtest..."):
-                try:
-                    # Initialize system
-                    system = VWAPFlexibleSystem(
-                        max_investment=max_investment,
-                        fixed_qty=fixed_qty,
-                        target_percentage=target_pct,
-                        threshold_lakhs=threshold_lakhs,
-                        initial_capital=100000,
-                        vwap_enabled=vwap_enabled,
-                        sma_period=sma_period if sma_enabled else None,
-                        supertrend_enabled=supertrend_enabled,
-                        ha_enabled=ha_enabled
+        if uploaded_files and len(uploaded_files) > 0:
+            st.success(f"✅ Loaded {len(uploaded_files)} stock files")
+            
+            # Configuration
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**📊 Core Settings**")
+                target_pct = st.selectbox("Profit Target", [3.0, 6.0, 10.0, 15.0], index=2, key="batch_target")
+                threshold_lakhs = st.selectbox("Threshold (Lakhs)", [3.0, 4.0, 5.0, 10.0], index=2, key="batch_threshold")
+                sma_period = st.number_input("SMA Period (for E5, E6)", min_value=5, max_value=200, value=9, step=1, key="batch_sma")
+            
+            with col2:
+                st.markdown("**💰 Investment Mode**")
+                investment_mode = st.radio("Mode", ["Amount (Rs)", "Quantity (Shares)"], index=1, key="batch_inv_mode")
+                
+                if investment_mode == "Amount (Rs)":
+                    max_investment = st.number_input("Daily Investment (Rs)", min_value=1000, max_value=1000000, value=15000, step=1000, key="batch_amt")
+                    fixed_qty = None
+                else:
+                    fixed_qty = st.number_input("Fixed Quantity (Shares)", min_value=1, max_value=1000, value=10, step=1, key="batch_qty")
+                    max_investment = None
+            
+            st.markdown("---")
+            
+            # Run Comparison
+            if st.button("🚀 Run Batch Comparison", type="primary"):
+                
+                # Define all 8 configurations
+                configurations = [
+                    {"name": "Just Low", "vwap": False, "sma": False, "ha": False},
+                    {"name": "Low + VWAP", "vwap": True, "sma": False, "ha": False},
+                    {"name": "Low + SMA", "vwap": False, "sma": True, "ha": False},
+                    {"name": "Low + HA", "vwap": False, "sma": False, "ha": True},
+                    {"name": "Low + VWAP + SMA", "vwap": True, "sma": True, "ha": False},
+                    {"name": "Low + VWAP + HA", "vwap": True, "sma": False, "ha": True},
+                    {"name": "Low + SMA + HA", "vwap": False, "sma": True, "ha": True},
+                    {"name": "ALL (8 Entries)", "vwap": True, "sma": True, "ha": True}
+                ]
+                
+                results = []
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                total_operations = len(uploaded_files) * len(configurations)
+                current_op = 0
+                
+                for file_idx, uploaded_file in enumerate(uploaded_files):
+                    status_text.text(f"Processing {uploaded_file.name}...")
+                    
+                    # Load file
+                    try:
+                        if uploaded_file.name.endswith('.csv'):
+                            df = pd.read_csv(uploaded_file)
+                        else:
+                            df = pd.read_excel(uploaded_file)
+                        
+                        stock_name = uploaded_file.name.replace('.csv', '').replace('.xlsx', '')
+                        
+                        # Test each configuration
+                        for config in configurations:
+                            try:
+                                system = VWAPFlexibleSystem(
+                                    max_investment=max_investment,
+                                    fixed_qty=fixed_qty,
+                                    target_percentage=target_pct,
+                                    threshold_lakhs=threshold_lakhs,
+                                    initial_capital=100000,
+                                    vwap_enabled=config['vwap'],
+                                    sma_period=sma_period if config['sma'] else None,
+                                    supertrend_enabled=False,
+                                    ha_enabled=config['ha']
+                                )
+                                
+                                if system.load_data_from_dataframe(df) and system.run_backtest():
+                                    summary = system.get_summary()
+                                    
+                                    results.append({
+                                        'Stock': stock_name,
+                                        'Configuration': config['name'],
+                                        'Trades': summary['total_trades'],
+                                        'Profit': summary['total_profit'],
+                                        'Return %': summary['total_return'],
+                                        'Win Rate': summary['win_rate'],
+                                        'Avg Profit/Trade': summary['avg_profit_per_trade']
+                                    })
+                                else:
+                                    results.append({
+                                        'Stock': stock_name,
+                                        'Configuration': config['name'],
+                                        'Trades': 0,
+                                        'Profit': 0,
+                                        'Return %': 0,
+                                        'Win Rate': 0,
+                                        'Avg Profit/Trade': 0
+                                    })
+                            
+                            except Exception as e:
+                                st.warning(f"⚠️ {stock_name} - {config['name']}: {str(e)}")
+                            
+                            current_op += 1
+                            progress_bar.progress(current_op / total_operations)
+                    
+                    except Exception as e:
+                        st.error(f"❌ Error loading {uploaded_file.name}: {e}")
+                
+                progress_bar.empty()
+                status_text.empty()
+                
+                if results:
+                    st.success(f"✅ Comparison Complete! Tested {len(uploaded_files)} stocks × 8 configurations = {len(results)} backtests")
+                    
+                    # Create results DataFrame
+                    results_df = pd.DataFrame(results)
+                    
+                    # Pivot table for comparison
+                    st.subheader("📊 Profit Comparison Matrix")
+                    
+                    pivot_profit = results_df.pivot(index='Stock', columns='Configuration', values='Profit')
+                    pivot_profit = pivot_profit[[c['name'] for c in configurations]]  # Reorder columns
+                    
+                    # Find winner for each stock
+                    winners = pivot_profit.idxmax(axis=1)
+                    pivot_profit['🏆 Best Config'] = winners
+                    pivot_profit['🏆 Best Profit'] = pivot_profit.max(axis=1, numeric_only=True)
+                    
+                    # Style the dataframe
+                    st.dataframe(
+                        pivot_profit.style.format("₹{:,.0f}").background_gradient(cmap='RdYlGn', axis=1, subset=[c['name'] for c in configurations]),
+                        use_container_width=True
                     )
                     
-                    # Load data
-                    try:
-                        if not system.load_data_from_dataframe(df):
-                            st.error("Failed to load data. Please check your file format.")
-                            st.stop()
-                    except Exception as load_error:
-                        st.error(f"❌ Data Loading Error: {str(load_error)}")
-                        st.info("💡 **Required columns:** Date, High, Low (VWAP, Close optional)")
-                        st.info(f"📋 **Your columns:** {', '.join(df.columns.tolist())}")
-                        st.stop()
+                    # Overall Statistics
+                    st.markdown("---")
+                    st.subheader("🏆 Overall Statistics")
                     
-                    # Run backtest
-                    if not system.run_backtest():
-                        st.error("Backtest failed!")
-                        st.stop()
-                    
-                    # Get results
-                    summary = system.get_summary()
-                    
-                    # Display Results
-                    st.success("✅ Backtest Complete!")
-                    
-                    # Key Metrics
-                    st.subheader("📈 Performance Summary")
-                    
-                    col1, col2, col3, col4 = st.columns(4)
+                    col1, col2, col3 = st.columns(3)
                     
                     with col1:
-                        st.metric("Total Trades", summary['total_trades'])
+                        # Most wins
+                        winner_counts = winners.value_counts()
+                        overall_winner = winner_counts.index[0]
+                        win_count = winner_counts.iloc[0]
+                        
+                        st.metric("🥇 Overall Winner", overall_winner, f"{win_count}/{len(uploaded_files)} stocks")
                     
                     with col2:
-                        profit_color = "normal" if summary['total_profit'] >= 0 else "inverse"
-                        st.metric("Total Profit", f"₹{summary['total_profit']:,.2f}", delta=f"{summary['total_return']:.2f}%")
+                        # Best total profit
+                        total_profit_by_config = results_df.groupby('Configuration')['Profit'].sum()
+                        best_total = total_profit_by_config.idxmax()
+                        best_total_value = total_profit_by_config.max()
+                        
+                        st.metric("💰 Highest Total Profit", best_total, f"₹{best_total_value:,.0f}")
                     
                     with col3:
-                        st.metric("Win Rate", f"{summary['win_rate']:.1f}%")
-                    
-                    with col4:
-                        st.metric("Avg Profit/Trade", f"₹{summary['avg_profit_per_trade']:,.2f}")
-                    
-                    # Capital Growth
-                    st.markdown("---")
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.metric("Initial Capital", f"₹{100000:,.2f}")
-                    
-                    with col2:
-                        st.metric("Final Capital", f"₹{summary['final_capital']:,.2f}", delta=f"₹{summary['total_profit']:,.2f}")
+                        # Best avg return
+                        avg_return_by_config = results_df.groupby('Configuration')['Return %'].mean()
+                        best_avg_return = avg_return_by_config.idxmax()
+                        best_avg_return_value = avg_return_by_config.max()
+                        
+                        st.metric("📈 Highest Avg Return", best_avg_return, f"{best_avg_return_value:.2f}%")
                     
                     # Detailed Results
-                    if system.daily_transactions:
-                        st.markdown("---")
-                        st.subheader("📊 Daily Transactions")
+                    st.markdown("---")
+                    st.subheader("📋 Detailed Results")
+                    
+                    st.dataframe(
+                        results_df.style.format({
+                            'Profit': '₹{:,.2f}',
+                            'Return %': '{:.2f}%',
+                            'Win Rate': '{:.1f}%',
+                            'Avg Profit/Trade': '₹{:,.2f}'
+                        }),
+                        use_container_width=True
+                    )
+                    
+                    # Download Excel Report
+                    st.markdown("---")
+                    st.subheader("💾 Download Comparison Report")
+                    
+                    output = BytesIO()
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        # Comparison Matrix
+                        pivot_profit.to_excel(writer, sheet_name='Profit Matrix')
                         
-                        transactions_df = pd.DataFrame(system.daily_transactions)
+                        # Return % Matrix
+                        pivot_return = results_df.pivot(index='Stock', columns='Configuration', values='Return %')
+                        pivot_return = pivot_return[[c['name'] for c in configurations]]
+                        pivot_return.to_excel(writer, sheet_name='Return Matrix')
                         
-                        # Format for display
-                        display_df = transactions_df[['date', 'total_buy_qty', 'avg_buy_price', 'sell_qty', 'sell_price', 'profit', 'return_pct']].copy()
-                        display_df.columns = ['Date', 'Buy Qty', 'Avg Buy Price', 'Sell Qty', 'Sell Price', 'Profit', 'Return %']
+                        # Detailed Results
+                        results_df.to_excel(writer, sheet_name='All Results', index=False)
                         
-                        st.dataframe(
-                            display_df.style.format({
-                                'Avg Buy Price': '₹{:.2f}',
-                                'Sell Price': '₹{:.2f}',
-                                'Profit': '₹{:.2f}',
-                                'Return %': '{:.2f}%'
-                            }),
-                            use_container_width=True
-                        )
+                        # Summary Stats
+                        summary_data = []
+                        for config in configurations:
+                            config_data = results_df[results_df['Configuration'] == config['name']]
+                            summary_data.append({
+                                'Configuration': config['name'],
+                                'Total Profit': config_data['Profit'].sum(),
+                                'Avg Profit': config_data['Profit'].mean(),
+                                'Avg Return %': config_data['Return %'].mean(),
+                                'Total Trades': config_data['Trades'].sum(),
+                                'Wins': len(config_data[config_data['Profit'] > 0]),
+                                'Win Rate %': (len(config_data[config_data['Profit'] > 0]) / len(config_data) * 100) if len(config_data) > 0 else 0
+                            })
                         
-                        # Download Full Excel Report
-                        st.markdown("---")
-                        st.subheader("💾 Download Complete Excel Report")
-                        st.info("📊 Includes: Daily Transactions, Yearly Summary, Performance Summary (Full Details)")
-                        
-                        # Generate complete Excel report
-                        excel_output = system.export_to_bytesio()
-                        excel_data = excel_output.getvalue()
-                        
-                        st.download_button(
-                            label="📥 Download Complete Excel Report",
-                            data=excel_data,
-                            file_name=f"VWAP_Backtest_{uploaded_file.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            type="primary"
-                        )
+                        summary_df = pd.DataFrame(summary_data)
+                        summary_df.to_excel(writer, sheet_name='Config Summary', index=False)
+                    
+                    excel_data = output.getvalue()
+                    
+                    st.download_button(
+                        label="📥 Download Complete Comparison Report",
+                        data=excel_data,
+                        file_name=f"VWAP_Batch_Comparison_{len(uploaded_files)}stocks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="primary"
+                    )
                 
-                except Exception as e:
-                    st.error(f"Error during backtest: {e}")
-                    import traceback
-                    st.code(traceback.format_exc())
+                else:
+                    st.warning("No results generated. Please check your data files.")
 
 # ============================================================
 # PAGE: PORTFOLIO
