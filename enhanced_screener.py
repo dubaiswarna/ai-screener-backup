@@ -465,10 +465,14 @@ elif page == "Technical Screener":
             
             import yfinance as yf
             import os
+            from datetime import datetime
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             signals = []
+            
+            # Current timestamp for all signals in this run
+            signal_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             def calc_rsi(prices, period=14):
                 """Real RSI calculation"""
@@ -574,6 +578,7 @@ elif page == "Technical Screener":
                         strength = min(9.0, 7.0 + (vol_ratio - 1.2) * 2)
                         if strength >= min_pattern_strength:
                             signals.append({
+                                'Generated': signal_time,
                                 'Symbol': symbol,
                                 'Pattern': 'Golden Cross',
                                 'Strength': f"{strength:.1f}/10",
@@ -590,6 +595,7 @@ elif page == "Technical Screener":
                         strength = min(9.5, 8.5 + (sma_50 / sma_200 - 1) * 100)
                         if strength >= min_pattern_strength:
                             signals.append({
+                                'Generated': signal_time,
                                 'Symbol': symbol,
                                 'Pattern': '🚀 Super Golden Cross',
                                 'Strength': f"{strength:.1f}/10",
@@ -606,6 +612,7 @@ elif page == "Technical Screener":
                         strength = min(9.0, 7.5 + ((price / sma_200 - 1) * 50))
                         if strength >= min_pattern_strength:
                             signals.append({
+                                'Generated': signal_time,
                                 'Symbol': symbol,
                                 'Pattern': 'Above SMA 200',
                                 'Strength': f"{strength:.1f}/10",
@@ -622,6 +629,7 @@ elif page == "Technical Screener":
                         strength = min(9.0, 6.0 + (35 - rsi) / 3)
                         if strength >= min_pattern_strength:
                             signals.append({
+                                'Generated': signal_time,
                                 'Symbol': symbol,
                                 'Pattern': 'RSI Oversold',
                                 'Strength': f"{strength:.1f}/10",
@@ -638,6 +646,7 @@ elif page == "Technical Screener":
                         strength = min(9.0, 6.5 + vol_ratio)
                         if strength >= min_pattern_strength:
                             signals.append({
+                                'Generated': signal_time,
                                 'Symbol': symbol,
                                 'Pattern': 'MACD Bullish',
                                 'Strength': f"{strength:.1f}/10",
@@ -657,6 +666,7 @@ elif page == "Technical Screener":
                             strength = min(9.0, 7.5 + (2.0 - fib_proximity))
                             if strength >= min_pattern_strength:
                                 signals.append({
+                                    'Generated': signal_time,
                                     'Symbol': symbol,
                                     'Pattern': f'🎯 Fib {float(fib_level)*100:.1f}% Bounce',
                                     'Strength': f"{strength:.1f}/10",
@@ -672,6 +682,7 @@ elif page == "Technical Screener":
                             strength = min(9.0, 7.0 + (2.0 - fib_proximity))
                             if strength >= min_pattern_strength:
                                 signals.append({
+                                    'Generated': signal_time,
                                     'Symbol': symbol,
                                     'Pattern': f'📈 Fib {float(fib_level)*100:.1f}% Break',
                                     'Strength': f"{strength:.1f}/10",
@@ -689,6 +700,7 @@ elif page == "Technical Screener":
                         strength = min(9.0, 7.5)
                         if strength >= min_pattern_strength:
                             signals.append({
+                                'Generated': signal_time,
                                 'Symbol': symbol,
                                 'Pattern': 'Support Bounce',
                                 'Strength': f"{strength:.1f}/10",
