@@ -937,9 +937,9 @@ elif page == "S&R Analysis":
                             'Price': f"₹{current_price:.2f}",
                             'Signal': signal['signal'],
                             'Confidence': f"{signal['confidence_score']}%",
-                            'Trend': ma_data['trend'],
-                            'Support': f"₹{nearest_support['level']:.2f} ({nearest_support['distance']:.1f}%)" if nearest_support else "N/A",
-                            'Resistance': f"₹{nearest_resistance['level']:.2f} ({nearest_resistance['distance']:.1f}%)" if nearest_resistance else "N/A",
+                            'Trend': ma_data['trend'] if ma_data.get('available') else 'N/A',
+                            'Support': f"₹{nearest_support['level']:.2f} ({nearest_support['distance_pct']:.1f}%)" if nearest_support else "N/A",
+                            'Resistance': f"₹{nearest_resistance['level']:.2f} ({nearest_resistance['distance_pct']:.1f}%)" if nearest_resistance else "N/A",
                             'Sup Strength': f"{nearest_support['strength']:.0f}" if nearest_support else "N/A",
                             'Res Strength': f"{nearest_resistance['strength']:.0f}" if nearest_resistance else "N/A",
                         })
