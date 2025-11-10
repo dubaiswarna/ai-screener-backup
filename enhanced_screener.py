@@ -819,44 +819,43 @@ elif page == "S&R Analysis":
     else:  # Batch Analysis
         st.subheader("📋 Batch Analysis - Multiple Stocks")
         
-        # Initialize session state for batch symbols
-        if 'batch_symbols' not in st.session_state:
-            st.session_state.batch_symbols = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nADANIENT\nAXISBANK"
-        
         col1, col2 = st.columns([2, 1])
         
         with col2:
+            st.markdown("**Quick Presets (Copy-Paste):**")
+            
+            # Nifty 50 preset
+            with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
+                nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE\nJIOFIN"
+                st.code(nifty50_list, language=None)
+                st.caption("👆 Copy all and paste in text area below")
+            
+            # Top 20 preset
+            with st.expander("⚡ Top 20 Stocks", expanded=False):
+                top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
+                st.code(top20_list, language=None)
+                st.caption("👆 Copy all and paste in text area below")
+            
+            # Pharma preset
+            with st.expander("💊 Pharma Stocks", expanded=False):
+                pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nBIOCON\nAUROBINDO\nLUPIN\nTORNTPHARM\nALKEM\nDIVISLAB\nGLENMARK"
+                st.code(pharma_list, language=None)
+                st.caption("👆 Copy all and paste in text area below")
+            
             st.markdown("**Analysis Settings:**")
             sensitivity = st.slider("Sensitivity", 3, 10, 3, help="Lower = more nearby levels (recommended), Higher = fewer major levels", key="batch_sens")
             min_touches = st.slider("Min Touches", 2, 5, 2, help="Minimum times price must touch a level", key="batch_touch")
-            
-            st.markdown("**Quick Presets:**")
-            if st.button("📊 Nifty 50", help="Load Nifty 50 stocks", key="btn_nifty50"):
-                if EXPANDED_UNIVERSE_AVAILABLE:
-                    st.session_state.batch_symbols = "\n".join(NIFTY_50)
-                else:
-                    st.session_state.batch_symbols = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE"
-                st.rerun()
-                
-            if st.button("⚡ Top 20", help="Load top 20 stocks", key="btn_top20"):
-                st.session_state.batch_symbols = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
-                st.rerun()
-                
-            if st.button("💊 Pharma", help="Load pharma stocks", key="btn_pharma"):
-                st.session_state.batch_symbols = "SUNPHARMA\nDRREDDY\nCIPLA\nBIOCON\nAUROBINDO\nLUPIN\nTORNTPHARM\nALKEM\nDIVISLAB\nGLENMARK"
-                st.rerun()
         
         with col1:
             st.markdown("**Enter stock symbols** (one per line or comma-separated):")
+            default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
             symbols_input = st.text_area(
                 "Stock Symbols:",
-                value=st.session_state.batch_symbols,
-                height=200,
-                help="Enter one symbol per line, or separate with commas",
+                value=default_stocks,
+                height=300,
+                help="Enter one symbol per line, or separate with commas. Use presets on the right →",
                 key="batch_symbols_input"
             )
-            # Update session state when text area changes
-            st.session_state.batch_symbols = symbols_input
     
     if st.button("🔍 Analyze Support & Resistance", type="primary"):
         # Handle batch vs single analysis
