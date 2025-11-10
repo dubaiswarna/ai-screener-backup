@@ -1997,34 +1997,70 @@ elif page == "Backtest (Multi-Mode)":
     st.header("🏆 Multi-Mode Backtest Dashboard")
     st.info("🎯 Backtest with Technical Analysis - AI features available in local version for faster execution")
     
-    st.warning("⚠️ **Note:** This is a simplified web version using generated sample data. For full backtests with real historical data (169 stocks), use the local Multi-Mode dashboard on your PC at http://localhost:8504")
+    st.warning("⚠️ **Note:** This is a simplified web version using generated sample data. For full backtests with real historical data, use the local Multi-Mode dashboard on your PC at http://localhost:8504")
     
     # Mode selection
     mode = st.radio("📊 Select Strategy Mode:", ["Technical Only", "Hybrid (Coming Soon)", "AI Only (Coming Soon)"], horizontal=True)
     
     st.markdown("---")
     
-    # Stock selection
-    st.subheader("📈 Select Stocks")
+    # Stock Universe Selection
+    st.subheader("📈 Select Stock Universe")
     
-    STOCK_LIST = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 
-                  'ASIANPAINTS', 'MARUTI', 'TITAN', 'SUNPHARMA', 'WIPRO', 'HCLTECH', 'AXISBANK']
+    if EXPANDED_UNIVERSE_AVAILABLE:
+        universe_selection = st.radio(
+            "Choose Stock Universe:",
+            ["Nifty 50", "Nifty 200", "Nifty 500", "Smallcap 250", "ALL (750+ stocks)", "Custom Selection"],
+            horizontal=True
+        )
+        
+        # Map selection to stock list
+        if universe_selection == "Nifty 50":
+            available_stocks = NIFTY_50
+            default_selection = NIFTY_50[:10]
+        elif universe_selection == "Nifty 200":
+            available_stocks = NIFTY_200
+            default_selection = NIFTY_200[:20]
+        elif universe_selection == "Nifty 500":
+            available_stocks = NIFTY_500
+            default_selection = NIFTY_500[:30]
+        elif universe_selection == "Smallcap 250":
+            available_stocks = SMALLCAP_250
+            default_selection = SMALLCAP_250[:20]
+        elif universe_selection == "ALL (750+ stocks)":
+            available_stocks = ALL_STOCKS
+            default_selection = ALL_STOCKS[:50]
+        else:  # Custom
+            available_stocks = ALL_STOCKS
+            default_selection = []
+    else:
+        # Fallback if stock universe not available
+        available_stocks = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 
+                           'ASIANPAINTS', 'MARUTI', 'TITAN', 'SUNPHARMA', 'WIPRO', 'HCLTECH', 'AXISBANK']
+        default_selection = available_stocks[:5]
+        universe_selection = "Top 15"
     
-    col1, col2, col3 = st.columns(3)
+    # Quick selection buttons
+    st.markdown("**Quick Selection:**")
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if st.button("Top 5"):
-            st.session_state['backtest_stocks'] = STOCK_LIST[:5]
-    with col2:
         if st.button("Top 10"):
-            st.session_state['backtest_stocks'] = STOCK_LIST[:10]
+            st.session_state['backtest_stocks'] = available_stocks[:10]
+    with col2:
+        if st.button("Top 20"):
+            st.session_state['backtest_stocks'] = available_stocks[:20]
     with col3:
-        if st.button("All 15"):
-            st.session_state['backtest_stocks'] = STOCK_LIST
+        if st.button("Top 50"):
+            st.session_state['backtest_stocks'] = available_stocks[:50]
+    with col4:
+        if st.button("All Stocks"):
+            st.session_state['backtest_stocks'] = available_stocks
     
+    # Manual selection
     selected_stocks = st.multiselect(
-        "Or manually select:",
-        options=STOCK_LIST,
-        default=st.session_state.get('backtest_stocks', STOCK_LIST[:5])
+        "Or manually select stocks:",
+        options=available_stocks,
+        default=st.session_state.get('backtest_stocks', default_selection)
     )
     
     st.caption(f"📊 Selected: {len(selected_stocks)} stocks")
@@ -2085,12 +2121,12 @@ elif page == "Backtest (Multi-Mode)":
                         trades.append({
                             'Symbol': symbol,
                             'Entry_Date': entry_date.strftime('%Y-%m-%d'),
-                            'Entry_Price': f"₹{entry_price:.2f}",
+                            'Entry_Price': f"{entry_price:.2f}",
                             'Exit_Date': exit_date.strftime('%Y-%m-%d'),
-                            'Exit_Price': f"₹{exit_price:.2f}",
+                            'Exit_Price': f"{exit_price:.2f}",
                             'Exit_Reason': exit_reason,
                             'Qty': qty,
-                            'Investment': f"₹{investment_per_stock:,.0f}",
+                            'Investment': f"{investment_per_stock:,.0f}",
                             'PnL': pnl,
                             'Return_%': return_pct,
                             'Holding_Days': holding_days,
@@ -2126,7 +2162,7 @@ elif page == "Backtest (Multi-Mode)":
                     st.metric("Total Trades", total_trades)
                     st.metric("Winners", f"{winners} ({win_rate:.1f}%)")
                 with col2:
-                    st.metric("Total P&L", f"₹{total_pnl:,.0f}")
+                    st.metric("Total P&L", f"{total_pnl:,.0f}")
                     st.metric("Total Return", f"{total_return_pct:.2f}%")
                 with col3:
                     st.metric("CAGR", f"{cagr:.2f}%")
