@@ -152,7 +152,7 @@ st.sidebar.subheader("📍 Navigation")
 page = st.sidebar.radio(
     "Go to:",
     ["Dashboard", "Active Signals", "Generate New Signal", 
-     "Technical Screener", "S&R Analysis", "Backtest (Multi-Mode)",
+     "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
      "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
 
@@ -1313,6 +1313,203 @@ elif page == "S&R Analysis":
                     st.error(f"❌ Error during analysis: {e}")
                     import traceback
                     st.error(traceback.format_exc())
+
+# ============================================================
+# PAGE: VWAP STRATEGY
+# ============================================================
+
+elif page == "VWAP Strategy":
+    st.header("🎯 VWAP Ladder Strategy Backtest")
+    st.info("Upload your stock data CSV/Excel and backtest the VWAP ladder strategy with customizable parameters")
+    
+    # Import VWAP system
+    try:
+        from vwap_system import VWAPFlexibleSystem
+        import openpyxl
+        from io import BytesIO
+    except ImportError as e:
+        st.error(f"Error importing VWAP system: {e}")
+        st.stop()
+    
+    # File Upload Section
+    st.subheader("📁 Upload Stock Data")
+    uploaded_file = st.file_uploader("Upload CSV or Excel file", type=['csv', 'xlsx'], help="File must contain: Date, High, Low, VWAP (optional), Close (optional)")
+    
+    if uploaded_file:
+        # Load data
+        try:
+            if uploaded_file.name.endswith('.csv'):
+                df = pd.read_csv(uploaded_file)
+            else:
+                df = pd.read_excel(uploaded_file)
+            
+            st.success(f"✅ Loaded {len(df)} rows from {uploaded_file.name}")
+            
+            # Show data preview
+            with st.expander("📊 Data Preview"):
+                st.dataframe(df.head(10))
+        except Exception as e:
+            st.error(f"Error loading file: {e}")
+            st.stop()
+        
+        # Parameter Configuration
+        st.subheader("⚙️ Strategy Parameters")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("**📊 Core Settings**")
+            target_pct = st.selectbox("Profit Target", [3.0, 6.0, 10.0, 15.0], index=2, help="Profit target percentage")
+            threshold_lakhs = st.selectbox("Threshold (Lakhs)", [3.0, 4.0, 5.0, 10.0], index=2, help="Above this, profit target reduces to 1%")
+        
+        with col2:
+            st.markdown("**💰 Investment Mode**")
+            investment_mode = st.radio("Mode", ["Amount (Rs)", "Quantity (Shares)"], index=1)
+            
+            if investment_mode == "Amount (Rs)":
+                max_investment = st.number_input("Daily Investment (Rs)", min_value=1000, max_value=1000000, value=15000, step=1000)
+                fixed_qty = None
+            else:
+                fixed_qty = st.number_input("Fixed Quantity (Shares)", min_value=1, max_value=1000, value=10, step=1)
+                max_investment = None
+        
+        with col3:
+            st.markdown("**🔧 Optional Filters**")
+            vwap_enabled = st.checkbox("Enable VWAP (E3, E4)", value=True, help="Enable VWAP-based entry points")
+            
+            sma_enabled = st.checkbox("Enable SMA (E5, E6)", value=False, help="Enable SMA-based entry points")
+            sma_period = st.number_input("SMA Period", min_value=5, max_value=200, value=9, step=1, disabled=not sma_enabled)
+            
+            ha_enabled = st.checkbox("Enable Heikin Ashi (E7, E8)", value=False, help="Enable HA-based entry points")
+            
+            supertrend_enabled = st.checkbox("Enable Supertrend Filter", value=False, help="Block buys when price > Supertrend")
+        
+        # Entry Points Summary
+        total_entries = 2  # Always E1, E2
+        entry_list = ["E1 (Low)", "E2 (Low-1%)"]
+        if vwap_enabled:
+            total_entries += 2
+            entry_list.extend(["E3 (VWAP)", "E4 (VWAP-1%)"])
+        if sma_enabled and sma_period:
+            total_entries += 2
+            entry_list.extend([f"E5 (SMA{sma_period})", f"E6 (SMA{sma_period}-1%)"])
+        if ha_enabled:
+            total_entries += 2
+            entry_list.extend(["E7 (HA Low)", "E8 (HA Low-1%)"])
+        
+        st.info(f"**{total_entries} Entry Points Active:** {', '.join(entry_list)}")
+        
+        # Run Backtest Button
+        if st.button("🚀 Run Backtest", type="primary"):
+            with st.spinner("Running backtest..."):
+                try:
+                    # Initialize system
+                    system = VWAPFlexibleSystem(
+                        max_investment=max_investment,
+                        fixed_qty=fixed_qty,
+                        target_percentage=target_pct,
+                        threshold_lakhs=threshold_lakhs,
+                        initial_capital=100000,
+                        vwap_enabled=vwap_enabled,
+                        sma_period=sma_period if sma_enabled else None,
+                        supertrend_enabled=supertrend_enabled,
+                        ha_enabled=ha_enabled
+                    )
+                    
+                    # Load data
+                    if not system.load_data_from_dataframe(df):
+                        st.error("Failed to load data. Please check your file format.")
+                        st.stop()
+                    
+                    # Run backtest
+                    if not system.run_backtest():
+                        st.error("Backtest failed!")
+                        st.stop()
+                    
+                    # Get results
+                    summary = system.get_summary()
+                    
+                    # Display Results
+                    st.success("✅ Backtest Complete!")
+                    
+                    # Key Metrics
+                    st.subheader("📈 Performance Summary")
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Total Trades", summary['total_trades'])
+                    
+                    with col2:
+                        profit_color = "normal" if summary['total_profit'] >= 0 else "inverse"
+                        st.metric("Total Profit", f"₹{summary['total_profit']:,.2f}", delta=f"{summary['total_return']:.2f}%")
+                    
+                    with col3:
+                        st.metric("Win Rate", f"{summary['win_rate']:.1f}%")
+                    
+                    with col4:
+                        st.metric("Avg Profit/Trade", f"₹{summary['avg_profit_per_trade']:,.2f}")
+                    
+                    # Capital Growth
+                    st.markdown("---")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.metric("Initial Capital", f"₹{100000:,.2f}")
+                    
+                    with col2:
+                        st.metric("Final Capital", f"₹{summary['final_capital']:,.2f}", delta=f"₹{summary['total_profit']:,.2f}")
+                    
+                    # Detailed Results
+                    if system.daily_transactions:
+                        st.markdown("---")
+                        st.subheader("📊 Daily Transactions")
+                        
+                        transactions_df = pd.DataFrame(system.daily_transactions)
+                        
+                        # Format for display
+                        display_df = transactions_df[['date', 'total_buy_qty', 'avg_buy_price', 'sell_qty', 'sell_price', 'profit', 'return_pct']].copy()
+                        display_df.columns = ['Date', 'Buy Qty', 'Avg Buy Price', 'Sell Qty', 'Sell Price', 'Profit', 'Return %']
+                        
+                        st.dataframe(
+                            display_df.style.format({
+                                'Avg Buy Price': '₹{:.2f}',
+                                'Sell Price': '₹{:.2f}',
+                                'Profit': '₹{:.2f}',
+                                'Return %': '{:.2f}%'
+                            }),
+                            use_container_width=True
+                        )
+                        
+                        # Download Full Excel Report
+                        st.markdown("---")
+                        st.subheader("💾 Download Full Report")
+                        
+                        # Create Excel in memory
+                        output = BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            transactions_df.to_excel(writer, sheet_name='Transactions', index=False)
+                            
+                            # Summary sheet
+                            summary_df = pd.DataFrame([{
+                                'Metric': k,
+                                'Value': v
+                            } for k, v in summary.items()])
+                            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+                        
+                        excel_data = output.getvalue()
+                        
+                        st.download_button(
+                            label="📥 Download Excel Report",
+                            data=excel_data,
+                            file_name=f"VWAP_Backtest_{uploaded_file.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                
+                except Exception as e:
+                    st.error(f"Error during backtest: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
 # ============================================================
 # PAGE: PORTFOLIO
