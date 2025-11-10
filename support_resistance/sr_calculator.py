@@ -496,13 +496,18 @@ class SupportResistanceCalculator:
         # Golden/Death Cross
         cross = None
         if len(df_copy) >= 2:
-            prev_ema50 = df_copy['EMA50'].iloc[-2]
-            prev_ema200 = df_copy['EMA200'].iloc[-2]
+            # Use the MA columns we created earlier
+            ma_col = 'MA50' if 'MA50' in df_copy.columns else 'MA20'
+            ma_col_long = 'MA200' if 'MA200' in df_copy.columns else ma_col
             
-            if prev_ema50 <= prev_ema200 and ema50 > ema200:
-                cross = 'GOLDEN CROSS'
-            elif prev_ema50 >= prev_ema200 and ema50 < ema200:
-                cross = 'DEATH CROSS'
+            if ma_col in df_copy.columns and len(df_copy) >= 2:
+                prev_ma50 = df_copy[ma_col].iloc[-2]
+                prev_ma200 = df_copy[ma_col_long].iloc[-2] if ma_col_long in df_copy.columns else prev_ma50
+                
+                if prev_ma50 <= prev_ma200 and ema50 > ema200:
+                    cross = 'GOLDEN CROSS'
+                elif prev_ma50 >= prev_ma200 and ema50 < ema200:
+                    cross = 'DEATH CROSS'
         
         return {
             'available': True,
