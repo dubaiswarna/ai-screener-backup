@@ -877,6 +877,10 @@ elif page == "S&R Analysis":
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
+                # Current timestamp for all signals in this batch
+                from datetime import datetime
+                analysis_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
                 # Initialize S&R calculator
                 sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
                 
@@ -932,6 +936,7 @@ elif page == "S&R Analysis":
                         nearest_resistance = sr_data['resistances'][0] if sr_data['resistances'] else None
                         
                         batch_results.append({
+                            'Generated': analysis_time,
                             'Symbol': symbol,
                             'Price': f"₹{current_price:.2f}",
                             'Signal': signal['signal'],
@@ -945,9 +950,10 @@ elif page == "S&R Analysis":
                         
                     except Exception as e:
                         batch_results.append({
+                            'Generated': analysis_time,
                             'Symbol': symbol,
                             'Price': 'Error',
-                            'Signal': 'Error',
+                            'Signal': 'ERROR',
                             'Confidence': 'N/A',
                             'Trend': 'N/A',
                             'Support': 'N/A',
