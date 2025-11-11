@@ -2361,7 +2361,7 @@ elif page == "Data Download":
                     with st.spinner("Creating Excel file with 50 sheets... Please wait..."):
                         try:
                             # Create Excel in memory
-                            excel_data = exporter.create_excel_bytesio(
+                            result = exporter.create_excel_bytesio(
                                 include_folders=[
                                     'AI_Screener_Complete/Nify50_data',
                                     'AI_Screener_Complete/MCX_data',
@@ -2370,21 +2370,26 @@ elif page == "Data Download":
                                 max_sheets=50
                             )
                             
-                            if excel_data:
+                            if result['success']:
                                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                                st.success(f"✅ Excel file created! (~50 sheets)")
+                                st.success(f"✅ Excel file created! {result['sheets_count']} sheets")
+                                
+                                if result.get('errors'):
+                                    st.warning(f"⚠️ {len(result['errors'])} files skipped due to errors")
                                 
                                 st.download_button(
                                     label="📊 Download Excel File",
-                                    data=excel_data,
+                                    data=result['data'],
                                     file_name=f"StockData_Complete_{timestamp}.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                     use_container_width=True
                                 )
                             else:
-                                st.error("❌ Error creating Excel file")
+                                st.error(f"❌ Error creating Excel file: {result['error']}")
+                                st.info("💡 Try the ZIP format instead, or contact support")
                         except Exception as e:
                             st.error(f"❌ Error: {str(e)}")
+                            st.info("💡 Please try the ZIP format option")
                 else:
                     with st.spinner("Creating ZIP package... Please wait..."):
                         result = exporter.create_backup_package()
@@ -2423,7 +2428,7 @@ elif page == "Data Download":
                 if is_excel:
                     with st.spinner("Creating Excel file... Please wait..."):
                         try:
-                            excel_data = exporter.create_excel_bytesio(
+                            result = exporter.create_excel_bytesio(
                                 include_folders=[
                                     'AI_Screener_Complete/Nify50_data',
                                     'AI_Screener_Complete/MCX_data'
@@ -2431,21 +2436,23 @@ elif page == "Data Download":
                                 max_sheets=50
                             )
                             
-                            if excel_data:
+                            if result['success']:
                                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                                st.success(f"✅ Excel file created!")
+                                st.success(f"✅ Excel file created! {result['sheets_count']} sheets")
                                 
                                 st.download_button(
                                     label="📊 Download Excel File",
-                                    data=excel_data,
+                                    data=result['data'],
                                     file_name=f"Nifty50_MCX_{timestamp}.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                     use_container_width=True
                                 )
                             else:
-                                st.error("❌ Error creating Excel file")
+                                st.error(f"❌ Error: {result['error']}")
+                                st.info("💡 Try the ZIP format instead")
                         except Exception as e:
                             st.error(f"❌ Error: {str(e)}")
+                            st.info("💡 Please try the ZIP format option")
                 else:
                     with st.spinner("Creating package... Please wait..."):
                         result = exporter.export_nifty50()

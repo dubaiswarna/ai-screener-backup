@@ -247,7 +247,7 @@ class DataExporter:
             }
     
     def create_excel_bytesio(self, include_folders: List[str] = None, 
-                             max_sheets: int = 50) -> BytesIO:
+                             max_sheets: int = 50) -> Dict:
         """
         Create Excel file in memory (for Streamlit downloads)
         
@@ -256,39 +256,88 @@ class DataExporter:
             max_sheets: Maximum sheets per file
         
         Returns:
-            BytesIO object with Excel data
+            Dict with success status and BytesIO object or error message
         """
-        if include_folders is None:
-            include_folders = [
-                'AI_Screener_Complete/Nify50_data',
-                'AI_Screener_Complete/MCX_data'
-            ]
+        try:
+            if include_folders is None:
+                include_folders = [
+                    'AI_Screener_Complete/Nify50_data',
+                    'AI_Screener_Complete/MCX_data'
+                ]
+            
+            # Collect CSV files
+            csv_files = []
+            for folder in include_folders:
+                folder_path = self.base_path / folder
+                print(f"[*] Checking folder: {folder_path}")
+                
+                if folder_path.exists():
+                    found_files = list(folder_path.glob('*.csv'))[:max_sheets]
+                    csv_files.extend(found_files)
+                    print(f"[+] Found {len(found_files)} CSV files in {folder}")
+                else:
+                    print(f"[!] Folder not found: {folder_path}")
+            
+            if not csv_files:
+                return {
+                    'success': False,
+                    'error': f'No CSV files found in folders: {include_folders}'
+                }
+            
+            print(f"[*] Total CSV files to process: {len(csv_files)}")
+            
+            # Create Excel in memory
+            output = BytesIO()
+            sheets_added = 0
+            errors = []
+            
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                for idx, csv_file in enumerate(csv_files, 1):
+                    try:
+                        # Read CSV
+                        df = pd.read_csv(csv_file)
+                        
+                        # Create valid sheet name
+                        sheet_name = csv_file.stem.replace(',', '').replace(' ', '_')[:31]
+                        
+                        # Write to Excel
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        sheets_added += 1
+                        
+                        if idx % 10 == 0:
+                            print(f"[*] Processed {idx}/{len(csv_files)} files...")
+                    
+                    except Exception as e:
+                        error_msg = f"{csv_file.name}: {str(e)}"
+                        print(f"[!] Error: {error_msg}")
+                        errors.append(error_msg)
+                        continue
+            
+            output.seek(0)
+            
+            print(f"[+] Excel file created with {sheets_added} sheets")
+            
+            if sheets_added == 0:
+                return {
+                    'success': False,
+                    'error': f'Failed to add any sheets. Errors: {errors[:3]}'
+                }
+            
+            return {
+                'success': True,
+                'data': output,
+                'sheets_count': sheets_added,
+                'errors': errors
+            }
         
-        # Collect CSV files
-        csv_files = []
-        for folder in include_folders:
-            folder_path = self.base_path / folder
-            if folder_path.exists():
-                csv_files.extend(list(folder_path.glob('*.csv'))[:max_sheets])
-        
-        if not csv_files:
-            return None
-        
-        # Create Excel in memory
-        output = BytesIO()
-        
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            for csv_file in csv_files:
-                try:
-                    df = pd.read_csv(csv_file)
-                    sheet_name = csv_file.stem[:31]
-                    df.to_excel(writer, sheet_name=sheet_name, index=False)
-                except Exception as e:
-                    print(f"[!] Error: {csv_file.name}: {e}")
-                    continue
-        
-        output.seek(0)
-        return output
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"[!] Fatal error: {error_detail}")
+            return {
+                'success': False,
+                'error': f'Fatal error: {str(e)}'
+            }
 
 
 if __name__ == "__main__":
