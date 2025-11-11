@@ -1,0 +1,185 @@
+"""
+Data Exporter
+Export and backup data for easy transfer between systems
+"""
+
+import os
+import shutil
+import zipfile
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict
+import json
+
+
+class DataExporter:
+    """Export and package data for download/transfer"""
+    
+    def __init__(self, base_path: str = None):
+        if base_path is None:
+            base_path = Path(__file__).parent.parent.parent
+        self.base_path = Path(base_path)
+        self.export_dir = self.base_path / 'data_exports'
+        self.export_dir.mkdir(parents=True, exist_ok=True)
+    
+    def create_backup_package(self, include_folders: List[str] = None, 
+                            output_name: str = None) -> Dict:
+        """
+        Create a compressed backup of all data
+        
+        Args:
+            include_folders: List of folders to include
+            output_name: Custom output filename
+        
+        Returns:
+            Dict with status and file path
+        """
+        if include_folders is None:
+            include_folders = [
+                'Nifty200_Data',
+                'Nifty500_Data',
+                'Smallcap250_Data',
+                'MCX_Data',
+                'AI_Screener_Complete/MCX_data',
+                'AI_Screener_Complete/Nify50_data'
+            ]
+        
+        if output_name is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_name = f'AllData_Backup_{timestamp}.zip'
+        
+        output_path = self.export_dir / output_name
+        
+        print(f"[*] Creating backup package: {output_name}")
+        
+        try:
+            with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                total_files = 0
+                
+                for folder in include_folders:
+                    folder_path = self.base_path / folder
+                    
+                    if not folder_path.exists():
+                        print(f"[!] Skipping {folder} (not found)")
+                        continue
+                    
+                    print(f"[*] Adding {folder}...")
+                    
+                    # Add all CSV files from this folder
+                    for file in folder_path.glob('*.csv'):
+                        arcname = f"{folder}/{file.name}"
+                        zipf.write(file, arcname)
+                        total_files += 1
+                
+                # Add metadata
+                metadata = {
+                    'created': datetime.now().isoformat(),
+                    'folders': include_folders,
+                    'total_files': total_files,
+                    'source': 'MG AI Screener Data Manager'
+                }
+                
+                zipf.writestr('metadata.json', json.dumps(metadata, indent=2))
+            
+            file_size_mb = output_path.stat().st_size / (1024 * 1024)
+            
+            print(f"[+] Backup created successfully!")
+            print(f"    Files: {total_files}")
+            print(f"    Size: {file_size_mb:.2f} MB")
+            print(f"    Location: {output_path}")
+            
+            return {
+                'success': True,
+                'file': str(output_path),
+                'size_mb': round(file_size_mb, 2),
+                'files_count': total_files
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def export_mcx_only(self, output_name: str = None) -> Dict:
+        """Export only MCX data"""
+        if output_name is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_name = f'MCX_Data_Export_{timestamp}.zip'
+        
+        return self.create_backup_package(
+            include_folders=['MCX_Data', 'AI_Screener_Complete/MCX_data'],
+            output_name=output_name
+        )
+    
+    def export_nifty50(self, output_name: str = None) -> Dict:
+        """Export only Nifty 50 data"""
+        if output_name is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_name = f'Nifty50_Data_Export_{timestamp}.zip'
+        
+        return self.create_backup_package(
+            include_folders=['AI_Screener_Complete/Nify50_data'],
+            output_name=output_name
+        )
+    
+    def export_all_stocks(self, output_name: str = None) -> Dict:
+        """Export all stock data (Nifty 200/500, Smallcap)"""
+        if output_name is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_name = f'AllStocks_Data_Export_{timestamp}.zip'
+        
+        return self.create_backup_package(
+            include_folders=[
+                'Nifty200_Data',
+                'Nifty500_Data',
+                'Smallcap250_Data',
+                'AI_Screener_Complete/Nify50_data'
+            ],
+            output_name=output_name
+        )
+    
+    def list_exports(self) -> List[Dict]:
+        """List all available export files"""
+        exports = []
+        
+        for file in self.export_dir.glob('*.zip'):
+            exports.append({
+                'name': file.name,
+                'size_mb': round(file.stat().st_size / (1024 * 1024), 2),
+                'created': datetime.fromtimestamp(file.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        return sorted(exports, key=lambda x: x['created'], reverse=True)
+    
+    def create_download_link(self, export_name: str) -> str:
+        """Generate download link for an export"""
+        export_path = self.export_dir / export_name
+        
+        if export_path.exists():
+            return str(export_path.absolute())
+        else:
+            return None
+
+
+if __name__ == "__main__":
+    exporter = DataExporter()
+    
+    print("="*60)
+    print("DATA EXPORTER")
+    print("="*60)
+    print()
+    
+    # Show existing exports
+    exports = exporter.list_exports()
+    if exports:
+        print("[*] Existing exports:")
+        for exp in exports:
+            print(f"    - {exp['name']} ({exp['size_mb']} MB) - {exp['created']}")
+    else:
+        print("[*] No existing exports found")
+    
+    print("\n" + "="*60)
+    print("Ready to create new exports!")
+    print("="*60)
+
