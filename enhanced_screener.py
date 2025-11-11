@@ -2275,6 +2275,7 @@ elif page == "Data Download":
     try:
         from data_manager.data_exporter import DataExporter
         from data_manager.data_organizer import DataOrganizer
+        from data_manager.live_data_downloader import create_excel_live, create_zip_live, NIFTY_50, MCX_COMMODITIES, ALL_STOCKS
         import os
         
         exporter = DataExporter()
@@ -2358,57 +2359,55 @@ elif page == "Data Download":
             
             if st.button("📥 Download Complete Package", type="primary", use_container_width=True, key="complete"):
                 if is_excel:
-                    with st.spinner("Creating Excel file with 50 sheets... Please wait..."):
+                    with st.spinner("📡 Downloading LIVE data from Yahoo Finance... This may take 30-60 seconds..."):
                         try:
-                            # Create Excel in memory
-                            result = exporter.create_excel_bytesio(
-                                include_folders=[
-                                    'AI_Screener_Complete/Nify50_data',
-                                    'AI_Screener_Complete/MCX_data',
-                                    'Nifty200_Data'
-                                ],
-                                max_sheets=50
-                            )
+                            # Download live data
+                            result = create_excel_live(ALL_STOCKS, period="1y")
                             
                             if result['success']:
                                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                                st.success(f"✅ Excel file created! {result['sheets_count']} sheets")
+                                st.success(f"✅ Excel file created! {result['sheets_count']} stocks with LIVE data")
                                 
                                 if result.get('errors'):
-                                    st.warning(f"⚠️ {len(result['errors'])} files skipped due to errors")
+                                    st.warning(f"⚠️ {len(result['errors'])} stocks skipped")
                                 
                                 st.download_button(
                                     label="📊 Download Excel File",
                                     data=result['data'],
-                                    file_name=f"StockData_Complete_{timestamp}.xlsx",
+                                    file_name=f"StockData_Live_{timestamp}.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                     use_container_width=True
                                 )
                             else:
-                                st.error(f"❌ Error creating Excel file: {result['error']}")
-                                st.info("💡 Try the ZIP format instead, or contact support")
+                                st.error(f"❌ Error: {result['error']}")
+                                st.info("💡 Try again or use ZIP format")
                         except Exception as e:
                             st.error(f"❌ Error: {str(e)}")
                             st.info("💡 Please try the ZIP format option")
                 else:
-                    with st.spinner("Creating ZIP package... Please wait..."):
-                        result = exporter.create_backup_package()
-                        
-                        if result['success']:
-                            with open(result['file'], 'rb') as f:
-                                data = f.read()
+                    with st.spinner("📡 Downloading LIVE data from Yahoo Finance... This may take 30-60 seconds..."):
+                        try:
+                            # Download live data as ZIP
+                            result = create_zip_live(ALL_STOCKS, period="1y")
                             
-                            st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
-                            
-                            st.download_button(
-                                label="💾 Download ZIP File",
-                                data=data,
-                                file_name=os.path.basename(result['file']),
-                                mime="application/zip",
-                                use_container_width=True
-                            )
-                        else:
-                            st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+                            if result['success']:
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                st.success(f"✅ ZIP created! {result['files_count']} CSV files with LIVE data")
+                                
+                                if result.get('errors'):
+                                    st.warning(f"⚠️ {len(result['errors'])} stocks skipped")
+                                
+                                st.download_button(
+                                    label="💾 Download ZIP File",
+                                    data=result['data'],
+                                    file_name=f"StockData_Live_{timestamp}.zip",
+                                    mime="application/zip",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error(f"❌ Error: {result['error']}")
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
         
         with col2:
             st.markdown("### 📈 Nifty 50 + MCX")
