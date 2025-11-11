@@ -2425,52 +2425,47 @@ elif page == "Data Download":
             
             if st.button("📥 Download Nifty 50 + MCX", use_container_width=True, key="nifty50"):
                 if is_excel:
-                    with st.spinner("Creating Excel file... Please wait..."):
+                    with st.spinner("📡 Downloading LIVE data... 20-30 seconds..."):
                         try:
-                            result = exporter.create_excel_bytesio(
-                                include_folders=[
-                                    'AI_Screener_Complete/Nify50_data',
-                                    'AI_Screener_Complete/MCX_data'
-                                ],
-                                max_sheets=50
-                            )
+                            # Download Nifty 50 + MCX live data
+                            result = create_excel_live(NIFTY_50 + MCX_COMMODITIES, period="1y")
                             
                             if result['success']:
                                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                                st.success(f"✅ Excel file created! {result['sheets_count']} sheets")
+                                st.success(f"✅ Excel created! {result['sheets_count']} stocks with LIVE data")
                                 
                                 st.download_button(
                                     label="📊 Download Excel File",
                                     data=result['data'],
-                                    file_name=f"Nifty50_MCX_{timestamp}.xlsx",
+                                    file_name=f"Nifty50_MCX_Live_{timestamp}.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                     use_container_width=True
                                 )
                             else:
                                 st.error(f"❌ Error: {result['error']}")
-                                st.info("💡 Try the ZIP format instead")
                         except Exception as e:
                             st.error(f"❌ Error: {str(e)}")
-                            st.info("💡 Please try the ZIP format option")
                 else:
-                    with st.spinner("Creating package... Please wait..."):
-                        result = exporter.export_nifty50()
-                        
-                        if result['success']:
-                            with open(result['file'], 'rb') as f:
-                                data = f.read()
+                    with st.spinner("📡 Downloading LIVE data... 20-30 seconds..."):
+                        try:
+                            # Download Nifty 50 + MCX as ZIP
+                            result = create_zip_live(NIFTY_50 + MCX_COMMODITIES, period="1y")
                             
-                            st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
-                            
-                            st.download_button(
-                                label="💾 Download ZIP File",
-                                data=data,
-                                file_name=os.path.basename(result['file']),
-                                mime="application/zip",
-                                use_container_width=True
-                            )
-                        else:
-                            st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+                            if result['success']:
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                st.success(f"✅ ZIP created! {result['files_count']} CSV files with LIVE data")
+                                
+                                st.download_button(
+                                    label="💾 Download ZIP File",
+                                    data=result['data'],
+                                    file_name=f"Nifty50_MCX_Live_{timestamp}.zip",
+                                    mime="application/zip",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error(f"❌ Error: {result['error']}")
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
         
         st.markdown("---")
         
