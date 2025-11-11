@@ -311,7 +311,22 @@ class VWAPFlexibleSystem:
             'total_shares_held': self.total_shares_held,
             'total_cost': self.total_cost,
             'average_cost': self.average_cost,
-            'target_price': self.target_price_value
+            'target_price': self.target_price_value,
+            
+            # Add indicator values
+            'sma': row.get(self._sma_col, 0) if hasattr(self, '_sma_col') and self._sma_col in row.index else 0,
+            'supertrend': row.get('supertrend', 0) if self.supertrend_enabled else 0,
+            'ha_low': row.get('ha_low', 0) if self.ha_enabled else 0,
+            
+            # Initialize E1-E8 prices and quantities
+            'E1_price': 0, 'E1_qty': 0,
+            'E2_price': 0, 'E2_qty': 0,
+            'E3_price': 0, 'E3_qty': 0,
+            'E4_price': 0, 'E4_qty': 0,
+            'E5_price': 0, 'E5_qty': 0,
+            'E6_price': 0, 'E6_qty': 0,
+            'E7_price': 0, 'E7_qty': 0,
+            'E8_price': 0, 'E8_qty': 0,
         }
         
         # Filter checks
@@ -366,6 +381,10 @@ class VWAPFlexibleSystem:
                         entry_levels['E7'] = prev_ha_low
                         entry_levels['E8'] = prev_ha_low * 0.99
                 
+                # Store entry prices in daily_transaction
+                for level, price in entry_levels.items():
+                    daily_transaction[f'{level}_price'] = price
+                
                 # Calculate quantity
                 if self.max_investment is not None and self.max_investment > 0:
                     total_entry_price = sum(entry_levels.values())
@@ -379,6 +398,8 @@ class VWAPFlexibleSystem:
                 for level, price in entry_levels.items():
                     if price > 0 and low_price <= price:
                         filled_orders.append({'level': level, 'price': price, 'qty': qty_per_order, 'value': price * qty_per_order})
+                        # Store individual entry quantities
+                        daily_transaction[f'{level}_qty'] = qty_per_order
         
         # Process filled orders
         if filled_orders:
