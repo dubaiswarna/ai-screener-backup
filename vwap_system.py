@@ -347,44 +347,45 @@ class VWAPFlexibleSystem:
         
         block_new_buys_due_to_threshold = self.total_cost >= self.threshold_amount
         
-        # Process buy orders
+        # Calculate entry levels ALWAYS (regardless of filters)
         filled_orders = []
-        if not block_new_buys_due_to_sma and not block_new_buys_due_to_supertrend and not block_new_buys_due_to_threshold:
-            if date_index > 0:
-                prev_date = self.data.index[date_index - 1]
-                prev_row = self.data.loc[prev_date]
-                
-                # Calculate entry levels
-                e1_price = prev_row['low']
-                e2_price = prev_row['low'] * 0.99
-                
-                entry_levels = {'E1': e1_price, 'E2': e2_price}
-                
-                # VWAP entries
-                if self.vwap_entries_enabled and 'vwap' in prev_row.index:
-                    prev_vwap = prev_row['vwap']
-                    if pd.notna(prev_vwap) and prev_vwap > 0:
-                        entry_levels['E3'] = prev_vwap
-                        entry_levels['E4'] = prev_vwap * 0.99
-                
-                # SMA entries
-                if self.sma_entries_enabled and hasattr(self, '_sma_col') and self._sma_col in prev_row.index:
-                    prev_sma = prev_row[self._sma_col]
-                    if pd.notna(prev_sma) and prev_sma > 0:
-                        entry_levels['E5'] = prev_sma
-                        entry_levels['E6'] = prev_sma * 0.99
-                
-                # HA entries
-                if self.ha_entries_enabled and 'ha_low' in prev_row.index:
-                    prev_ha_low = prev_row['ha_low']
-                    if pd.notna(prev_ha_low) and prev_ha_low > 0:
-                        entry_levels['E7'] = prev_ha_low
-                        entry_levels['E8'] = prev_ha_low * 0.99
-                
-                # Store entry prices in daily_transaction
-                for level, price in entry_levels.items():
-                    daily_transaction[f'{level}_price'] = price
-                
+        if date_index > 0:
+            prev_date = self.data.index[date_index - 1]
+            prev_row = self.data.loc[prev_date]
+            
+            # Calculate entry levels
+            e1_price = prev_row['low']
+            e2_price = prev_row['low'] * 0.99
+            
+            entry_levels = {'E1': e1_price, 'E2': e2_price}
+            
+            # VWAP entries
+            if self.vwap_entries_enabled and 'vwap' in prev_row.index:
+                prev_vwap = prev_row['vwap']
+                if pd.notna(prev_vwap) and prev_vwap > 0:
+                    entry_levels['E3'] = prev_vwap
+                    entry_levels['E4'] = prev_vwap * 0.99
+            
+            # SMA entries
+            if self.sma_entries_enabled and hasattr(self, '_sma_col') and self._sma_col in prev_row.index:
+                prev_sma = prev_row[self._sma_col]
+                if pd.notna(prev_sma) and prev_sma > 0:
+                    entry_levels['E5'] = prev_sma
+                    entry_levels['E6'] = prev_sma * 0.99
+            
+            # HA entries
+            if self.ha_entries_enabled and 'ha_low' in prev_row.index:
+                prev_ha_low = prev_row['ha_low']
+                if pd.notna(prev_ha_low) and prev_ha_low > 0:
+                    entry_levels['E7'] = prev_ha_low
+                    entry_levels['E8'] = prev_ha_low * 0.99
+            
+            # Store entry prices in daily_transaction (ALWAYS)
+            for level, price in entry_levels.items():
+                daily_transaction[f'{level}_price'] = price
+            
+            # Process buy orders (only if filters pass)
+            if not block_new_buys_due_to_sma and not block_new_buys_due_to_supertrend and not block_new_buys_due_to_threshold:
                 # Calculate quantity
                 if self.max_investment is not None and self.max_investment > 0:
                     total_entry_price = sum(entry_levels.values())
