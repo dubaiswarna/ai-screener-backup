@@ -2328,6 +2328,17 @@ elif page == "Data Download":
         # Download options
         st.subheader("📦 Download Packages")
         
+        # Format selector
+        download_format = st.radio(
+            "Choose Format:",
+            ["📊 Excel (.xlsx) - All data in one file", "📦 ZIP (CSV files) - Individual files"],
+            horizontal=True
+        )
+        
+        is_excel = "Excel" in download_format
+        
+        st.markdown("---")
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -2336,130 +2347,142 @@ elif page == "Data Download":
             st.write("- All Nifty 50/200/500 stocks")
             st.write("- Smallcap 250 stocks")
             st.write("- MCX commodities (Gold, Silver)")
-            st.write(f"- **{summary['total_files']} files**")
-            st.write(f"- **~130 MB** (compressed)")
             
-            if st.button("📥 Download Complete Package", type="primary", use_container_width=True):
-                with st.spinner("Creating complete data package... Please wait..."):
-                    result = exporter.create_backup_package()
-                    
-                    if result['success']:
-                        # Read the file
-                        with open(result['file'], 'rb') as f:
-                            data = f.read()
+            if is_excel:
+                st.write(f"- **~50 sheets** (Excel limit)")
+                st.write(f"- **~20 MB** (.xlsx)")
+                st.info("⚠️ Excel format limited to 50 stocks for file size")
+            else:
+                st.write(f"- **{summary['total_files']} files**")
+                st.write(f"- **~130 MB** (compressed)")
+            
+            if st.button("📥 Download Complete Package", type="primary", use_container_width=True, key="complete"):
+                if is_excel:
+                    with st.spinner("Creating Excel file with 50 sheets... Please wait..."):
+                        try:
+                            # Create Excel in memory
+                            excel_data = exporter.create_excel_bytesio(
+                                include_folders=[
+                                    'AI_Screener_Complete/Nify50_data',
+                                    'AI_Screener_Complete/MCX_data',
+                                    'Nifty200_Data'
+                                ],
+                                max_sheets=50
+                            )
+                            
+                            if excel_data:
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                st.success(f"✅ Excel file created! (~50 sheets)")
+                                
+                                st.download_button(
+                                    label="📊 Download Excel File",
+                                    data=excel_data,
+                                    file_name=f"StockData_Complete_{timestamp}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error("❌ Error creating Excel file")
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                else:
+                    with st.spinner("Creating ZIP package... Please wait..."):
+                        result = exporter.create_backup_package()
                         
-                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
-                        
-                        # Download button
-                        st.download_button(
-                            label="💾 Download ZIP File",
-                            data=data,
-                            file_name=os.path.basename(result['file']),
-                            mime="application/zip",
-                            use_container_width=True
-                        )
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+                        if result['success']:
+                            with open(result['file'], 'rb') as f:
+                                data = f.read()
+                            
+                            st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
+                            
+                            st.download_button(
+                                label="💾 Download ZIP File",
+                                data=data,
+                                file_name=os.path.basename(result['file']),
+                                mime="application/zip",
+                                use_container_width=True
+                            )
+                        else:
+                            st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
         
         with col2:
-            st.markdown("### 📈 Stocks Only")
+            st.markdown("### 📈 Nifty 50 + MCX")
             st.write("**Includes:**")
-            st.write("- Nifty 50/200/500 stocks")
-            st.write("- Smallcap 250 stocks")
-            st.write("- No commodity data")
-            stock_files = nifty_files
-            st.write(f"- **{stock_files} files**")
-            st.write(f"- **~120 MB** (compressed)")
+            st.write("- Top 50 Nifty stocks")
+            st.write("- Gold & Silver commodities")
+            st.write("- Perfect for quick analysis")
             
-            if st.button("📥 Download Stocks Only", use_container_width=True):
-                with st.spinner("Creating stocks package... Please wait..."):
-                    result = exporter.export_all_stocks()
-                    
-                    if result['success']:
-                        # Read the file
-                        with open(result['file'], 'rb') as f:
-                            data = f.read()
+            if is_excel:
+                st.write(f"- **~50 sheets** (all data)")
+                st.write(f"- **~8 MB** (.xlsx)")
+            else:
+                st.write(f"- **~50 files**")
+                st.write(f"- **~20 MB** (compressed)")
+            
+            if st.button("📥 Download Nifty 50 + MCX", use_container_width=True, key="nifty50"):
+                if is_excel:
+                    with st.spinner("Creating Excel file... Please wait..."):
+                        try:
+                            excel_data = exporter.create_excel_bytesio(
+                                include_folders=[
+                                    'AI_Screener_Complete/Nify50_data',
+                                    'AI_Screener_Complete/MCX_data'
+                                ],
+                                max_sheets=50
+                            )
+                            
+                            if excel_data:
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                st.success(f"✅ Excel file created!")
+                                
+                                st.download_button(
+                                    label="📊 Download Excel File",
+                                    data=excel_data,
+                                    file_name=f"Nifty50_MCX_{timestamp}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error("❌ Error creating Excel file")
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                else:
+                    with st.spinner("Creating package... Please wait..."):
+                        result = exporter.export_nifty50()
                         
-                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
-                        
-                        # Download button
-                        st.download_button(
-                            label="💾 Download ZIP File",
-                            data=data,
-                            file_name=os.path.basename(result['file']),
-                            mime="application/zip",
-                            use_container_width=True
-                        )
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+                        if result['success']:
+                            with open(result['file'], 'rb') as f:
+                                data = f.read()
+                            
+                            st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
+                            
+                            st.download_button(
+                                label="💾 Download ZIP File",
+                                data=data,
+                                file_name=os.path.basename(result['file']),
+                                mime="application/zip",
+                                use_container_width=True
+                            )
+                        else:
+                            st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
         
         st.markdown("---")
         
-        col3, col4 = st.columns(2)
+        st.info(f"""
+        💡 **Format Guide:**
         
-        with col3:
-            st.markdown("### 🥇 MCX Commodities Only")
-            st.write("**Includes:**")
-            st.write("- Gold futures data")
-            st.write("- Silver futures data")
-            st.write("- Historical OHLCV data")
-            mcx_files = summary['folders'].get('mcx_app', {}).get('files', 0)
-            st.write(f"- **{mcx_files} files**")
-            st.write(f"- **~5 MB** (compressed)")
-            
-            if st.button("📥 Download MCX Data", use_container_width=True):
-                with st.spinner("Creating MCX package... Please wait..."):
-                    result = exporter.export_mcx_only()
-                    
-                    if result['success']:
-                        # Read the file
-                        with open(result['file'], 'rb') as f:
-                            data = f.read()
-                        
-                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
-                        
-                        # Download button
-                        st.download_button(
-                            label="💾 Download ZIP File",
-                            data=data,
-                            file_name=os.path.basename(result['file']),
-                            mime="application/zip",
-                            use_container_width=True
-                        )
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+        **📊 Excel (.xlsx):**
+        - One file with multiple sheets (one per stock)
+        - Easy to open in Excel/Google Sheets
+        - Limited to 50 stocks (file size)
+        - Best for quick analysis
         
-        with col4:
-            st.markdown("### 🎯 Nifty 50 Only")
-            st.write("**Includes:**")
-            st.write("- Top 50 stocks only")
-            st.write("- Lightest package")
-            st.write("- Quick download")
-            nifty50_files = summary['folders'].get('nifty50', {}).get('files', 0)
-            st.write(f"- **{nifty50_files} files**")
-            st.write(f"- **~15 MB** (compressed)")
-            
-            if st.button("📥 Download Nifty 50", use_container_width=True):
-                with st.spinner("Creating Nifty 50 package... Please wait..."):
-                    result = exporter.export_nifty50()
-                    
-                    if result['success']:
-                        # Read the file
-                        with open(result['file'], 'rb') as f:
-                            data = f.read()
-                        
-                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
-                        
-                        # Download button
-                        st.download_button(
-                            label="💾 Download ZIP File",
-                            data=data,
-                            file_name=os.path.basename(result['file']),
-                            mime="application/zip",
-                            use_container_width=True
-                        )
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+        **📦 ZIP (CSV files):**
+        - All {summary['total_files']} stocks as separate CSV files
+        - Smaller individual files
+        - Better for programming (Python, R)
+        - No limit on number of stocks
+        """)
         
         st.markdown("---")
         

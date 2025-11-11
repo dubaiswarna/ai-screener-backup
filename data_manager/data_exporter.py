@@ -10,6 +10,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 import json
+import pandas as pd
+from io import BytesIO
 
 
 class DataExporter:
@@ -160,6 +162,133 @@ class DataExporter:
             return str(export_path.absolute())
         else:
             return None
+    
+    def create_excel_package(self, include_folders: List[str] = None, 
+                            output_name: str = None, max_sheets: int = 50) -> Dict:
+        """
+        Create an Excel file with multiple sheets (one per stock)
+        
+        Args:
+            include_folders: List of folders to include
+            output_name: Custom output filename
+            max_sheets: Maximum number of sheets per Excel file (Excel limit: 255)
+        
+        Returns:
+            Dict with status and file path
+        """
+        if include_folders is None:
+            include_folders = [
+                'AI_Screener_Complete/Nify50_data',
+                'AI_Screener_Complete/MCX_data'
+            ]
+        
+        if output_name is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_name = f'StockData_Excel_{timestamp}.xlsx'
+        
+        output_path = self.export_dir / output_name
+        
+        print(f"[*] Creating Excel package: {output_name}")
+        
+        try:
+            # Collect all CSV files
+            csv_files = []
+            for folder in include_folders:
+                folder_path = self.base_path / folder
+                if folder_path.exists():
+                    csv_files.extend(list(folder_path.glob('*.csv'))[:max_sheets])
+            
+            if not csv_files:
+                return {
+                    'success': False,
+                    'error': 'No CSV files found'
+                }
+            
+            print(f"[*] Processing {len(csv_files)} files...")
+            
+            # Create Excel writer
+            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                for idx, csv_file in enumerate(csv_files, 1):
+                    try:
+                        # Read CSV
+                        df = pd.read_csv(csv_file)
+                        
+                        # Create sheet name (Excel sheet names max 31 chars)
+                        sheet_name = csv_file.stem[:31]
+                        
+                        # Write to Excel
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        
+                        if idx % 10 == 0:
+                            print(f"[*] Processed {idx}/{len(csv_files)} files...")
+                    
+                    except Exception as e:
+                        print(f"[!] Error processing {csv_file.name}: {e}")
+                        continue
+            
+            file_size_mb = output_path.stat().st_size / (1024 * 1024)
+            
+            print(f"[+] Excel package created!")
+            print(f"    Sheets: {len(csv_files)}")
+            print(f"    Size: {file_size_mb:.2f} MB")
+            print(f"    Location: {output_path}")
+            
+            return {
+                'success': True,
+                'file': str(output_path),
+                'size_mb': round(file_size_mb, 2),
+                'sheets_count': len(csv_files)
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def create_excel_bytesio(self, include_folders: List[str] = None, 
+                             max_sheets: int = 50) -> BytesIO:
+        """
+        Create Excel file in memory (for Streamlit downloads)
+        
+        Args:
+            include_folders: List of folders to include
+            max_sheets: Maximum sheets per file
+        
+        Returns:
+            BytesIO object with Excel data
+        """
+        if include_folders is None:
+            include_folders = [
+                'AI_Screener_Complete/Nify50_data',
+                'AI_Screener_Complete/MCX_data'
+            ]
+        
+        # Collect CSV files
+        csv_files = []
+        for folder in include_folders:
+            folder_path = self.base_path / folder
+            if folder_path.exists():
+                csv_files.extend(list(folder_path.glob('*.csv'))[:max_sheets])
+        
+        if not csv_files:
+            return None
+        
+        # Create Excel in memory
+        output = BytesIO()
+        
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            for csv_file in csv_files:
+                try:
+                    df = pd.read_csv(csv_file)
+                    sheet_name = csv_file.stem[:31]
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+                except Exception as e:
+                    print(f"[!] Error: {csv_file.name}: {e}")
+                    continue
+        
+        output.seek(0)
+        return output
 
 
 if __name__ == "__main__":
