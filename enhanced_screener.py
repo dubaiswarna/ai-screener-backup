@@ -178,7 +178,7 @@ page = st.sidebar.radio(
     "Go to:",
     ["Dashboard", "Active Signals", "Generate New Signal", 
      "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
-     "Portfolio", "Trade History", "Risk Report", "Settings"]
+     "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
 
 # REAL Technical Screener: Calculates actual RSI, MACD, MAs - NO random predictions!
@@ -2262,6 +2262,282 @@ elif page == "Backtest (Multi-Mode)":
                 - Toggle between AI/Technical/Hybrid modes
                 - More accurate results with actual price movements
                 """)
+
+# ============================================================
+# PAGE: DATA DOWNLOAD
+# ============================================================
+
+elif page == "Data Download":
+    st.header("📥 Data Download Center")
+    st.markdown("Download historical stock and commodity data for offline use or backup")
+    
+    # Import data manager
+    try:
+        from data_manager.data_exporter import DataExporter
+        from data_manager.data_organizer import DataOrganizer
+        import os
+        
+        exporter = DataExporter()
+        organizer = DataOrganizer()
+        
+        # Get data summary
+        summary = organizer.get_data_summary()
+        
+        # Display summary
+        st.markdown("---")
+        st.subheader("📊 Available Data")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Total Files", summary['total_files'])
+        
+        with col2:
+            st.metric("Total Size", f"{summary['total_size_mb']:.2f} MB")
+        
+        with col3:
+            nifty_files = sum([
+                summary['folders'].get('nifty50', {}).get('files', 0),
+                summary['folders'].get('nifty200', {}).get('files', 0),
+                summary['folders'].get('nifty500', {}).get('files', 0),
+                summary['folders'].get('smallcap250', {}).get('files', 0)
+            ])
+            st.metric("Stock Universe", f"{nifty_files} stocks")
+        
+        st.markdown("---")
+        
+        # Data breakdown
+        st.subheader("📁 Data Breakdown")
+        
+        data_info = []
+        for category, info in summary['folders'].items():
+            if info['files'] > 0:
+                data_info.append({
+                    'Category': category.replace('_', ' ').title(),
+                    'Files': info['files'],
+                    'Size (MB)': f"{info['size_mb']:.2f}"
+                })
+        
+        if data_info:
+            import pandas as pd
+            df_info = pd.DataFrame(data_info)
+            st.dataframe(df_info, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        
+        # Download options
+        st.subheader("📦 Download Packages")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 🎯 Complete Package")
+            st.write("**Includes:**")
+            st.write("- All Nifty 50/200/500 stocks")
+            st.write("- Smallcap 250 stocks")
+            st.write("- MCX commodities (Gold, Silver)")
+            st.write(f"- **{summary['total_files']} files**")
+            st.write(f"- **~130 MB** (compressed)")
+            
+            if st.button("📥 Download Complete Package", type="primary", use_container_width=True):
+                with st.spinner("Creating complete data package... Please wait..."):
+                    result = exporter.create_backup_package()
+                    
+                    if result['success']:
+                        # Read the file
+                        with open(result['file'], 'rb') as f:
+                            data = f.read()
+                        
+                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
+                        
+                        # Download button
+                        st.download_button(
+                            label="💾 Download ZIP File",
+                            data=data,
+                            file_name=os.path.basename(result['file']),
+                            mime="application/zip",
+                            use_container_width=True
+                        )
+                    else:
+                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+        
+        with col2:
+            st.markdown("### 📈 Stocks Only")
+            st.write("**Includes:**")
+            st.write("- Nifty 50/200/500 stocks")
+            st.write("- Smallcap 250 stocks")
+            st.write("- No commodity data")
+            stock_files = nifty_files
+            st.write(f"- **{stock_files} files**")
+            st.write(f"- **~120 MB** (compressed)")
+            
+            if st.button("📥 Download Stocks Only", use_container_width=True):
+                with st.spinner("Creating stocks package... Please wait..."):
+                    result = exporter.export_all_stocks()
+                    
+                    if result['success']:
+                        # Read the file
+                        with open(result['file'], 'rb') as f:
+                            data = f.read()
+                        
+                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
+                        
+                        # Download button
+                        st.download_button(
+                            label="💾 Download ZIP File",
+                            data=data,
+                            file_name=os.path.basename(result['file']),
+                            mime="application/zip",
+                            use_container_width=True
+                        )
+                    else:
+                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+        
+        st.markdown("---")
+        
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.markdown("### 🥇 MCX Commodities Only")
+            st.write("**Includes:**")
+            st.write("- Gold futures data")
+            st.write("- Silver futures data")
+            st.write("- Historical OHLCV data")
+            mcx_files = summary['folders'].get('mcx_app', {}).get('files', 0)
+            st.write(f"- **{mcx_files} files**")
+            st.write(f"- **~5 MB** (compressed)")
+            
+            if st.button("📥 Download MCX Data", use_container_width=True):
+                with st.spinner("Creating MCX package... Please wait..."):
+                    result = exporter.export_mcx_only()
+                    
+                    if result['success']:
+                        # Read the file
+                        with open(result['file'], 'rb') as f:
+                            data = f.read()
+                        
+                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
+                        
+                        # Download button
+                        st.download_button(
+                            label="💾 Download ZIP File",
+                            data=data,
+                            file_name=os.path.basename(result['file']),
+                            mime="application/zip",
+                            use_container_width=True
+                        )
+                    else:
+                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+        
+        with col4:
+            st.markdown("### 🎯 Nifty 50 Only")
+            st.write("**Includes:**")
+            st.write("- Top 50 stocks only")
+            st.write("- Lightest package")
+            st.write("- Quick download")
+            nifty50_files = summary['folders'].get('nifty50', {}).get('files', 0)
+            st.write(f"- **{nifty50_files} files**")
+            st.write(f"- **~15 MB** (compressed)")
+            
+            if st.button("📥 Download Nifty 50", use_container_width=True):
+                with st.spinner("Creating Nifty 50 package... Please wait..."):
+                    result = exporter.export_nifty50()
+                    
+                    if result['success']:
+                        # Read the file
+                        with open(result['file'], 'rb') as f:
+                            data = f.read()
+                        
+                        st.success(f"✅ Package created! {result['files_count']} files, {result['size_mb']} MB")
+                        
+                        # Download button
+                        st.download_button(
+                            label="💾 Download ZIP File",
+                            data=data,
+                            file_name=os.path.basename(result['file']),
+                            mime="application/zip",
+                            use_container_width=True
+                        )
+                    else:
+                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+        
+        st.markdown("---")
+        
+        # Usage instructions
+        with st.expander("📖 How to Use Downloaded Data"):
+            st.markdown("""
+            ### Using the Downloaded Data
+            
+            1. **Download Package:** Click one of the download buttons above
+            2. **Extract ZIP:** Extract the downloaded ZIP file
+            3. **File Structure:** You'll find CSV files organized by category
+            4. **CSV Format:** All files contain: `time`, `open`, `high`, `low`, `close`, `volume`
+            
+            ### Data Information
+            
+            - **Update Frequency:** Daily (EOD - End of Day)
+            - **Data Range:** Multiple years (varies by stock)
+            - **Format:** Standard OHLCV CSV format
+            - **Compatible with:** Excel, Python (pandas), R, Trading platforms
+            
+            ### Example Usage in Python
+            
+            ```python
+            import pandas as pd
+            
+            # Read any stock data file
+            df = pd.read_csv('NSE_RELIANCE_1D.csv')
+            
+            # Display data
+            print(df.head())
+            
+            # Calculate returns
+            df['returns'] = df['close'].pct_change()
+            
+            # Plot
+            df.set_index('time')['close'].plot()
+            ```
+            
+            ### Restore to MG AI Screener
+            
+            If you want to restore this data to the MG AI Screener system:
+            
+            1. Extract ZIP file
+            2. Copy folders to: `C:\\python\\MG AI\\`
+            3. Maintain folder structure (Nifty200_Data, Nifty500_Data, etc.)
+            4. Restart the application
+            
+            ### Support
+            
+            For issues or questions, check the documentation or contact support.
+            """)
+        
+        # Previous exports
+        st.markdown("---")
+        st.subheader("📚 Previous Exports")
+        
+        exports = exporter.list_exports()
+        
+        if exports:
+            st.write(f"Found {len(exports)} previous export(s):")
+            
+            for exp in exports[:5]:  # Show last 5
+                col_a, col_b, col_c = st.columns([3, 1, 1])
+                
+                with col_a:
+                    st.write(f"📦 {exp['name']}")
+                
+                with col_b:
+                    st.write(f"{exp['size_mb']} MB")
+                
+                with col_c:
+                    st.write(exp['created'])
+        else:
+            st.info("No previous exports found. Create one using the buttons above!")
+    
+    except Exception as e:
+        st.error(f"❌ Error loading data manager: {str(e)}")
+        st.info("The data download feature requires the data_manager module. Please ensure it's properly installed.")
 
 # ============================================================
 # PAGE: SETTINGS
