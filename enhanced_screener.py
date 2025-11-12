@@ -1630,6 +1630,21 @@ elif page == "VWAP Strategy":
                     fixed_qty = st.number_input("Fixed Quantity (Shares)", min_value=1, max_value=1000, value=10, step=1, key="batch_qty")
                     max_investment = None
             
+            # Trailing Stop Loss Settings
+            st.markdown("---")
+            st.markdown("**🎯 Trailing Stop Loss (Optional)**")
+            
+            col_trail1, col_trail2, col_trail3 = st.columns(3)
+            with col_trail1:
+                trailing_enabled = st.checkbox("Enable Trailing Stop", value=True, key="batch_trailing", help="Recommended for delivery trading")
+            with col_trail2:
+                trailing_percent = st.number_input("Trail % from High", min_value=1.0, max_value=10.0, value=5.0, step=0.5, key="batch_trail_pct", disabled=not trailing_enabled, help="Trail stop % below highest high")
+            with col_trail3:
+                trailing_activation = st.number_input("Activate at Profit %", min_value=5.0, max_value=20.0, value=10.0, step=1.0, key="batch_trail_act", disabled=not trailing_enabled, help="Start trailing after this profit %")
+            
+            if trailing_enabled:
+                st.info(f"💡 Trailing will lock minimum {trailing_activation:.0f}% profit and trail {trailing_percent:.1f}% below highest high to capture extra upside!")
+            
             st.markdown("---")
             
             # Run Comparison
@@ -1680,9 +1695,9 @@ elif page == "VWAP Strategy":
                                     sma_period=sma_period if config['sma'] else None,
                                     supertrend_enabled=False,
                                     ha_enabled=config['ha'],
-                                    trailing_enabled=False,  # Batch mode uses fixed target for fair comparison
-                                    trailing_percent=5.0,
-                                    trailing_activation=10.0
+                                    trailing_enabled=trailing_enabled,
+                                    trailing_percent=trailing_percent,
+                                    trailing_activation=trailing_activation
                                 )
                                 
                                 if system.load_data_from_dataframe(df) and system.run_backtest():
