@@ -1188,6 +1188,253 @@ class ProfessionalSRCalculator:
         return results
 
 
+    # ========================================================================
+    # COMPATIBILITY METHODS (From original sr_calculator.py)
+    # ========================================================================
+    
+    def calculate_moving_averages(self, df: pd.DataFrame) -> Dict:
+        """
+        Calculate moving averages and trend context
+        Works with any data length (uses EMA 50/200 if available, else SMA 20/50)
+        """
+        if df is None or len(df) < 20:
+            return {'available': False, 'reason': 'Insufficient data (need at least 20 days)'}
+        
+        df_copy = df.copy()
+        current_price = df_copy['close'].iloc[-1]
+        
+        # Try EMA 50/200 first, fallback to SMA 20/50
+        if len(df) >= 200:
+            df_copy['MA50'] = df_copy['close'].ewm(span=50, adjust=False).mean()
+            df_copy['MA200'] = df_copy['close'].ewm(span=200, adjust=False).mean()
+            ma50 = df_copy['MA50'].iloc[-1]
+            ma200 = df_copy['MA200'].iloc[-1]
+            ma_type = "EMA"
+        elif len(df) >= 50:
+            df_copy['MA20'] = df_copy['close'].rolling(20).mean()
+            df_copy['MA50'] = df_copy['close'].rolling(50).mean()
+            ma50 = df_copy['MA50'].iloc[-1]
+            ma200 = df_copy['MA20'].iloc[-1]
+            ma_type = "SMA"
+        else:
+            df_copy['MA20'] = df_copy['close'].rolling(20).mean()
+            ma50 = df_copy['MA20'].iloc[-1]
+            ma200 = df_copy['MA20'].iloc[-1]
+            ma_type = "SMA"
+        
+        ema50 = ma50
+        ema200 = ma200
+        
+        # Determine trend
+        if current_price > ema50 > ema200:
+            trend = 'STRONG BULLISH'
+            context = 'Price above both MAs - Strong uptrend'
+        elif current_price > ema50 and ema50 < ema200:
+            trend = 'BULLISH'
+            context = 'Price above 50 EMA but below 200 EMA - Bullish with caution'
+        elif current_price < ema50 < ema200:
+            trend = 'STRONG BEARISH'
+            context = 'Price below both MAs - Strong downtrend'
+        elif current_price < ema50 and ema50 > ema200:
+            trend = 'BEARISH'
+            context = 'Price below 50 EMA but above 200 EMA - Bearish with caution'
+        else:
+            trend = 'NEUTRAL'
+            context = 'Mixed signals - Sideways movement'
+        
+        # Golden/Death Cross
+        cross = None
+        if len(df_copy) >= 2:
+            ma_col = 'MA50' if 'MA50' in df_copy.columns else 'MA20'
+            ma_col_long = 'MA200' if 'MA200' in df_copy.columns else ma_col
+            
+            if ma_col in df_copy.columns and len(df_copy) >= 2:
+                prev_ma50 = df_copy[ma_col].iloc[-2]
+                prev_ma200 = df_copy[ma_col_long].iloc[-2] if ma_col_long in df_copy.columns else prev_ma50
+                
+                if prev_ma50 <= prev_ma200 and ema50 > ema200:
+                    cross = 'GOLDEN CROSS'
+                elif prev_ma50 >= prev_ma200 and ema50 < ema200:
+                    cross = 'DEATH CROSS'
+        
+        return {
+            'available': True,
+            'EMA50': round(ema50, 2),
+            'EMA200': round(ema200, 2),
+            'current_price': round(current_price, 2),
+            'trend': trend,
+            'context': context,
+            'cross': cross,
+            'distance_from_50ema': round(((current_price - ema50) / ema50) * 100, 2),
+            'distance_from_200ema': round(((current_price - ema200) / ema200) * 100, 2)
+        }
+    
+    def detect_role_reversals(self, df: pd.DataFrame, sr_data: Dict) -> List[Dict]:
+        """
+        Detect role reversals - when broken support becomes resistance or vice versa
+        """
+        if df is None or df.empty:
+            return []
+        
+        reversals = []
+        current_price = sr_data['current_price']
+        recent_df = df.tail(20)
+        
+        # Check former support levels
+        for support in sr_data['supports']:
+            level = support['level']
+            was_above = (recent_df['low'] > level).any()
+            now_below = current_price < level
+            
+            if was_above and now_below:
+                rejection = (recent_df['high'] >= level * 0.99).any() and \
+                           (recent_df['close'] < level * 0.99).any()
+                
+                if rejection:
+                    reversals.append({
+                        'type': 'SUPPORT_TO_RESISTANCE',
+                        'level': level,
+                        'status': 'Support broken, now acting as Resistance',
+                        'strength': support['strength'],
+                        'confidence': 'High' if support['touches'] >= 3 else 'Medium'
+                    })
+        
+        # Check former resistance levels
+        for resistance in sr_data['resistances']:
+            level = resistance['level']
+            was_below = (recent_df['high'] < level).any()
+            now_above = current_price > level
+            
+            if was_below and now_above:
+                bounce = (recent_df['low'] <= level * 1.01).any() and \
+                        (recent_df['close'] > level * 1.01).any()
+                
+                if bounce:
+                    reversals.append({
+                        'type': 'RESISTANCE_TO_SUPPORT',
+                        'level': level,
+                        'status': 'Resistance broken, now acting as Support',
+                        'strength': resistance['strength'],
+                        'confidence': 'High' if resistance['touches'] >= 3 else 'Medium'
+                    })
+        
+        return reversals
+    
+    def detect_breakouts(self, df: pd.DataFrame, sr_data: Dict) -> Dict:
+        """
+        Detect breakouts - when price breaks through S/R with candle close confirmation
+        """
+        if df is None or len(df) < 2:
+            return {'breakout_detected': False}
+        
+        prev_candle = df.iloc[-2]
+        current_candle = df.iloc[-1]
+        current_price = sr_data['current_price']
+        
+        breakouts = []
+        
+        # Check resistance breakouts
+        if sr_data['resistances']:
+            nearest_resistance = sr_data['resistances'][0]
+            level = nearest_resistance['level']
+            
+            if (prev_candle['close'] < level and 
+                current_candle['close'] > level and
+                current_candle['low'] > level * 0.995):
+                
+                breakouts.append({
+                    'type': 'RESISTANCE_BREAKOUT',
+                    'level': level,
+                    'direction': 'BULLISH',
+                    'status': 'Price broke above resistance',
+                    'strength': nearest_resistance['strength'],
+                    'volume_confirmation': current_candle['volume'] > df['volume'].tail(20).mean() * 1.2
+                })
+        
+        # Check support breakdowns
+        if sr_data['supports']:
+            nearest_support = sr_data['supports'][0]
+            level = nearest_support['level']
+            
+            if (prev_candle['close'] > level and
+                current_candle['close'] < level and
+                current_candle['high'] < level * 1.005):
+                
+                breakouts.append({
+                    'type': 'SUPPORT_BREAKDOWN',
+                    'level': level,
+                    'direction': 'BEARISH',
+                    'status': 'Price broke below support',
+                    'strength': nearest_support['strength'],
+                    'volume_confirmation': current_candle['volume'] > df['volume'].tail(20).mean() * 1.2
+                })
+        
+        if breakouts:
+            return {'breakout_detected': True, 'breakouts': breakouts}
+        
+        return {'breakout_detected': False}
+    
+    def generate_trading_signal(self, df: pd.DataFrame, sr_data: Dict, ma_data: Dict, 
+                                breakouts: Dict, reversals: List[Dict]) -> Dict:
+        """
+        Generate comprehensive trading signal: STRONG BUY, BUY, WAIT, HOLD, SELL, STRONG SELL
+        Considers trend direction - no BUY in bearish trends!
+        """
+        current_price = sr_data['current_price']
+        signal = 'HOLD'
+        reasons = []
+        strength = 'NEUTRAL'
+        
+        # Get trend context
+        trend = ma_data.get('trend', 'NEUTRAL') if ma_data.get('available') else 'NEUTRAL'
+        is_bullish_trend = trend in ['STRONG BULLISH', 'BULLISH']
+        is_bearish_trend = trend in ['STRONG BEARISH', 'BEARISH']
+        
+        # STRONG BUY Conditions
+        if sr_data['supports']:
+            nearest_support = sr_data['supports'][0]
+            support_dist = nearest_support['distance_pct']
+            
+            if support_dist < 2 and nearest_support['strength'] > 70:
+                if is_bullish_trend:
+                    signal = 'STRONG BUY'
+                    reasons.append(f"Near STRONG support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    reasons.append(f"Bullish trend confirmation")
+                    strength = 'VERY HIGH'
+                elif is_bearish_trend:
+                    signal = 'WAIT'
+                    reasons.append(f"Near support but bearish trend - wait for reversal!")
+                    strength = 'LOW'
+                else:
+                    signal = 'BUY'
+                    reasons.append(f"Near support (₹{nearest_support['level']}, {support_dist:.1f}% away)")
+                    strength = 'MODERATE'
+        
+        # Breakouts
+        if breakouts.get('breakout_detected'):
+            for br in breakouts['breakouts']:
+                if br['direction'] == 'BULLISH' and br['volume_confirmation']:
+                    signal = 'STRONG BUY'
+                    reasons = [f"🚀 Bullish breakout above ₹{br['level']} with volume!"] + reasons
+                    strength = 'VERY HIGH'
+                elif br['direction'] == 'BEARISH' and br['volume_confirmation']:
+                    signal = 'STRONG SELL'
+                    reasons = [f"⚠️ Bearish breakdown below ₹{br['level']} with volume!"] + reasons
+                    strength = 'VERY HIGH'
+        
+        # Calculate confidence score
+        base_score = {'VERY HIGH': 90, 'HIGH': 75, 'MODERATE': 60, 'NEUTRAL': 50}.get(strength, 50)
+        bonus = min(10, len(reasons) * 3)
+        confidence_score = min(100, base_score + bonus)
+        
+        return {
+            'signal': signal,
+            'strength': strength,
+            'reasons': reasons,
+            'confidence_score': confidence_score
+        }
+
+
 # Export the enhanced calculator
 __all__ = ['ProfessionalSRCalculator']
 
