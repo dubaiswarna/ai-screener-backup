@@ -22,7 +22,8 @@ class VWAPFlexibleSystem:
     
     def __init__(self, max_investment=None, fixed_qty=None, target_percentage=10, threshold_lakhs=5,
                  initial_capital=100000, vwap_enabled=True, sma_period=None, 
-                 supertrend_enabled=False, supertrend_period=10, supertrend_multiplier=3, ha_enabled=False):
+                 supertrend_enabled=False, supertrend_period=10, supertrend_multiplier=3, ha_enabled=False,
+                 trailing_enabled=False, trailing_percent=5.0, trailing_activation=10.0):
         """
         Initialize with user-defined parameters
         
@@ -36,6 +37,9 @@ class VWAPFlexibleSystem:
         - sma_period: SMA period (enables E5 and E6 entries if set)
         - supertrend_enabled: Enable Supertrend filter
         - ha_enabled: Enable Heikin Ashi (enables E7 and E8 entries if set)
+        - trailing_enabled: Enable trailing stop loss
+        - trailing_percent: Trailing stop percentage (e.g., 5 = 5% from highest high)
+        - trailing_activation: Activate trailing after this profit % reached (e.g., 10 = 10% profit)
         """
         # Validate parameters
         if max_investment is None and fixed_qty is None:
@@ -69,6 +73,11 @@ class VWAPFlexibleSystem:
         self.ha_enabled = ha_enabled
         self.ha_entries_enabled = bool(ha_enabled)
         
+        # Trailing stop loss parameters
+        self.trailing_enabled = trailing_enabled
+        self.trailing_percent = float(trailing_percent) / 100  # Convert to decimal
+        self.trailing_activation = float(trailing_activation) / 100  # Convert to decimal
+        
         # Trading parameters
         self.r_low_discount = 0.01
         self.r_vwap_discount = 0.01
@@ -97,6 +106,11 @@ class VWAPFlexibleSystem:
         self.average_cost = 0
         self.target_price_value = 0
         self.position_first_entry_date = None  # Track first buy date for holding period
+        
+        # Trailing stop loss tracking
+        self.trailing_activated = False
+        self.highest_high_since_target = 0
+        self.trail_stop_price = 0
     
     def load_data_from_dataframe(self, df):
         """Load data from pandas DataFrame"""
@@ -441,9 +455,49 @@ class VWAPFlexibleSystem:
                 daily_transaction['average_cost'] = self.average_cost
                 daily_transaction['target_price'] = self.target_price_value
         
-        # Check if we can sell
-        if self.total_shares_held > 0 and high_price >= self.target_price_value:
-            sell_value_gross = self.target_price_value * self.total_shares_held
+        # Check if we can sell (with trailing stop loss support)
+        sell_triggered = False
+        sell_price = 0
+        sell_type = 'Fixed Target'
+        
+        if self.total_shares_held > 0:
+            # Check if target price reached (for first time)
+            if high_price >= self.target_price_value:
+                
+                # Trailing stop loss logic
+                if self.trailing_enabled and not self.trailing_activated:
+                    # Check if profit % meets trailing activation threshold
+                    current_profit_pct = ((high_price - self.average_cost) / self.average_cost)
+                    
+                    if current_profit_pct >= self.trailing_activation:
+                        # Activate trailing
+                        self.trailing_activated = True
+                        self.highest_high_since_target = high_price
+                        self.trail_stop_price = high_price * (1 - self.trailing_percent)
+                        sell_type = 'Trailing Active'
+                
+                # If trailing not enabled, sell at target
+                if not self.trailing_enabled:
+                    sell_triggered = True
+                    sell_price = self.target_price_value
+                    sell_type = 'Fixed Target'
+            
+            # Update trailing if activated
+            if self.trailing_activated:
+                # Update highest high
+                if high_price > self.highest_high_since_target:
+                    self.highest_high_since_target = high_price
+                    self.trail_stop_price = high_price * (1 - self.trailing_percent)
+                
+                # Check if trail stop hit (use low_price for conservative exit)
+                if low_price <= self.trail_stop_price:
+                    sell_triggered = True
+                    sell_price = self.trail_stop_price
+                    sell_type = 'Trailing Stop'
+        
+        # Execute sell if triggered
+        if sell_triggered:
+            sell_value_gross = sell_price * self.total_shares_held
             sell_charges_amount = sell_value_gross * self.total_charges
             sell_value_net = sell_value_gross - sell_charges_amount
             
@@ -454,11 +508,12 @@ class VWAPFlexibleSystem:
                 daily_transaction['holding_days'] = holding_days
             
             daily_transaction['sell_qty'] = self.total_shares_held
-            daily_transaction['sell_price'] = self.target_price_value
+            daily_transaction['sell_price'] = sell_price
             daily_transaction['sell_value'] = sell_value_gross
             daily_transaction['profit'] = sell_value_net - self.total_cost
             daily_transaction['return_pct'] = (daily_transaction['profit'] / self.total_cost * 100) if self.total_cost > 0 else 0
             daily_transaction['execution'] = 'Sell'
+            daily_transaction['sell_type'] = sell_type
             
             self.capital += daily_transaction['profit']
             
@@ -468,6 +523,9 @@ class VWAPFlexibleSystem:
             self.average_cost = 0
             self.target_price_value = 0
             self.position_first_entry_date = None  # Reset for next trade
+            self.trailing_activated = False
+            self.highest_high_since_target = 0
+            self.trail_stop_price = 0
         
         return daily_transaction
     
@@ -565,7 +623,7 @@ class VWAPFlexibleSystem:
         columns.extend([
             'Total_Buy_Qty', 'Avg_Buy_Price', 'Total_Buy_Value',
             'Sell_Qty', 'Sell_Price', 'Sell_Value',
-            'Profit', 'Return_%', 'Execution',
+            'Profit', 'Return_%', 'Execution', 'Sell_Type',
             'Entry_Date', 'Exit_Date', 'Holding_Days',
             'Profit_Target', 'Exceeded_Threshold',
             'Total_Shares_Held', 'Total_Cost', 'Average_Cost', 'Target_Price'
@@ -657,6 +715,8 @@ class VWAPFlexibleSystem:
             ws.cell(row=row_idx, column=col, value=round(row['return_pct'], 2))
             col += 1
             ws.cell(row=row_idx, column=col, value=row['execution'])
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row.get('sell_type', 'Fixed Target'))
             col += 1
             
             # Holding period columns
@@ -894,6 +954,51 @@ class VWAPFlexibleSystem:
 
 
 # ============================================================================
+# EFFICIENCY SCORE CALCULATION
+# ============================================================================
+
+def calculate_efficiency_score(result_dict):
+    """
+    Calculate efficiency score for a backtest result
+    
+    Formula: (Profit / Holding Days) × Win Rate Factor
+    
+    This rewards:
+    - High profit
+    - Short holding period (capital turnover)
+    - High win rate (risk management)
+    
+    Parameters:
+    -----------
+    result_dict : dict
+        Must contain: profit, avg_holding_days, win_rate
+    
+    Returns:
+    --------
+    float : Efficiency score (higher is better)
+    """
+    profit = result_dict.get('profit', 0)
+    holding_days = result_dict.get('avg_holding_days', 0)
+    win_rate = result_dict.get('win_rate', 0)
+    
+    # Avoid division by zero
+    if holding_days == 0 or profit <= 0:
+        return 0
+    
+    # Profit per day (capital efficiency)
+    profit_per_day = profit / holding_days
+    
+    # Win rate factor (1.0 to 2.0 range)
+    # 0% win rate → 1.0x, 100% win rate → 2.0x
+    win_factor = 1.0 + (win_rate / 100.0)
+    
+    # Efficiency score
+    efficiency_score = profit_per_day * win_factor
+    
+    return efficiency_score
+
+
+# ============================================================================
 # BATCH OPTIMIZER FUNCTIONS
 # ============================================================================
 
@@ -963,7 +1068,7 @@ def create_best_configs_sheet(wb, batch_results):
     
     # Headers
     headers = ['Stock', 'Best Configuration', 'Entries', 'Total Profit', 'Trades', 
-               'Win Rate %', 'Avg Holding Days', 'Return %', 'Final Capital']
+               'Win Rate %', 'Avg Holding Days', 'Return %', 'Efficiency Score', 'Final Capital']
     
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
@@ -976,8 +1081,9 @@ def create_best_configs_sheet(wb, batch_results):
     row_idx = 2
     for stock in sorted(stocks_data.keys()):
         configs = stocks_data[stock]
-        # Find best by profit
-        best = max(configs, key=lambda x: x.get('profit', 0))
+        # Find best by efficiency score (Profit/Day × Win Rate)
+        best = max(configs, key=lambda x: calculate_efficiency_score(x))
+        best_efficiency = calculate_efficiency_score(best)
         
         ws.cell(row=row_idx, column=1, value=stock)
         ws.cell(row=row_idx, column=2, value=best['config_name'])
@@ -987,7 +1093,8 @@ def create_best_configs_sheet(wb, batch_results):
         ws.cell(row=row_idx, column=6, value=round(best.get('win_rate', 0), 2))
         ws.cell(row=row_idx, column=7, value=round(best.get('avg_holding_days', 0), 1))
         ws.cell(row=row_idx, column=8, value=round(best.get('return_pct', 0), 2))
-        ws.cell(row=row_idx, column=9, value=round(best.get('final_capital', 0), 2))
+        ws.cell(row=row_idx, column=9, value=round(best_efficiency, 2))
+        ws.cell(row=row_idx, column=10, value=round(best.get('final_capital', 0), 2))
         
         row_idx += 1
     
@@ -1051,8 +1158,8 @@ def create_stock_detail_sheet(wb, stock_name, stock_results):
     safe_name = stock_name[:25]  # Excel sheet name limit is 31 chars
     ws = wb.create_sheet(f"{safe_name}_Details")
     
-    # Find best config for this stock
-    best_config = max(stock_results, key=lambda x: x.get('profit', 0))
+    # Find best config for this stock (by efficiency score)
+    best_config = max(stock_results, key=lambda x: calculate_efficiency_score(x))
     
     # Title
     ws.cell(row=1, column=1, value=f"Stock: {stock_name}")
@@ -1171,7 +1278,7 @@ def create_analysis_report_sheet(wb, batch_results):
     
     config_wins = {}
     for stock, configs in stocks_data.items():
-        best = max(configs, key=lambda x: x.get('profit', 0))
+        best = max(configs, key=lambda x: calculate_efficiency_score(x))
         config_name = best['config_name']
         config_wins[config_name] = config_wins.get(config_name, 0) + 1
     

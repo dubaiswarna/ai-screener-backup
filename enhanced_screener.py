@@ -1438,6 +1438,15 @@ elif page == "VWAP Strategy":
                 ha_enabled = st.checkbox("Enable Heikin Ashi (E7, E8)", value=False, help="Enable HA-based entry points")
                 
                 supertrend_enabled = st.checkbox("Enable Supertrend Filter", value=False, help="Block buys when price > Supertrend")
+                
+                st.markdown("**🎯 Trailing Stop Loss**")
+                trailing_enabled = st.checkbox("Enable Trailing Stop", value=False, help="Lock profits and capture extra upside")
+                
+                col_trail1, col_trail2 = st.columns(2)
+                with col_trail1:
+                    trailing_percent = st.number_input("Trail % from High", min_value=1.0, max_value=10.0, value=5.0, step=0.5, disabled=not trailing_enabled, help="Trail stop % below highest high")
+                with col_trail2:
+                    trailing_activation = st.number_input("Activate at Profit %", min_value=5.0, max_value=20.0, value=10.0, step=1.0, disabled=not trailing_enabled, help="Start trailing after this profit %")
             
             # Entry Points Summary
             total_entries = 2  # Always E1, E2
@@ -1468,7 +1477,10 @@ elif page == "VWAP Strategy":
                             vwap_enabled=vwap_enabled,
                             sma_period=sma_period if sma_enabled else None,
                             supertrend_enabled=supertrend_enabled,
-                            ha_enabled=ha_enabled
+                            ha_enabled=ha_enabled,
+                            trailing_enabled=trailing_enabled,
+                            trailing_percent=trailing_percent,
+                            trailing_activation=trailing_activation
                         )
                         
                         # Load data
@@ -1667,7 +1679,10 @@ elif page == "VWAP Strategy":
                                     vwap_enabled=config['vwap'],
                                     sma_period=sma_period if config['sma'] else None,
                                     supertrend_enabled=False,
-                                    ha_enabled=config['ha']
+                                    ha_enabled=config['ha'],
+                                    trailing_enabled=False,  # Batch mode uses fixed target for fair comparison
+                                    trailing_percent=5.0,
+                                    trailing_activation=10.0
                                 )
                                 
                                 if system.load_data_from_dataframe(df) and system.run_backtest():
