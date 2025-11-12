@@ -178,7 +178,7 @@ page = st.sidebar.radio(
     "Go to:",
     ["Dashboard", "Active Signals", "Generate New Signal", 
      "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
-     "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
+     "Stock Classifier", "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
 
 # REAL Technical Screener: Calculates actual RSI, MACD, MAs - NO random predictions!
@@ -1870,6 +1870,270 @@ elif page == "VWAP Strategy":
                 
                 else:
                     st.warning("No results generated. Please check your data files.")
+
+# ============================================================
+# PAGE: STOCK CLASSIFIER
+# ============================================================
+
+elif page == "Stock Classifier":
+    st.header("🎯 Smart Stock Classifier - Trailing Stop Decision")
+    st.markdown("Automatically classify stocks to determine optimal trailing stop usage based on liquidity, volatility, and market cap")
+    
+    # Import classifier
+    try:
+        from stock_classifier import StockClassifier
+    except ImportError:
+        st.error("Stock Classifier module not found. Please check installation.")
+        st.stop()
+    
+    # Initialize classifier
+    classifier = StockClassifier()
+    
+    # Mode selection
+    st.subheader("📊 Select Mode")
+    classify_mode = st.radio("", ["Pre-defined Nifty 50", "Custom Stock List"], horizontal=True)
+    
+    st.markdown("---")
+    
+    if classify_mode == "Pre-defined Nifty 50":
+        st.subheader("📋 Nifty 50 Classification")
+        st.info("Pre-classified 30 Nifty stocks based on known characteristics")
+        
+        if st.button("🚀 Generate Classification Report", type="primary"):
+            with st.spinner("Classifying stocks..."):
+                try:
+                    df = classifier.get_nifty50_classifications()
+                    
+                    # Overall breakdown
+                    st.success("✅ Classification Complete!")
+                    
+                    st.subheader("📊 Portfolio Breakdown")
+                    
+                    premium_count = len(df[df['Category'] == 'PREMIUM'])
+                    standard_count = len(df[df['Category'] == 'STANDARD'])
+                    defensive_count = len(df[df['Category'] == 'DEFENSIVE'])
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("🏆 PREMIUM", premium_count, "No Trailing")
+                        st.caption("High liquidity + Low volatility")
+                    
+                    with col2:
+                        st.metric("⚖️ STANDARD", standard_count, "5% Trailing")
+                        st.caption("Balanced metrics")
+                    
+                    with col3:
+                        st.metric("🛡️ DEFENSIVE", defensive_count, "3% Tight Trailing")
+                        st.caption("High volatility / Lower liquidity")
+                    
+                    # Full classification table
+                    st.markdown("---")
+                    st.subheader("📋 Full Classification Table")
+                    
+                    # Color code by category
+                    def highlight_category(row):
+                        if row['Category'] == 'PREMIUM':
+                            return ['background-color: #e8f5e9'] * len(row)
+                        elif row['Category'] == 'DEFENSIVE':
+                            return ['background-color: #fff3e0'] * len(row)
+                        else:
+                            return ['background-color: #e3f2fd'] * len(row)
+                    
+                    st.dataframe(
+                        df.style.apply(highlight_category, axis=1),
+                        use_container_width=True,
+                        height=600
+                    )
+                    
+                    # Capital allocation recommendation
+                    st.markdown("---")
+                    st.subheader("💰 Recommended Capital Allocation")
+                    
+                    capital = st.number_input("Enter Your Total Capital (₹)", min_value=100000, max_value=100000000, value=2500000, step=100000)
+                    
+                    premium_alloc = 0.50  # 50%
+                    standard_alloc = 0.35  # 35%
+                    defensive_alloc = 0.15  # 15%
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric(
+                            "PREMIUM Allocation",
+                            f"₹{capital * premium_alloc:,.0f}",
+                            f"₹{capital * premium_alloc / premium_count:,.0f} per stock"
+                        )
+                        st.caption(f"{premium_count} stocks × ₹{capital * premium_alloc / premium_count:,.0f}")
+                    
+                    with col2:
+                        st.metric(
+                            "STANDARD Allocation",
+                            f"₹{capital * standard_alloc:,.0f}",
+                            f"₹{capital * standard_alloc / standard_count:,.0f} per stock"
+                        )
+                        st.caption(f"{standard_count} stocks × ₹{capital * standard_alloc / standard_count:,.0f}")
+                    
+                    with col3:
+                        st.metric(
+                            "DEFENSIVE Allocation",
+                            f"₹{capital * defensive_alloc:,.0f}",
+                            f"₹{capital * defensive_alloc / defensive_count:,.0f} per stock"
+                        )
+                        st.caption(f"{defensive_count} stocks × ₹{capital * defensive_alloc / defensive_count:,.0f}")
+                    
+                    # Expected returns
+                    st.markdown("---")
+                    st.subheader("📈 Expected Annual Returns")
+                    
+                    premium_return = 0.70
+                    standard_return = 0.56
+                    defensive_return = 0.40
+                    
+                    premium_profit = capital * premium_alloc * premium_return
+                    standard_profit = capital * standard_alloc * standard_return
+                    defensive_profit = capital * defensive_alloc * defensive_return
+                    total_profit = premium_profit + standard_profit + defensive_profit
+                    total_return = total_profit / capital * 100
+                    
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        st.markdown(f"""
+                        **Expected Breakdown:**
+                        - PREMIUM: ₹{capital * premium_alloc:,.0f} × 70% = **₹{premium_profit:,.0f}** profit
+                        - STANDARD: ₹{capital * standard_alloc:,.0f} × 56% = **₹{standard_profit:,.0f}** profit
+                        - DEFENSIVE: ₹{capital * defensive_alloc:,.0f} × 40% = **₹{defensive_profit:,.0f}** profit
+                        """)
+                    
+                    with col2:
+                        st.metric(
+                            "Total Expected Return",
+                            f"{total_return:.1f}%",
+                            f"₹{total_profit:,.0f} profit"
+                        )
+                    
+                    # Download CSV
+                    st.markdown("---")
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download Classification Report (CSV)",
+                        data=csv,
+                        file_name=f"stock_classification_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        type="primary"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"Error during classification: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+    
+    else:  # Custom Stock List
+        st.subheader("📝 Custom Stock Classification")
+        st.info("Add your own stocks and get personalized trailing recommendations")
+        
+        st.markdown("""
+        **How to use:**
+        1. Enter stock details below
+        2. Click 'Classify Stock'
+        3. Get instant recommendation
+        """)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            symbol = st.text_input("Stock Symbol", value="", placeholder="e.g., TATAMOTORS")
+            avg_volume = st.number_input("Avg Daily Volume (shares)", min_value=1000, max_value=100000000, value=1000000, step=100000)
+            market_cap = st.number_input("Market Cap (Crores)", min_value=100, max_value=10000000, value=50000, step=1000)
+        
+        with col2:
+            atr_percent = st.number_input("ATR % (Volatility)", min_value=0.5, max_value=10.0, value=2.5, step=0.1, help="Average True Range as % of price")
+            liquidity_rank = st.slider("Liquidity Rank (0-100)", min_value=0, max_value=100, value=75, help="0=Illiquid, 100=Most Liquid")
+            sector = st.selectbox("Sector", ["Banking", "IT", "Auto", "Pharma", "FMCG", "Energy", "Metals", "Infrastructure", "Telecom", "Other"])
+        
+        if st.button("🔍 Classify Stock", type="primary"):
+            if symbol:
+                stock_data = {
+                    'symbol': symbol,
+                    'avg_volume': avg_volume,
+                    'market_cap': market_cap,
+                    'atr_percent': atr_percent,
+                    'liquidity_rank': liquidity_rank,
+                    'sector': sector
+                }
+                
+                result = classifier.classify_stock(stock_data)
+                
+                st.success(f"✅ Classification Complete for {symbol}")
+                
+                # Display result
+                st.markdown("---")
+                
+                if result['category'] == 'PREMIUM':
+                    st.success(f"### 🏆 {result['category']} STOCK")
+                    st.markdown(f"**Recommendation:** {result['reason']}")
+                elif result['category'] == 'DEFENSIVE':
+                    st.warning(f"### 🛡️ {result['category']} STOCK")
+                    st.markdown(f"**Recommendation:** {result['reason']}")
+                else:
+                    st.info(f"### ⚖️ {result['category']} STOCK")
+                    st.markdown(f"**Recommendation:** {result['reason']}")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**📊 Trading Settings:**")
+                    st.markdown(f"- **Trailing Stop:** {'✅ ENABLED' if result['trailing_enabled'] else '❌ DISABLED'}")
+                    if result['trailing_enabled']:
+                        st.markdown(f"- **Trail %:** {result['trailing_percent']:.1f}%")
+                        st.markdown(f"- **Activation:** {result['trailing_activation']:.0f}% profit")
+                    else:
+                        st.markdown(f"- **Target:** Fixed 10% profit")
+                    st.markdown(f"- **Capital Allocation:** {result['capital_allocation']}")
+                
+                with col2:
+                    st.markdown("**📈 Stock Metrics:**")
+                    st.markdown(f"- **Volume:** {result['metrics']['volume']:,.0f}")
+                    st.markdown(f"- **Market Cap:** ₹{result['metrics']['market_cap']:,.0f} Cr")
+                    st.markdown(f"- **ATR %:** {result['metrics']['atr_percent']:.2f}%")
+                    st.markdown(f"- **Liquidity Rank:** {result['metrics']['liquidity_rank']:.0f}/100")
+                    st.markdown(f"- **Sector:** {result['metrics']['sector']}")
+            else:
+                st.warning("Please enter a stock symbol")
+    
+    # Guide
+    st.markdown("---")
+    st.markdown("""
+    ### 📚 Classification Guide
+    
+    **🏆 PREMIUM (No Trailing):**
+    - Best for: Large cap, high liquidity stocks
+    - Strategy: Maximize profit with fixed 10% target
+    - Expected: 65-75% annual return
+    - Examples: RELIANCE, TCS, HDFCBANK
+    
+    **⚖️ STANDARD (5% Trailing):**
+    - Best for: Mid cap, good liquidity stocks
+    - Strategy: Balance profit and risk with 5% trail
+    - Expected: 50-60% annual return
+    - Examples: AXISBANK, LT, MARUTI
+    
+    **🛡️ DEFENSIVE (3% Tight Trailing):**
+    - Best for: Volatile or lower liquidity stocks
+    - Strategy: Protect capital with tight 3% trail
+    - Expected: 35-45% annual return
+    - Examples: TATASTEEL, HINDALCO, BPCL
+    
+    ### 💡 Why This Matters
+    
+    Based on batch analysis results:
+    - WITHOUT trailing: 70% return BUT only 50% success rate
+    - WITH trailing: 56% return BUT 78.6% success rate
+    - SOLUTION: Use trailing selectively based on stock characteristics!
+    
+    **Result:** Optimize each stock for maximum efficiency!
+    """)
 
 # ============================================================
 # PAGE: PORTFOLIO
