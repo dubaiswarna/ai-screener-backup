@@ -1521,26 +1521,45 @@ elif page == "VWAP Strategy":
                         with col2:
                             st.metric("Final Capital", f"₹{summary['final_capital']:,.2f}", delta=f"₹{summary['total_profit']:,.2f}")
                         
-                        # Detailed Results
+                        # Detailed Results - Show only completed trades
                         if system.daily_transactions:
                             st.markdown("---")
-                            st.subheader("📊 Daily Transactions")
+                            st.subheader("📊 Completed Trades Summary")
                             
                             transactions_df = pd.DataFrame(system.daily_transactions)
                             
-                            # Format for display
-                            display_df = transactions_df[['date', 'total_buy_qty', 'avg_buy_price', 'sell_qty', 'sell_price', 'profit', 'return_pct']].copy()
-                            display_df.columns = ['Date', 'Buy Qty', 'Avg Buy Price', 'Sell Qty', 'Sell Price', 'Profit', 'Return %']
+                            # Filter only sell transactions (completed trades)
+                            trades_df = transactions_df[transactions_df['execution'] == 'Sell'].copy()
                             
-                            st.dataframe(
-                                display_df.style.format({
-                                    'Avg Buy Price': '₹{:.2f}',
-                                    'Sell Price': '₹{:.2f}',
-                                    'Profit': '₹{:.2f}',
-                                    'Return %': '{:.2f}%'
-                                }),
-                                use_container_width=True
-                            )
+                            if not trades_df.empty:
+                                # Prepare display columns
+                                display_df = pd.DataFrame({
+                                    'Buy Date': trades_df['entry_date'].apply(lambda x: x.date() if pd.notna(x) and x is not None else ''),
+                                    'Buy Qty': trades_df['sell_qty'],  # Total qty that was sold (same as bought)
+                                    'Avg Buy Price': trades_df['average_cost'],
+                                    'Sell Date': trades_df['date'].apply(lambda x: x.date() if hasattr(x, 'date') else x),
+                                    'Sell Qty': trades_df['sell_qty'],
+                                    'Avg Sell Price': trades_df['sell_price'],
+                                    'Holding Period': trades_df['holding_days'].apply(lambda x: f"{int(x)} days" if pd.notna(x) else ''),
+                                    'Profit': trades_df['profit'],
+                                    'Return %': trades_df['return_pct']
+                                })
+                                
+                                st.dataframe(
+                                    display_df.style.format({
+                                        'Avg Buy Price': '₹{:.2f}',
+                                        'Avg Sell Price': '₹{:.2f}',
+                                        'Profit': '₹{:.2f}',
+                                        'Return %': '{:.2f}%'
+                                    }),
+                                    use_container_width=True,
+                                    height=400
+                                )
+                                
+                                # Summary stats
+                                st.info(f"**Total Completed Trades:** {len(trades_df)} | **Avg Holding Period:** {trades_df['holding_days'].mean():.1f} days")
+                            else:
+                                st.warning("No completed trades yet. Adjust parameters or check data.")
                             
                             # Download Full Excel Report
                             st.markdown("---")
