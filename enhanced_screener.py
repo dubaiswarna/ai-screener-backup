@@ -1372,7 +1372,7 @@ elif page == "VWAP Strategy":
     
     # Import VWAP system
     try:
-        from vwap_system import VWAPFlexibleSystem
+        from vwap_system import VWAPFlexibleSystem, create_batch_optimizer_excel
         import openpyxl
         from io import BytesIO
     except ImportError as e:
@@ -1654,6 +1654,17 @@ elif page == "VWAP Strategy":
                                 if system.load_data_from_dataframe(df) and system.run_backtest():
                                     summary = system.get_summary()
                                     
+                                    # Calculate average holding days
+                                    trades_df = pd.DataFrame(system.daily_transactions)
+                                    sells_df = trades_df[trades_df['execution'] == 'Sell']
+                                    avg_holding_days = sells_df['holding_days'].mean() if not sells_df.empty else 0
+                                    
+                                    # Count entries
+                                    entries = 2  # Base (E1, E2)
+                                    if config['vwap']: entries += 2
+                                    if config['sma']: entries += 2
+                                    if config['ha']: entries += 2
+                                    
                                     results.append({
                                         'Stock': stock_name,
                                         'Configuration': config['name'],
@@ -1661,7 +1672,18 @@ elif page == "VWAP Strategy":
                                         'Profit': summary['total_profit'],
                                         'Return %': summary['total_return'],
                                         'Win Rate': summary['win_rate'],
-                                        'Avg Profit/Trade': summary['avg_profit_per_trade']
+                                        'Avg Profit/Trade': summary['avg_profit_per_trade'],
+                                        # For batch optimizer Excel
+                                        'stock_name': stock_name,
+                                        'config_name': config['name'],
+                                        'system': system,
+                                        'profit': summary['total_profit'],
+                                        'trades': summary['total_trades'],
+                                        'win_rate': summary['win_rate'],
+                                        'avg_holding_days': avg_holding_days,
+                                        'return_pct': summary['total_return'],
+                                        'final_capital': summary['final_capital'],
+                                        'entries': entries
                                     })
                                 else:
                                     results.append({
@@ -1671,7 +1693,18 @@ elif page == "VWAP Strategy":
                                         'Profit': 0,
                                         'Return %': 0,
                                         'Win Rate': 0,
-                                        'Avg Profit/Trade': 0
+                                        'Avg Profit/Trade': 0,
+                                        # For batch optimizer Excel
+                                        'stock_name': stock_name,
+                                        'config_name': config['name'],
+                                        'system': None,
+                                        'profit': 0,
+                                        'trades': 0,
+                                        'win_rate': 0,
+                                        'avg_holding_days': 0,
+                                        'return_pct': 0,
+                                        'final_capital': 100000,
+                                        'entries': 2
                                     })
                             
                             except Exception as e:
@@ -1760,49 +1793,31 @@ elif page == "VWAP Strategy":
                         use_container_width=True
                     )
                     
-                    # Download Excel Report
+                    # Download Comprehensive Excel Report
                     st.markdown("---")
-                    st.subheader("💾 Download Comparison Report")
+                    st.subheader("💾 Download Comprehensive Analysis Report")
+                    st.info("📊 Multi-sheet Excel with: Best Configs, All Results, Individual Stock Details, Analysis Report, and Holding Period data!")
                     
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                        # Comparison Matrix
-                        pivot_profit.to_excel(writer, sheet_name='Profit Matrix')
+                    try:
+                        # Generate comprehensive multi-sheet Excel using batch optimizer
+                        excel_output = create_batch_optimizer_excel(results)
+                        excel_data = excel_output.getvalue()
                         
-                        # Return % Matrix
-                        pivot_return = results_df.pivot(index='Stock', columns='Configuration', values='Return %')
-                        pivot_return = pivot_return[[c['name'] for c in configurations]]
-                        pivot_return.to_excel(writer, sheet_name='Return Matrix')
+                        st.download_button(
+                            label="📥 Download Complete Batch Analysis Report",
+                            data=excel_data,
+                            file_name=f"VWAP_Batch_Optimizer_{len(uploaded_files)}stocks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            type="primary",
+                            help="Includes: Best Configurations, All Results, Individual Stock Details, Holding Period, Analysis Report"
+                        )
                         
-                        # Detailed Results
-                        results_df.to_excel(writer, sheet_name='All Results', index=False)
+                        st.success("✅ Excel report ready! Includes holding period analysis for all trades.")
                         
-                        # Summary Stats
-                        summary_data = []
-                        for config in configurations:
-                            config_data = results_df[results_df['Configuration'] == config['name']]
-                            summary_data.append({
-                                'Configuration': config['name'],
-                                'Total Profit': config_data['Profit'].sum(),
-                                'Avg Profit': config_data['Profit'].mean(),
-                                'Avg Return %': config_data['Return %'].mean(),
-                                'Total Trades': config_data['Trades'].sum(),
-                                'Wins': len(config_data[config_data['Profit'] > 0]),
-                                'Win Rate %': (len(config_data[config_data['Profit'] > 0]) / len(config_data) * 100) if len(config_data) > 0 else 0
-                            })
-                        
-                        summary_df = pd.DataFrame(summary_data)
-                        summary_df.to_excel(writer, sheet_name='Config Summary', index=False)
-                    
-                    excel_data = output.getvalue()
-                    
-                    st.download_button(
-                        label="📥 Download Complete Comparison Report",
-                        data=excel_data,
-                        file_name=f"VWAP_Batch_Comparison_{len(uploaded_files)}stocks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        type="primary"
-                    )
+                    except Exception as e:
+                        st.error(f"Error generating Excel report: {e}")
+                        import traceback
+                        st.code(traceback.format_exc())
                 
                 else:
                     st.warning("No results generated. Please check your data files.")

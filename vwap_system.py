@@ -96,6 +96,7 @@ class VWAPFlexibleSystem:
         self.total_cost = 0
         self.average_cost = 0
         self.target_price_value = 0
+        self.position_first_entry_date = None  # Track first buy date for holding period
     
     def load_data_from_dataframe(self, df):
         """Load data from pandas DataFrame"""
@@ -327,6 +328,11 @@ class VWAPFlexibleSystem:
             'E6_price': 0, 'E6_qty': 0,
             'E7_price': 0, 'E7_qty': 0,
             'E8_price': 0, 'E8_qty': 0,
+            
+            # Holding period tracking
+            'entry_date': self.position_first_entry_date,
+            'exit_date': None,
+            'holding_days': 0,
         }
         
         # Filter checks
@@ -416,6 +422,11 @@ class VWAPFlexibleSystem:
             daily_transaction['avg_buy_price'] = avg_price
             
             if (self.total_cost + total_cost_with_charges) <= self.threshold_amount:
+                # Track first entry date (for holding period calculation)
+                if self.total_shares_held == 0:
+                    self.position_first_entry_date = date
+                    daily_transaction['entry_date'] = date
+                
                 self.total_shares_held += total_qty
                 self.total_cost += total_cost_with_charges
                 self.average_cost = self.total_cost / self.total_shares_held if self.total_shares_held > 0 else 0
@@ -436,6 +447,12 @@ class VWAPFlexibleSystem:
             sell_charges_amount = sell_value_gross * self.total_charges
             sell_value_net = sell_value_gross - sell_charges_amount
             
+            # Calculate holding period
+            if self.position_first_entry_date is not None:
+                holding_days = (date - self.position_first_entry_date).days
+                daily_transaction['exit_date'] = date
+                daily_transaction['holding_days'] = holding_days
+            
             daily_transaction['sell_qty'] = self.total_shares_held
             daily_transaction['sell_price'] = self.target_price_value
             daily_transaction['sell_value'] = sell_value_gross
@@ -450,6 +467,7 @@ class VWAPFlexibleSystem:
             self.total_cost = 0
             self.average_cost = 0
             self.target_price_value = 0
+            self.position_first_entry_date = None  # Reset for next trade
         
         return daily_transaction
     
@@ -548,6 +566,7 @@ class VWAPFlexibleSystem:
             'Total_Buy_Qty', 'Avg_Buy_Price', 'Total_Buy_Value',
             'Sell_Qty', 'Sell_Price', 'Sell_Value',
             'Profit', 'Return_%', 'Execution',
+            'Entry_Date', 'Exit_Date', 'Holding_Days',
             'Profit_Target', 'Exceeded_Threshold',
             'Total_Shares_Held', 'Total_Cost', 'Average_Cost', 'Target_Price'
         ])
@@ -639,6 +658,17 @@ class VWAPFlexibleSystem:
             col += 1
             ws.cell(row=row_idx, column=col, value=row['execution'])
             col += 1
+            
+            # Holding period columns
+            entry_date = row.get('entry_date')
+            exit_date = row.get('exit_date')
+            ws.cell(row=row_idx, column=col, value=entry_date.date() if pd.notna(entry_date) and entry_date is not None else '')
+            col += 1
+            ws.cell(row=row_idx, column=col, value=exit_date.date() if pd.notna(exit_date) and exit_date is not None else '')
+            col += 1
+            ws.cell(row=row_idx, column=col, value=row.get('holding_days', 0))
+            col += 1
+            
             ws.cell(row=row_idx, column=col, value=row.get('profit_target_used', f'{self.target_percentage}%'))
             col += 1
             ws.cell(row=row_idx, column=col, value=row.get('exceeded_threshold', 'No'))
@@ -861,4 +891,314 @@ class VWAPFlexibleSystem:
             'win_rate': 100.0 if total_trades > 0 else 0,
             'avg_profit_per_trade': total_profit / total_trades if total_trades > 0 else 0
         }
+
+
+# ============================================================================
+# BATCH OPTIMIZER FUNCTIONS
+# ============================================================================
+
+def create_batch_optimizer_excel(batch_results, output_path=None):
+    """
+    Create comprehensive multi-sheet Excel report for batch optimization
+    
+    Parameters:
+    -----------
+    batch_results : list of dict
+        Each dict contains:
+        {
+            'stock_name': str,
+            'config_name': str,
+            'system': VWAPFlexibleSystem (after backtest),
+            'profit': float,
+            'trades': int,
+            'win_rate': float,
+            'avg_holding_days': float
+        }
+    output_path : str, optional
+        If provided, saves to file. Otherwise returns BytesIO
+    
+    Returns:
+    --------
+    BytesIO if output_path is None, else None
+    """
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+    
+    # Sheet 1: Summary (Best Config per Stock)
+    create_best_configs_sheet(wb, batch_results)
+    
+    # Sheet 2: All Results Comparison
+    create_all_results_sheet(wb, batch_results)
+    
+    # Sheet 3+: Individual Stock Details
+    stocks = sorted(set(r['stock_name'] for r in batch_results))
+    for stock in stocks:
+        stock_results = [r for r in batch_results if r['stock_name'] == stock]
+        create_stock_detail_sheet(wb, stock, stock_results)
+    
+    # Sheet N: Analysis Report
+    create_analysis_report_sheet(wb, batch_results)
+    
+    if output_path:
+        wb.save(output_path)
+        return None
+    else:
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output
+
+
+def create_best_configs_sheet(wb, batch_results):
+    """Create summary sheet showing best configuration for each stock"""
+    ws = wb.create_sheet("Best Configurations", 0)
+    
+    # Group by stock and find best config
+    stocks_data = {}
+    for result in batch_results:
+        stock = result['stock_name']
+        if stock not in stocks_data:
+            stocks_data[stock] = []
+        stocks_data[stock].append(result)
+    
+    # Headers
+    headers = ['Stock', 'Best Configuration', 'Entries', 'Total Profit', 'Trades', 
+               'Win Rate %', 'Avg Holding Days', 'Return %', 'Final Capital']
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = Font(bold=True, size=12)
+        cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.alignment = Alignment(horizontal='center')
+    
+    # Data rows
+    row_idx = 2
+    for stock in sorted(stocks_data.keys()):
+        configs = stocks_data[stock]
+        # Find best by profit
+        best = max(configs, key=lambda x: x.get('profit', 0))
+        
+        ws.cell(row=row_idx, column=1, value=stock)
+        ws.cell(row=row_idx, column=2, value=best['config_name'])
+        ws.cell(row=row_idx, column=3, value=best.get('entries', 0))
+        ws.cell(row=row_idx, column=4, value=round(best.get('profit', 0), 2))
+        ws.cell(row=row_idx, column=5, value=best.get('trades', 0))
+        ws.cell(row=row_idx, column=6, value=round(best.get('win_rate', 0), 2))
+        ws.cell(row=row_idx, column=7, value=round(best.get('avg_holding_days', 0), 1))
+        ws.cell(row=row_idx, column=8, value=round(best.get('return_pct', 0), 2))
+        ws.cell(row=row_idx, column=9, value=round(best.get('final_capital', 0), 2))
+        
+        row_idx += 1
+    
+    # Auto-adjust widths
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 2, 40)
+
+
+def create_all_results_sheet(wb, batch_results):
+    """Create sheet with all stock x config results"""
+    ws = wb.create_sheet("All Results")
+    
+    # Headers
+    headers = ['Stock', 'Configuration', 'Entries', 'Profit', 'Trades', 
+               'Win Rate %', 'Avg Holding Days', 'Return %', 'Final Capital']
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+    
+    # Data rows
+    row_idx = 2
+    for result in sorted(batch_results, key=lambda x: (x['stock_name'], -x.get('profit', 0))):
+        ws.cell(row=row_idx, column=1, value=result['stock_name'])
+        ws.cell(row=row_idx, column=2, value=result['config_name'])
+        ws.cell(row=row_idx, column=3, value=result.get('entries', 0))
+        ws.cell(row=row_idx, column=4, value=round(result.get('profit', 0), 2))
+        ws.cell(row=row_idx, column=5, value=result.get('trades', 0))
+        ws.cell(row=row_idx, column=6, value=round(result.get('win_rate', 0), 2))
+        ws.cell(row=row_idx, column=7, value=round(result.get('avg_holding_days', 0), 1))
+        ws.cell(row=row_idx, column=8, value=round(result.get('return_pct', 0), 2))
+        ws.cell(row=row_idx, column=9, value=round(result.get('final_capital', 0), 2))
+        
+        row_idx += 1
+    
+    # Auto-adjust widths
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 2, 40)
+
+
+def create_stock_detail_sheet(wb, stock_name, stock_results):
+    """Create detailed sheet for a specific stock showing all config results"""
+    # Sanitize sheet name (Excel limits)
+    safe_name = stock_name[:25]  # Excel sheet name limit is 31 chars
+    ws = wb.create_sheet(f"{safe_name}_Details")
+    
+    # Find best config for this stock
+    best_config = max(stock_results, key=lambda x: x.get('profit', 0))
+    
+    # Title
+    ws.cell(row=1, column=1, value=f"Stock: {stock_name}")
+    ws.cell(row=1, column=1).font = Font(bold=True, size=14)
+    
+    ws.cell(row=2, column=1, value=f"Best Configuration: {best_config['config_name']}")
+    ws.cell(row=2, column=1).font = Font(bold=True, color="00B050")
+    
+    # Configuration comparison table
+    ws.cell(row=4, column=1, value="Configuration Comparison")
+    ws.cell(row=4, column=1).font = Font(bold=True, size=12)
+    
+    headers = ['Configuration', 'Profit', 'Trades', 'Win Rate %', 'Avg Holding Days', 'Return %']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=5, column=col, value=header)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+    
+    row_idx = 6
+    for result in sorted(stock_results, key=lambda x: -x.get('profit', 0)):
+        ws.cell(row=row_idx, column=1, value=result['config_name'])
+        ws.cell(row=row_idx, column=2, value=round(result.get('profit', 0), 2))
+        ws.cell(row=row_idx, column=3, value=result.get('trades', 0))
+        ws.cell(row=row_idx, column=4, value=round(result.get('win_rate', 0), 2))
+        ws.cell(row=row_idx, column=5, value=round(result.get('avg_holding_days', 0), 1))
+        ws.cell(row=row_idx, column=6, value=round(result.get('return_pct', 0), 2))
+        row_idx += 1
+    
+    # Best config detailed trades
+    ws.cell(row=row_idx + 2, column=1, value=f"Detailed Trades - {best_config['config_name']}")
+    ws.cell(row=row_idx + 2, column=1).font = Font(bold=True, size=12)
+    
+    # Get trades from best system
+    best_system = best_config.get('system')
+    if best_system and hasattr(best_system, 'daily_transactions'):
+        df = pd.DataFrame(best_system.daily_transactions)
+        trades_df = df[df['execution'] == 'Sell'].copy()
+        
+        if not trades_df.empty:
+            trade_headers = ['Date', 'Buy Price', 'Sell Price', 'Quantity', 'Profit', 'Return %', 'Holding Days']
+            trade_row = row_idx + 3
+            for col, header in enumerate(trade_headers, 1):
+                cell = ws.cell(row=trade_row, column=col, value=header)
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+            
+            trade_row += 1
+            for _, trade in trades_df.iterrows():
+                ws.cell(row=trade_row, column=1, value=trade['date'].date() if hasattr(trade['date'], 'date') else trade['date'])
+                ws.cell(row=trade_row, column=2, value=round(trade.get('average_cost', 0), 2))
+                ws.cell(row=trade_row, column=3, value=round(trade.get('sell_price', 0), 2))
+                ws.cell(row=trade_row, column=4, value=trade.get('sell_qty', 0))
+                ws.cell(row=trade_row, column=5, value=round(trade.get('profit', 0), 2))
+                ws.cell(row=trade_row, column=6, value=round(trade.get('return_pct', 0), 2))
+                ws.cell(row=trade_row, column=7, value=trade.get('holding_days', 0))
+                trade_row += 1
+    
+    # Auto-adjust widths
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 2, 40)
+
+
+def create_analysis_report_sheet(wb, batch_results):
+    """Create analysis sheet with statistics and insights"""
+    ws = wb.create_sheet("Analysis Report")
+    
+    # Title
+    ws.cell(row=1, column=1, value="Batch Optimization Analysis")
+    ws.cell(row=1, column=1).font = Font(bold=True, size=14)
+    
+    # Overall statistics
+    ws.cell(row=3, column=1, value="Overall Statistics")
+    ws.cell(row=3, column=1).font = Font(bold=True, size=12)
+    
+    total_stocks = len(set(r['stock_name'] for r in batch_results))
+    total_configs = len(set(r['config_name'] for r in batch_results))
+    total_profit = sum(r.get('profit', 0) for r in batch_results)
+    avg_profit = total_profit / len(batch_results) if batch_results else 0
+    avg_holding = sum(r.get('avg_holding_days', 0) for r in batch_results) / len(batch_results) if batch_results else 0
+    
+    stats = [
+        ['Total Stocks Analyzed', total_stocks],
+        ['Total Configurations Tested', total_configs],
+        ['Total Backtests Run', len(batch_results)],
+        ['Combined Total Profit', round(total_profit, 2)],
+        ['Average Profit per Backtest', round(avg_profit, 2)],
+        ['Average Holding Period (days)', round(avg_holding, 1)]
+    ]
+    
+    row_idx = 4
+    for stat in stats:
+        ws.cell(row=row_idx, column=1, value=stat[0])
+        ws.cell(row=row_idx, column=1).font = Font(bold=True)
+        ws.cell(row=row_idx, column=2, value=stat[1])
+        row_idx += 1
+    
+    # Configuration popularity (which config wins most often)
+    ws.cell(row=row_idx + 2, column=1, value="Most Successful Configurations")
+    ws.cell(row=row_idx + 2, column=1).font = Font(bold=True, size=12)
+    
+    # Group by stock and find winners
+    stocks_data = {}
+    for result in batch_results:
+        stock = result['stock_name']
+        if stock not in stocks_data:
+            stocks_data[stock] = []
+        stocks_data[stock].append(result)
+    
+    config_wins = {}
+    for stock, configs in stocks_data.items():
+        best = max(configs, key=lambda x: x.get('profit', 0))
+        config_name = best['config_name']
+        config_wins[config_name] = config_wins.get(config_name, 0) + 1
+    
+    row_idx += 3
+    ws.cell(row=row_idx, column=1, value="Configuration")
+    ws.cell(row=row_idx, column=1).font = Font(bold=True)
+    ws.cell(row=row_idx, column=2, value="Times Best")
+    ws.cell(row=row_idx, column=2).font = Font(bold=True)
+    ws.cell(row=row_idx, column=3, value="% of Stocks")
+    ws.cell(row=row_idx, column=3).font = Font(bold=True)
+    
+    row_idx += 1
+    for config, wins in sorted(config_wins.items(), key=lambda x: -x[1]):
+        ws.cell(row=row_idx, column=1, value=config)
+        ws.cell(row=row_idx, column=2, value=wins)
+        ws.cell(row=row_idx, column=3, value=f"{round(wins/total_stocks*100, 1)}%")
+        row_idx += 1
+    
+    # Auto-adjust widths
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 2, 40)
 
