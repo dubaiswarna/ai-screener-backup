@@ -558,7 +558,7 @@ elif page == "Technical Screener":
                     else:
                         # Fetch from Yahoo Finance
                         ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                        hist = ticker.history(period=f"{lookback_days}d")
+                    hist = ticker.history(period=f"{lookback_days}d")
                     
                     if hist.empty or len(hist) < 20:
                         continue
@@ -842,7 +842,7 @@ elif page == "S&R Analysis":
                     st.warning("⚠️ Please select a stock symbol, not a category header")
                     symbol_input = 'RELIANCE'
             else:
-                symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
+            symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
         
         with col2:
             sensitivity = st.slider("Sensitivity", 3, 10, 3, help="Lower = more nearby levels (recommended), Higher = fewer major levels")
