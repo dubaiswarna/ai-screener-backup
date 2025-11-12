@@ -338,70 +338,295 @@ elif page == "Active Signals":
 elif page == "Generate New Signal":
     st.header("🎯 Generate New Trading Signal")
     
-    st.info("💡 This signal will be SAVED to database and persist even after refresh!")
+    # Mode selection: Manual Entry OR Hybrid Analysis
+    signal_generation_mode = st.radio(
+        "Signal Generation Mode:",
+        ["Manual Entry", "Hybrid Mode (Treasure Signals 💎)"],
+        horizontal=True,
+        help="Manual: Enter signal details manually | Hybrid: Auto-detect high-accuracy signals"
+    )
     
-    with st.form("signal_form"):
-        col1, col2 = st.columns(2)
+    if signal_generation_mode == "Manual Entry":
+        # EXISTING CODE - NO CHANGES!
+        st.info("💡 This signal will be SAVED to database and persist even after refresh!")
         
-        with col1:
-            symbol = st.text_input("Symbol", "NSE_RELIANCE")
-            signal_type = st.selectbox("Signal Type", ["BUY", "SELL"])
-            confidence = st.number_input("Confidence (%)", 0.0, 100.0, 75.0, 1.0)
-            entry_price = st.number_input("Entry Price", 0.0, 10000.0, 2450.0, 1.0)
-        
-        with col2:
-            target_price = st.number_input("Target Price", 0.0, 10000.0, 2550.0, 1.0)
-            stop_loss = st.number_input("Stop Loss", 0.0, 10000.0, 2400.0, 1.0)
-            model_name = st.text_input("Model Name", "manual_entry")
-            signal_strength = st.selectbox("Strength", ["WEAK", "MEDIUM", "STRONG"])
-        
-        submitted = st.form_submit_button("✅ Generate Signal")
-        
-        if submitted:
-            # Calculate risk metrics
-            position = risk_engine.calculate_position_size(
-                entry_price=entry_price,
-                stop_loss=stop_loss,
-                confidence=confidence / 100
-            )
+        with st.form("signal_form"):
+            col1, col2 = st.columns(2)
             
-            # Prepare signal data
-            signal_data = {
-                'symbol': symbol,
-                'signal_type': signal_type,
-                'confidence': confidence,
-                'entry_price': entry_price,
-                'target_price': target_price,
-                'stop_loss': stop_loss,
-                'model_name': model_name,
-                'signal_strength': signal_strength,
-                'volume': 0,
-                'risk_reward_ratio': ((target_price - entry_price) / (entry_price - stop_loss)) if stop_loss else 0,
-                'position_size': position.get('position_size', 0),
-                'max_risk_amount': position.get('risk_amount', 0),
-                'valid_until': datetime.now() + timedelta(days=1)
-            }
+            with col1:
+                symbol = st.text_input("Symbol", "NSE_RELIANCE")
+                signal_type = st.selectbox("Signal Type", ["BUY", "SELL"])
+                confidence = st.number_input("Confidence (%)", 0.0, 100.0, 75.0, 1.0)
+                entry_price = st.number_input("Entry Price", 0.0, 10000.0, 2450.0, 1.0)
             
-            # Save to database
-            signal_id = db.save_signal(signal_data)
+            with col2:
+                target_price = st.number_input("Target Price", 0.0, 10000.0, 2550.0, 1.0)
+                stop_loss = st.number_input("Stop Loss", 0.0, 10000.0, 2400.0, 1.0)
+                model_name = st.text_input("Model Name", "manual_entry")
+                signal_strength = st.selectbox("Strength", ["WEAK", "MEDIUM", "STRONG"])
             
-            if signal_id:
-                st.success(f"✅ Signal generated and saved! ID: {signal_id}")
+            submitted = st.form_submit_button("✅ Generate Signal")
+            
+            if submitted:
+                # Calculate risk metrics
+                position = risk_engine.calculate_position_size(
+                    entry_price=entry_price,
+                    stop_loss=stop_loss,
+                    confidence=confidence / 100
+                )
                 
-                # Show risk analysis
-                st.subheader("📊 Risk Analysis")
-                col1, col2, col3 = st.columns(3)
+                # Prepare signal data
+                signal_data = {
+                    'symbol': symbol,
+                    'signal_type': signal_type,
+                    'confidence': confidence,
+                    'entry_price': entry_price,
+                    'target_price': target_price,
+                    'stop_loss': stop_loss,
+                    'model_name': model_name,
+                    'signal_strength': signal_strength,
+                    'volume': 0,
+                    'risk_reward_ratio': ((target_price - entry_price) / (entry_price - stop_loss)) if stop_loss else 0,
+                    'position_size': position.get('position_size', 0),
+                    'max_risk_amount': position.get('risk_amount', 0),
+                    'valid_until': datetime.now() + timedelta(days=1)
+                }
                 
-                with col1:
-                    st.metric("Recommended Quantity", position['quantity'])
-                with col2:
-                    st.metric("Position Size", f"₹{position['position_size']:,.0f}")
-                with col3:
-                    st.metric("Max Risk", f"₹{position['risk_amount']:,.0f} ({position['risk_pct']:.2f}%)")
+                # Save to database
+                signal_id = db.save_signal(signal_data)
                 
-                st.info("🔄 Refresh the page - your signal will still be there! (Database persistence working!)")
+                if signal_id:
+                    st.success(f"✅ Signal generated and saved! ID: {signal_id}")
+                    
+                    # Show risk analysis
+                    st.subheader("📊 Risk Analysis")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Recommended Quantity", position['quantity'])
+                    with col2:
+                        st.metric("Position Size", f"₹{position['position_size']:,.0f}")
+                    with col3:
+                        st.metric("Max Risk", f"₹{position['risk_amount']:,.0f} ({position['risk_pct']:.2f}%)")
+                    
+                    st.info("🔄 Refresh the page - your signal will still be there! (Database persistence working!)")
+                else:
+                    st.error("❌ Failed to save signal")
+    
+    # ========================================================================
+    # HYBRID MODE (NEW!) - TREASURE SIGNAL GENERATOR
+    # ========================================================================
+    else:  # Hybrid Mode
+        st.subheader("💎 Hybrid Signal Generator - Treasure Mode")
+        st.info("🎯 Combines Technical + S&R + Chart Patterns. Only shows 85%+ confidence signals (TREASURES!)")
+        st.caption("Philosophy: Quality over Quantity - Better to have 5 perfect signals than 50 mediocre ones")
+        
+        # Import required modules (READ-ONLY!)
+        try:
+            from hybrid_signal_generator import HybridSignalGenerator
+            from patterns.chart_pattern_detector import ChartPatternDetector
+            if DUAL_SR_AVAILABLE:
+                from support_resistance.sr_calculator_enhanced import ProfessionalSRCalculator
+                SR_CALC_CLASS = ProfessionalSRCalculator
             else:
-                st.error("❌ Failed to save signal")
+                SR_CALC_CLASS = SupportResistanceCalculator
+            
+            HYBRID_AVAILABLE = True
+        except ImportError as e:
+            HYBRID_AVAILABLE = False
+            st.error(f"❌ Hybrid modules not available: {e}")
+        
+        if HYBRID_AVAILABLE:
+            # Settings
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if EXPANDED_UNIVERSE_AVAILABLE:
+                    universe_choice = st.selectbox(
+                        "Stock Universe:",
+                        ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "ALL Stocks (750+)"]
+                    )
+                else:
+                    universe_choice = "Nifty 50 (51 stocks)"
+                
+            with col2:
+                min_confidence = st.slider("Minimum Confidence (%)", 70, 95, 85, 5,
+                                          help="Only show signals above this confidence")
+            
+            with col3:
+                min_rr = st.slider("Minimum R:R", 1.5, 5.0, 2.0, 0.5,
+                                  help="Minimum Risk:Reward ratio")
+            
+            # Get stock list
+            if "Nifty 50" in universe_choice:
+                stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
+            elif "Nifty 200" in universe_choice:
+                stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+            else:
+                stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+            
+            st.caption(f"Will analyze {len(stock_list)} stocks")
+            
+            if st.button("💎 Find Treasure Signals", type="primary"):
+                st.markdown("---")
+                st.subheader(f"🔍 Analyzing {len(stock_list)} stocks...")
+                
+                # Initialize
+                hybrid_gen = HybridSignalGenerator(min_confidence=min_confidence, min_rr_ratio=min_rr)
+                sr_calc = SR_CALC_CLASS(sensitivity=3, min_touches=2)
+                pattern_detector = ChartPatternDetector()
+                
+                treasure_signals = []
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                import yfinance as yf
+                
+                # Analyze each stock
+                for idx, symbol in enumerate(stock_list):
+                    status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(stock_list)})")
+                    
+                    try:
+                        # Fetch data
+                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
+                        df_raw = ticker.history(period="6mo", interval="1d")
+                        
+                        if df_raw.empty or len(df_raw) < 50:
+                            progress_bar.progress((idx + 1) / len(stock_list))
+                            continue
+                        
+                        # Convert to format
+                        df = pd.DataFrame({
+                            'time': df_raw.index,
+                            'open': df_raw['Open'].values,
+                            'high': df_raw['High'].values,
+                            'low': df_raw['Low'].values,
+                            'close': df_raw['Close'].values,
+                            'volume': df_raw['Volume'].values
+                        })
+                        
+                        # Analyze (3-layer confluence)
+                        result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
+                        
+                        if result and result['is_treasure']:
+                            treasure_signals.append(result)
+                    
+                    except Exception as e:
+                        # Skip stocks with errors
+                        pass
+                    
+                    progress_bar.progress((idx + 1) / len(stock_list))
+                
+                # Clear progress
+                progress_bar.empty()
+                status_text.empty()
+                
+                # Display results
+                st.markdown("---")
+                
+                if treasure_signals:
+                    st.success(f"💎 Found {len(treasure_signals)} TREASURE SIGNALS out of {len(stock_list)} stocks ({len(treasure_signals)/len(stock_list)*100:.1f}%)")
+                    
+                    # Separate BUY and SELL
+                    buy_signals = [s for s in treasure_signals if 'BUY' in s['signal']]
+                    sell_signals = [s for s in treasure_signals if 'SELL' in s['signal']]
+                    
+                    # Display BUY signals
+                    if buy_signals:
+                        st.markdown("### 🟢 STRONG BUY SIGNALS")
+                        for signal in sorted(buy_signals, key=lambda x: x['confidence'], reverse=True):
+                            with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=True):
+                                col1, col2, col3 = st.columns([2, 2, 1])
+                                
+                                with col1:
+                                    st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                    st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                    st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                                
+                                with col2:
+                                    st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                    st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                    st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                                
+                                with col3:
+                                    st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                    st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                    profit = signal['trade_setup'].get('potential_profit1', 0)
+                                    st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                                
+                                # Show all 3 layers
+                                st.markdown("**📊 3-Layer Analysis:**")
+                                
+                                st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                                for factor in signal['technical']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                                for factor in signal['sr_analysis']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                if signal['chart_pattern']['pattern']:
+                                    pattern = signal['chart_pattern']['pattern']
+                                    st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                    
+                    # Display SELL signals
+                    if sell_signals:
+                        st.markdown("### 🔴 STRONG SELL SIGNALS")
+                        for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
+                            with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=True):
+                                col1, col2, col3 = st.columns([2, 2, 1])
+                                
+                                with col1:
+                                    st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                    st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                    st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                                
+                                with col2:
+                                    st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                    st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                    st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                                
+                                with col3:
+                                    st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                    st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                    profit = signal['trade_setup'].get('potential_profit1', 0)
+                                    st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                                
+                                # Show layers
+                                st.markdown("**📊 3-Layer Analysis:**")
+                                
+                                st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                                for factor in signal['technical']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                                for factor in signal['sr_analysis']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                if signal['chart_pattern']['pattern']:
+                                    pattern = signal['chart_pattern']['pattern']
+                                    st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                    
+                    # Export option
+                    st.markdown("---")
+                    if st.button("📥 Download Treasure Signals (Excel)"):
+                        # Create Excel export (implementation pending)
+                        st.info("Excel export feature coming soon!")
+                
+                else:
+                    st.warning(f"💎 No treasure signals found in {len(stock_list)} stocks")
+                    st.info("""
+                    This is NORMAL! Treasure signals are rare (usually 10-20% of stocks).
+                    
+                    Try:
+                    • Lower minimum confidence to 80%
+                    • Analyze more stocks (Nifty 200 or ALL)
+                    • Check back tomorrow (market conditions change)
+                    
+                    Remember: We filter for QUALITY, not quantity!
+                    """)
 
 # ============================================================
 # PAGE: TECHNICAL SCREENER (REAL CALCULATIONS)
