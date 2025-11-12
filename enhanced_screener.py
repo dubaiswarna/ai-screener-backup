@@ -20,6 +20,13 @@ from database.db_manager import get_db
 from risk_management.risk_engine import RiskEngine
 from broker_integration.broker_client import get_broker_client
 from support_resistance.sr_calculator import SupportResistanceCalculator
+# Import enhanced S&R calculator with DUAL S&R system
+try:
+    from support_resistance.sr_calculator_enhanced import ProfessionalSRCalculator
+    DUAL_SR_AVAILABLE = True
+except ImportError:
+    DUAL_SR_AVAILABLE = False
+    ProfessionalSRCalculator = SupportResistanceCalculator  # Fallback
 
 # Import expanded stock universe
 try:
@@ -849,6 +856,18 @@ elif page == "S&R Analysis":
         
         with col3:
             min_touches = st.slider("Min Touches", 2, 5, 2, help="Minimum times price must touch a level")
+        
+        # DUAL S&R System Option (NEW!)
+        if DUAL_SR_AVAILABLE:
+            use_dual_sr = st.checkbox(
+                "🎯 Use DUAL S&R System (Video Insights)", 
+                value=True,
+                help="PRIMARY (wick extremes) + SECONDARY (close/open battle zones)"
+            )
+            if use_dual_sr:
+                st.info("✅ PRIMARY: Solid lines (wick highs/lows) | SECONDARY: Dashed lines (battle zones)")
+        else:
+            use_dual_sr = False
     
     else:  # Batch Analysis
         st.subheader("📋 Batch Analysis - Multiple Stocks")
@@ -1118,8 +1137,11 @@ elif page == "S&R Analysis":
         else:  # Single Stock Analysis
             with st.spinner(f"Analyzing {symbol_input}..."):
                 try:
-                    # Initialize S&R calculator
-                    sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
+                    # Initialize S&R calculator (use Enhanced if DUAL mode enabled)
+                    if DUAL_SR_AVAILABLE and use_dual_sr:
+                        sr_calc = ProfessionalSRCalculator(sensitivity=sensitivity, min_touches=min_touches)
+                    else:
+                        sr_calc = SupportResistanceCalculator(sensitivity=sensitivity, min_touches=min_touches)
                     
                     # Try to get data from yfinance (free, no API key needed!)
                     try:
@@ -1159,6 +1181,25 @@ elif page == "S&R Analysis":
                         # Calculate S&R levels
                         current_price = df['close'].iloc[-1]
                         sr_data = sr_calc.calculate_support_resistance(df, current_price)
+                        
+                        # Calculate DUAL S&R if enabled
+                        dual_sr_data = None
+                        if DUAL_SR_AVAILABLE and use_dual_sr:
+                            dual_sr_data = sr_calc.calculate_dual_sr(df, current_price)
+                            
+                            # Also calculate advanced features
+                            pivot_data_standard = sr_calc.calculate_pivot_points(df, 'standard')
+                            pivot_data_fib = sr_calc.calculate_pivot_points(df, 'fibonacci')
+                            fib_levels = sr_calc.calculate_fibonacci_levels(df, lookback_period=50)
+                            trade_setups = sr_calc.generate_trade_setups(
+                                df, sr_data, fib_levels, pivot_data_standard,
+                                risk_per_trade_pct=2.0, capital=100000
+                            )
+                        else:
+                            pivot_data_standard = None
+                            pivot_data_fib = None
+                            fib_levels = None
+                            trade_setups = None
                         
                         # Calculate MA trend
                         ma_data = sr_calc.calculate_moving_averages(df)
@@ -1200,46 +1241,174 @@ elif page == "S&R Analysis":
                         
                         st.markdown("---")
                         
-                        # Support & Resistance Tables
-                        col1, col2 = st.columns(2)
+                        # ===================================================================
+                        # DUAL S&R DISPLAY (If enabled)
+                        # ===================================================================
+                        if DUAL_SR_AVAILABLE and use_dual_sr and dual_sr_data:
+                            st.subheader("🎯 DUAL S&R SYSTEM (Video Insights)")
+                            st.caption("PRIMARY: Wick extremes (solid lines) | SECONDARY: Battle zones (dashed lines)")
+                            
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.markdown("### 🟢 SUPPORT LEVELS")
+                                
+                                # PRIMARY SUPPORTS
+                                if dual_sr_data['primary']['supports']:
+                                    st.markdown("**⭐ PRIMARY (Wick Lows - Major Levels)**")
+                                    for i, sup in enumerate(dual_sr_data['primary']['supports'][:3], 1):
+                                        st.success(f"**S{i}: ₹{sup['level']:.2f}** | Distance: {sup['distance_pct']:+.2f}% | Strength: {sup['strength']:.0f} | Touches: {sup['touches']}")
+                                        st.caption(f"   {sup['description']}")
+                                
+                                # SECONDARY SUPPORTS
+                                if dual_sr_data['secondary']['supports']:
+                                    st.markdown("**🔸 SECONDARY (Battle Zones - Close/Open)**")
+                                    for i, sup in enumerate(dual_sr_data['secondary']['supports'][:3], 1):
+                                        st.info(f"**S{i}: ₹{sup['level']:.2f}** | Distance: {sup['distance_pct']:+.2f}% | Tests: {sup['touches']}x")
+                                        st.caption(f"   {sup['description']}")
+                            
+                            with col2:
+                                st.markdown("### 🔴 RESISTANCE LEVELS")
+                                
+                                # PRIMARY RESISTANCES
+                                if dual_sr_data['primary']['resistances']:
+                                    st.markdown("**⭐ PRIMARY (Wick Highs - Major Levels)**")
+                                    for i, res in enumerate(dual_sr_data['primary']['resistances'][:3], 1):
+                                        st.error(f"**R{i}: ₹{res['level']:.2f}** | Distance: {res['distance_pct']:+.2f}% | Strength: {res['strength']:.0f} | Touches: {res['touches']}")
+                                        st.caption(f"   {res['description']}")
+                                
+                                # SECONDARY RESISTANCES
+                                if dual_sr_data['secondary']['resistances']:
+                                    st.markdown("**🔸 SECONDARY (Battle Zones - Close/Open)**")
+                                    for i, res in enumerate(dual_sr_data['secondary']['resistances'][:3], 1):
+                                        st.warning(f"**R{i}: ₹{res['level']:.2f}** | Distance: {res['distance_pct']:+.2f}% | Tests: {res['touches']}x")
+                                        st.caption(f"   {res['description']}")
+                            
+                            st.markdown("---")
+                            
+                            # PIVOT POINTS
+                            if pivot_data_standard and not pivot_data_standard.get('error'):
+                                st.subheader("📍 PIVOT POINTS (Standard)")
+                                col1, col2, col3 = st.columns(3)
+                                
+                                with col1:
+                                    st.metric("Pivot", f"₹{pivot_data_standard['pivot']:.2f}")
+                                
+                                with col2:
+                                    st.markdown("**Resistance**")
+                                    st.caption(f"R1: ₹{pivot_data_standard['r1']:.2f}")
+                                    st.caption(f"R2: ₹{pivot_data_standard['r2']:.2f}")
+                                    st.caption(f"R3: ₹{pivot_data_standard['r3']:.2f}")
+                                
+                                with col3:
+                                    st.markdown("**Support**")
+                                    st.caption(f"S1: ₹{pivot_data_standard['s1']:.2f}")
+                                    st.caption(f"S2: ₹{pivot_data_standard['s2']:.2f}")
+                                    st.caption(f"S3: ₹{pivot_data_standard['s3']:.2f}")
+                            
+                            st.markdown("---")
+                            
+                            # FIBONACCI LEVELS
+                            if fib_levels and not fib_levels.get('error'):
+                                st.subheader("📈 FIBONACCI LEVELS")
+                                st.caption(f"Trend: {fib_levels['trend']} | Swing High: ₹{fib_levels['swing_high']:.2f} | Swing Low: ₹{fib_levels['swing_low']:.2f}")
+                                
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    st.markdown("**🔄 Retracement**")
+                                    for level, price in fib_levels['retracement'].items():
+                                        marker = " ⭐" if level in ['50%', '61.8%'] else ""
+                                        st.caption(f"{level}: ₹{price:.2f}{marker}")
+                                    
+                                    if fib_levels['golden_zone']['in_zone']:
+                                        st.success(f"🎯 Price IN GOLDEN ZONE (₹{fib_levels['golden_zone']['lower']:.2f}-₹{fib_levels['golden_zone']['upper']:.2f})")
+                                
+                                with col2:
+                                    st.markdown("**🎯 Extension Targets**")
+                                    for level, price in fib_levels['extension'].items():
+                                        st.caption(f"{level}: ₹{price:.2f}")
+                            
+                            st.markdown("---")
+                            
+                            # TRADE SETUPS
+                            if trade_setups:
+                                st.subheader("💡 TRADE SETUPS")
+                                for setup in trade_setups:
+                                    if setup['type'] == 'BUY':
+                                        with st.expander(f"🟢 BUY SETUP - {setup['status']}", expanded=True):
+                                            col1, col2, col3 = st.columns(3)
+                                            with col1:
+                                                st.metric("Entry Price", f"₹{setup['entry_price']:.2f}")
+                                                st.metric("Stop Loss", f"₹{setup['stop_loss']:.2f}")
+                                            with col2:
+                                                st.metric("Target 1", f"₹{setup['target1']:.2f}")
+                                                st.metric("R:R Ratio", f"1:{setup['rr_ratio1']:.2f}")
+                                            with col3:
+                                                st.metric("Position Size", f"{setup['position_size']} shares")
+                                                st.metric("Potential Profit", f"₹{setup['potential_profit1']:,.0f}")
+                                            
+                                            st.caption(f"Confidence: {setup['confidence']} | Risk Amount: ₹{setup['risk_amount']:,.0f}")
+                                    
+                                    else:  # SELL
+                                        with st.expander(f"🔴 SELL SETUP - {setup['status']}", expanded=True):
+                                            col1, col2, col3 = st.columns(3)
+                                            with col1:
+                                                st.metric("Entry Price", f"₹{setup['entry_price']:.2f}")
+                                                st.metric("Stop Loss", f"₹{setup['stop_loss']:.2f}")
+                                            with col2:
+                                                st.metric("Target 1", f"₹{setup['target1']:.2f}")
+                                                st.metric("R:R Ratio", f"1:{setup['rr_ratio1']:.2f}")
+                                            with col3:
+                                                st.metric("Position Size", f"{setup['position_size']} shares")
+                                                st.metric("Potential Profit", f"₹{setup['potential_profit1']:,.0f}")
+                                            
+                                            st.caption(f"Confidence: {setup['confidence']} | Risk Amount: ₹{setup['risk_amount']:,.0f}")
+                            
+                            st.markdown("---")
                         
-                        with col1:
-                            st.subheader("🛡️ Support Levels")
-                            if sr_data['supports']:
-                                df_supports = pd.DataFrame(sr_data['supports'])
-                                # Format for display
-                                display_supports = df_supports[['level', 'distance_pct', 'touches', 'volume_factor', 'strength']].copy()
-                                display_supports.columns = ['Level', 'Distance %', 'Touches', 'Volume Factor', 'Strength']
-                                st.dataframe(
-                                    display_supports.style.format({
-                                        'Level': '{:.2f}',
-                                        'Distance %': '{:.1f}%',
-                                        'Volume Factor': '{:.2f}',
-                                        'Strength': '{:.0f}'
-                                    }),
-                                    use_container_width=True
-                                )
-                            else:
-                                st.info("No strong support levels found")
-                        
-                        with col2:
-                            st.subheader("🚧 Resistance Levels")
-                            if sr_data['resistances']:
-                                df_resistances = pd.DataFrame(sr_data['resistances'])
-                                # Format for display
-                                display_resistances = df_resistances[['level', 'distance_pct', 'touches', 'volume_factor', 'strength']].copy()
-                                display_resistances.columns = ['Level', 'Distance %', 'Touches', 'Volume Factor', 'Strength']
-                                st.dataframe(
-                                    display_resistances.style.format({
-                                        'Level': '{:.2f}',
-                                        'Distance %': '{:.1f}%',
-                                        'Volume Factor': '{:.2f}',
-                                        'Strength': '{:.0f}'
-                                    }),
-                                    use_container_width=True
-                                )
-                            else:
-                                st.info("No strong resistance levels found")
+                        # LEGACY S&R DISPLAY (If DUAL mode is OFF)
+                        else:
+                            # Support & Resistance Tables
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.subheader("🛡️ Support Levels")
+                                if sr_data['supports']:
+                                    df_supports = pd.DataFrame(sr_data['supports'])
+                                    # Format for display
+                                    display_supports = df_supports[['level', 'distance_pct', 'touches', 'volume_factor', 'strength']].copy()
+                                    display_supports.columns = ['Level', 'Distance %', 'Touches', 'Volume Factor', 'Strength']
+                                    st.dataframe(
+                                        display_supports.style.format({
+                                            'Level': '{:.2f}',
+                                            'Distance %': '{:.1f}%',
+                                            'Volume Factor': '{:.2f}',
+                                            'Strength': '{:.0f}'
+                                        }),
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.info("No strong support levels found")
+                            
+                            with col2:
+                                st.subheader("🚧 Resistance Levels")
+                                if sr_data['resistances']:
+                                    df_resistances = pd.DataFrame(sr_data['resistances'])
+                                    # Format for display
+                                    display_resistances = df_resistances[['level', 'distance_pct', 'touches', 'volume_factor', 'strength']].copy()
+                                    display_resistances.columns = ['Level', 'Distance %', 'Touches', 'Volume Factor', 'Strength']
+                                    st.dataframe(
+                                        display_resistances.style.format({
+                                            'Level': '{:.2f}',
+                                            'Distance %': '{:.1f}%',
+                                            'Volume Factor': '{:.2f}',
+                                            'Strength': '{:.0f}'
+                                        }),
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.info("No strong resistance levels found")
                         
                         st.markdown("---")
                     
@@ -1258,25 +1427,89 @@ elif page == "S&R Analysis":
                         name='Price'
                     ))
                     
-                    # Add support levels
-                    for support in sr_data['supports'][:3]:
-                        fig.add_hline(
-                            y=support['level'],
-                            line_dash="dash",
-                            line_color="green",
-                            annotation_text=f"Support: {support['level']:.2f} (Strength: {support['strength']:.0f})",
-                            annotation_position="left"
-                        )
+                    # ===================================================================
+                    # DUAL S&R CHART RENDERING (If enabled)
+                    # ===================================================================
+                    if DUAL_SR_AVAILABLE and use_dual_sr and dual_sr_data:
+                        # PRIMARY SUPPORTS (Solid Thick Green)
+                        for i, sup in enumerate(dual_sr_data['primary']['supports'][:3], 1):
+                            fig.add_hline(
+                                y=sup['level'],
+                                line=dict(color='#00ff00', width=3, dash='solid'),
+                                annotation_text=f"PRIMARY S{i}: ₹{sup['level']:.2f}",
+                                annotation_position="left",
+                                annotation_font_color='#00ff00',
+                                annotation_font_size=11
+                            )
+                        
+                        # SECONDARY SUPPORTS (Dashed Dark Green)
+                        for i, sup in enumerate(dual_sr_data['secondary']['supports'][:3], 1):
+                            fig.add_hline(
+                                y=sup['level'],
+                                line=dict(color='#00cc00', width=2, dash='dash'),
+                                annotation_text=f"Battle S{i}: ₹{sup['level']:.2f} ({sup['touches']}x)",
+                                annotation_position="left",
+                                annotation_font_color='#00cc00',
+                                annotation_font_size=10
+                            )
+                        
+                        # PRIMARY RESISTANCES (Solid Thick Red)
+                        for i, res in enumerate(dual_sr_data['primary']['resistances'][:3], 1):
+                            fig.add_hline(
+                                y=res['level'],
+                                line=dict(color='#ff0000', width=3, dash='solid'),
+                                annotation_text=f"PRIMARY R{i}: ₹{res['level']:.2f}",
+                                annotation_position="right",
+                                annotation_font_color='#ff0000',
+                                annotation_font_size=11
+                            )
+                        
+                        # SECONDARY RESISTANCES (Dashed Orange-Red)
+                        for i, res in enumerate(dual_sr_data['secondary']['resistances'][:3], 1):
+                            fig.add_hline(
+                                y=res['level'],
+                                line=dict(color='#ff6600', width=2, dash='dash'),
+                                annotation_text=f"Battle R{i}: ₹{res['level']:.2f} ({res['touches']}x)",
+                                annotation_position="right",
+                                annotation_font_color='#ff6600',
+                                annotation_font_size=10
+                            )
+                        
+                        # PIVOT POINTS (Blue Dotted)
+                        if pivot_data_standard and not pivot_data_standard.get('error'):
+                            for name, level in [('P', pivot_data_standard['pivot']), 
+                                               ('R1', pivot_data_standard['r1']), 
+                                               ('S1', pivot_data_standard['s1'])]:
+                                if level:
+                                    fig.add_hline(
+                                        y=level,
+                                        line=dict(color='#0066ff', width=1, dash='dot'),
+                                        annotation_text=f"{name}: ₹{level:.2f}",
+                                        annotation_font_size=9,
+                                        annotation_font_color='#0066ff'
+                                    )
                     
-                    # Add resistance levels
-                    for resistance in sr_data['resistances'][:3]:
-                        fig.add_hline(
-                            y=resistance['level'],
-                            line_dash="dash",
-                            line_color="red",
-                            annotation_text=f"Resistance: {resistance['level']:.2f} (Strength: {resistance['strength']:.0f})",
-                            annotation_position="right"
-                        )
+                    # LEGACY CHART RENDERING (If DUAL mode is OFF)
+                    else:
+                        # Add support levels
+                        for support in sr_data['supports'][:3]:
+                            fig.add_hline(
+                                y=support['level'],
+                                line_dash="dash",
+                                line_color="green",
+                                annotation_text=f"Support: {support['level']:.2f} (Strength: {support['strength']:.0f})",
+                                annotation_position="left"
+                            )
+                        
+                        # Add resistance levels
+                        for resistance in sr_data['resistances'][:3]:
+                            fig.add_hline(
+                                y=resistance['level'],
+                                line_dash="dash",
+                                line_color="red",
+                                annotation_text=f"Resistance: {resistance['level']:.2f} (Strength: {resistance['strength']:.0f})",
+                                annotation_position="right"
+                            )
                     
                     # Add moving averages if available
                     if ma_data.get('available'):
