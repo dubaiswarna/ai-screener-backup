@@ -54,16 +54,29 @@ def get_yfinance_symbol(symbol):
     - GOLD -> GC=F (Gold Futures)
     - SILVER -> SI=F (Silver Futures)
     - Stocks -> SYMBOL.NS (NSE stocks)
+    
+    Special cases (Yahoo Finance has different symbol names):
+    - ASIANPAINTS -> ASIANPAINT.NS (no S)
+    - M&M -> M&M.NS (keep &)
     """
     commodity_map = {
         'GOLD': 'GC=F',      # Gold Futures (COMEX)
         'SILVER': 'SI=F',    # Silver Futures (COMEX)
     }
     
+    # Special stock symbol mappings
+    stock_symbol_map = {
+        'ASIANPAINTS': 'ASIANPAINT',  # Yahoo uses ASIANPAINT without S
+        'BAJAJ-AUTO': 'BAJAJ-AUTO',   # Keep hyphen
+        'M&M': 'M&M',                 # Keep ampersand
+    }
+    
     if symbol.upper() in commodity_map:
         return commodity_map[symbol.upper()]
     else:
-        return f"{symbol}.NS"
+        # Check if we need to map the symbol
+        mapped_symbol = stock_symbol_map.get(symbol.upper(), symbol)
+        return f"{mapped_symbol}.NS"
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -1411,21 +1424,21 @@ elif page == "S&R Analysis":
                                     st.info("No strong resistance levels found")
                         
                         st.markdown("---")
-                    
-                    # Chart with S&R levels
-                    st.subheader("📊 Price Chart with Support & Resistance")
-                    
-                    fig = go.Figure()
-                    
-                    # Candlestick chart
-                    fig.add_trace(go.Candlestick(
-                        x=df['time'],
-                        open=df['open'],
-                        high=df['high'],
-                        low=df['low'],
-                        close=df['close'],
-                        name='Price'
-                    ))
+                        
+                        # Chart with S&R levels
+                        st.subheader("📊 Price Chart with Support & Resistance")
+                        
+                        fig = go.Figure()
+                        
+                        # Candlestick chart
+                        fig.add_trace(go.Candlestick(
+                            x=df['time'],
+                            open=df['open'],
+                            high=df['high'],
+                            low=df['low'],
+                            close=df['close'],
+                            name='Price'
+                        ))
                     
                     # ===================================================================
                     # DUAL S&R CHART RENDERING (If enabled)
