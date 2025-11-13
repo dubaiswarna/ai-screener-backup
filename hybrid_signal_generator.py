@@ -65,6 +65,7 @@ class HybridSignalGenerator:
             rsi = 100 - (100 / (1 + rs))
             rsi_value = rsi.iloc[-1]
             
+            # MORE LENIENT RSI SCORING FOR BULL MARKETS!
             if rsi_value < 30:
                 score += 10
                 factors.append(f"RSI Oversold ({rsi_value:.1f})")
@@ -73,12 +74,24 @@ class HybridSignalGenerator:
                 score += 10
                 factors.append(f"RSI Overbought ({rsi_value:.1f})")
                 signal = 'SELL'
-            elif 30 <= rsi_value <= 40:
+            elif 30 <= rsi_value <= 45:  # Extended range for buy
+                score += 8
+                factors.append(f"RSI Bullish Zone ({rsi_value:.1f})")
+                if signal == 'NEUTRAL':
+                    signal = 'BUY'
+            elif 45 < rsi_value <= 55:  # Neutral but trending
+                score += 4
+                factors.append(f"RSI Neutral ({rsi_value:.1f})")
+            elif 55 < rsi_value <= 65:  # Still bullish in bull market
+                score += 6
+                factors.append(f"RSI Moderate Bullish ({rsi_value:.1f})")
+                if signal == 'NEUTRAL':
+                    signal = 'BUY'
+            elif 65 < rsi_value <= 70:  # Upper range
                 score += 5
-                factors.append(f"RSI Bullish ({rsi_value:.1f})")
-            elif 60 <= rsi_value <= 70:
-                score += 5
-                factors.append(f"RSI Bearish ({rsi_value:.1f})")
+                factors.append(f"RSI Upper Zone ({rsi_value:.1f})")
+                if signal == 'NEUTRAL':
+                    signal = 'SELL'
         
         # MACD (0-10 points)
         if len(df) >= 26:
@@ -179,7 +192,7 @@ class HybridSignalGenerator:
         # Calculate S&R
         sr_data = sr_calc.calculate_support_resistance(df, current_price)
         
-        # Near support (0-20 points)
+        # Near support (0-20 points) - MORE LENIENT FOR BULL MARKETS!
         if sr_data.get('supports'):
             nearest_support = sr_data['supports'][0]
             distance = nearest_support['distance_pct']
@@ -189,15 +202,20 @@ class HybridSignalGenerator:
                 score += 20
                 factors.append(f"At Support ₹{nearest_support['level']:.2f} ({distance:.1f}% away)")
                 signal = 'BUY'
-            elif distance < 2.0:
-                score += 15
-                factors.append(f"Near Support ₹{nearest_support['level']:.2f}")
+            elif distance < 3.0:  # Extended from 2.0
+                score += 16
+                factors.append(f"Near Support ₹{nearest_support['level']:.2f} ({distance:.1f}% away)")
                 signal = 'BUY'
-            elif distance < 3.0:
-                score += 10
-                factors.append(f"Approaching Support")
+            elif distance < 5.0:  # Extended from 3.0
+                score += 12
+                factors.append(f"Approaching Support ({distance:.1f}% away)")
+                if signal == 'NEUTRAL':
+                    signal = 'BUY'
+            elif distance < 8.0:  # NEW: Even wider for bull markets
+                score += 8
+                factors.append(f"Support Zone ({distance:.1f}% away)")
         
-        # Near resistance (0-20 points)
+        # Near resistance (0-20 points) - MORE LENIENT!
         if sr_data.get('resistances'):
             nearest_resistance = sr_data['resistances'][0]
             distance = nearest_resistance['distance_pct']
@@ -208,10 +226,15 @@ class HybridSignalGenerator:
                     score += 20
                     factors.append(f"At Resistance ₹{nearest_resistance['level']:.2f} ({distance:.1f}% away)")
                     signal = 'SELL'
-            elif distance < 2.0:
+            elif distance < 3.0:  # Extended from 2.0
                 if signal != 'BUY':
-                    score += 15
-                    factors.append(f"Near Resistance ₹{nearest_resistance['level']:.2f}")
+                    score += 16
+                    factors.append(f"Near Resistance ₹{nearest_resistance['level']:.2f} ({distance:.1f}% away)")
+                    signal = 'SELL'
+            elif distance < 5.0:  # NEW: Wider range
+                if signal != 'BUY':
+                    score += 12
+                    factors.append(f"Approaching Resistance ({distance:.1f}% away)")
                     signal = 'SELL'
         
         # Support/Resistance strength (0-10 points)
@@ -343,29 +366,50 @@ class HybridSignalGenerator:
         sr_signal = sr_result['signal']
         pattern_signal = pattern_result['pattern']['type'] if pattern_result['pattern'] else 'NEUTRAL'
         
-        # Count confluence factors
+        # Count confluence factors (MORE FLEXIBLE FOR BULL MARKETS!)
         confluence_count = 0
-        if tech_signal == 'BUY' and sr_signal == 'BUY':
-            confluence_count += 2
-        elif tech_signal == 'SELL' and sr_signal == 'SELL':
-            confluence_count += 2
+        buy_signals = 0
+        sell_signals = 0
         
-        if pattern_signal == 'BULLISH' and sr_signal == 'BUY':
-            confluence_count += 1
-        elif pattern_signal == 'BEARISH' and sr_signal == 'SELL':
-            confluence_count += 1
+        # Count each layer's vote
+        if tech_signal == 'BUY':
+            buy_signals += 1
+        elif tech_signal == 'SELL':
+            sell_signals += 1
         
-        # Determine final signal
+        if sr_signal == 'BUY':
+            buy_signals += 1
+        elif sr_signal == 'SELL':
+            sell_signals += 1
+        
+        if pattern_signal == 'BULLISH':
+            buy_signals += 1
+        elif pattern_signal == 'BEARISH':
+            sell_signals += 1
+        
+        # Determine final signal (RELAXED LOGIC!)
         is_treasure = False
         final_signal = 'NO SIGNAL'
         
-        if confidence >= self.min_confidence and confluence_count >= 2:
-            if tech_signal == 'BUY' and sr_signal == 'BUY':
+        # NEW LOGIC: If confidence met, need at least 2/3 layers agreeing OR 1 strong layer
+        if confidence >= self.min_confidence:
+            if buy_signals >= 2:  # At least 2 layers say BUY
                 final_signal = 'STRONG BUY'
                 is_treasure = True
-            elif tech_signal == 'SELL' and sr_signal == 'SELL':
+                confluence_count = buy_signals
+            elif sell_signals >= 2:  # At least 2 layers say SELL
                 final_signal = 'STRONG SELL'
                 is_treasure = True
+                confluence_count = sell_signals
+            elif buy_signals == 1 and confidence >= (self.min_confidence + 10):
+                # If only 1 layer but VERY high confidence (e.g., 85%+ when min is 75%)
+                final_signal = 'BUY'
+                is_treasure = True
+                confluence_count = buy_signals
+            elif sell_signals == 1 and confidence >= (self.min_confidence + 10):
+                final_signal = 'SELL'
+                is_treasure = True
+                confluence_count = sell_signals
         
         return {
             'total_score': round(total_score, 1),
@@ -424,9 +468,22 @@ class HybridSignalGenerator:
             sr_result['sr_data'], confluence['final_signal']
         )
         
-        # Check R:R ratio
-        if trade_setup and trade_setup.get('rr_ratio', 0) < self.min_rr_ratio:
-            return None  # Filter out poor R:R trades
+        # Check R:R ratio (MORE FLEXIBLE!)
+        if trade_setup:
+            rr_ratio = trade_setup.get('rr_ratio', 0)
+            confidence_score = confluence['confidence']
+            
+            # Strict R:R check ONLY if confidence is moderate
+            # If confidence is VERY HIGH (90%+), allow lower R:R (down to 1.2)
+            if confidence_score >= 90:
+                min_acceptable_rr = self.min_rr_ratio * 0.6  # 60% of required (e.g., 2.0 -> 1.2)
+            elif confidence_score >= 85:
+                min_acceptable_rr = self.min_rr_ratio * 0.75  # 75% of required (e.g., 2.0 -> 1.5)
+            else:
+                min_acceptable_rr = self.min_rr_ratio
+            
+            if rr_ratio < min_acceptable_rr:
+                return None  # Still filter if too poor
         
         return {
             'symbol': symbol,

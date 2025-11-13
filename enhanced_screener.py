@@ -437,6 +437,20 @@ elif page == "Generate New Signal":
             st.error(f"❌ Hybrid modules not available: {e}")
         
         if HYBRID_AVAILABLE:
+            # Bull Market Info
+            st.info("""
+            🐂 **BULL MARKET MODE ACTIVE!** - Optimized for trending markets
+            
+            **What Changed:**
+            - Default Confidence: **75%** (down from 85%)
+            - Default R:R: **1.5** (down from 2.0)
+            - Wider S&R acceptance zones (up to 8% distance)
+            - Extended RSI ranges (30-70 with partial signals)
+            - Flexible confluence (2/3 layers agree OR 1 very strong layer)
+            
+            💡 **Result:** More signals while maintaining quality!
+            """)
+            
             # Settings
             col1, col2, col3 = st.columns(3)
             
@@ -450,12 +464,12 @@ elif page == "Generate New Signal":
                     universe_choice = "Nifty 50 (51 stocks)"
                 
             with col2:
-                min_confidence = st.slider("Minimum Confidence (%)", 70, 95, 85, 5,
-                                          help="Only show signals above this confidence")
+                min_confidence = st.slider("Minimum Confidence (%)", 70, 95, 75, 5,
+                                          help="Only show signals above this confidence (Default: 75% for bull markets)")
             
             with col3:
-                min_rr = st.slider("Minimum R:R", 1.5, 5.0, 2.0, 0.5,
-                                  help="Minimum Risk:Reward ratio")
+                min_rr = st.slider("Minimum R:R", 1.0, 5.0, 1.5, 0.5,
+                                  help="Minimum Risk:Reward ratio (Default: 1.5 for bull markets)")
             
             # Chart Pattern Filter
             st.markdown("#### 📊 Chart Pattern Filter (Optional)")
