@@ -610,10 +610,16 @@ elif page == "Generate New Signal":
                                 for factor in signal['sr_analysis']['factors']:
                                     st.caption(f"  • {factor}")
                                 
+                                # Chart Pattern - ALWAYS SHOW (even if none detected)
                                 if signal['chart_pattern']['pattern']:
                                     pattern = signal['chart_pattern']['pattern']
                                     st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
                                     st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                    if 'strength' in pattern:
+                                        st.caption(f"  • Strength: {pattern['strength']}")
+                                else:
+                                    st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • No pattern detected")
                     
                     # Display SELL signals
                     if sell_signals:
@@ -649,10 +655,16 @@ elif page == "Generate New Signal":
                                 for factor in signal['sr_analysis']['factors']:
                                     st.caption(f"  • {factor}")
                                 
+                                # Chart Pattern - ALWAYS SHOW (even if none detected)
                                 if signal['chart_pattern']['pattern']:
                                     pattern = signal['chart_pattern']['pattern']
                                     st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
                                     st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                    if 'strength' in pattern:
+                                        st.caption(f"  • Strength: {pattern['strength']}")
+                                else:
+                                    st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • No pattern detected")
                     
                     # Export option
                     st.markdown("---")
