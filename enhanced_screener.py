@@ -707,87 +707,87 @@ elif page == "Chart Analysis":
                                     col1, col2, col3 = st.columns([2, 2, 1])
                                     
                                     with col1:
-                                    st.metric("Current Price", f"₹{signal['current_price']:.2f}")
-                                    st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
-                                    st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
-                                
-                                with col2:
-                                    st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
-                                    st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
-                                    st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
-                                
-                                with col3:
-                                    st.metric("Confidence", f"{signal['confidence']:.1f}%")
-                                    st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
-                                    profit = (signal['trade_setup']['target1'] - signal['trade_setup']['entry']) * signal['trade_setup']['position_size']
-                                    st.metric("Profit (T1)", f"₹{profit:,.0f}")
-                                
-                                # 3-Layer Analysis
-                                st.markdown("**📊 3-Layer Analysis:**")
-                                
-                                st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
-                                for factor in signal['technical']['factors']:
-                                    st.caption(f"  • {factor}")
-                                
-                                st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
-                                for factor in signal['sr_analysis']['factors']:
-                                    st.caption(f"  • {factor}")
-                                
-                                # Chart Pattern
-                                if signal['chart_pattern']['pattern']:
-                                    pattern = signal['chart_pattern']['pattern']
-                                    st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                    st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
-                                    if 'strength' in pattern:
-                                        st.caption(f"  • Strength: {pattern['strength']}")
-                                else:
-                                    st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                    st.caption(f"  • No pattern detected")
+                                        st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                        st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                        st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                                    
+                                    with col2:
+                                        st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                        st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                        st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                                    
+                                    with col3:
+                                        st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                        st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                        profit = (signal['trade_setup']['target1'] - signal['trade_setup']['entry']) * signal['trade_setup']['position_size']
+                                        st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                                    
+                                    # 3-Layer Analysis
+                                    st.markdown("**📊 3-Layer Analysis:**")
+                                    
+                                    st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                                    for factor in signal['technical']['factors']:
+                                        st.caption(f"  • {factor}")
+                                    
+                                    st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                                    for factor in signal['sr_analysis']['factors']:
+                                        st.caption(f"  • {factor}")
+                                    
+                                    # Chart Pattern
+                                    if signal['chart_pattern']['pattern']:
+                                        pattern = signal['chart_pattern']['pattern']
+                                        st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                        st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                        if 'strength' in pattern:
+                                            st.caption(f"  • Strength: {pattern['strength']}")
+                                    else:
+                                        st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                        st.caption(f"  • No pattern detected")
                     
                     # Display SELL signals
                     if sell_signals:
                         st.markdown("### 🔴 SELL SIGNALS")
                         for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
                             with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
-                                col1, col2, col3 = st.columns([2, 2, 1])
-                                
-                                with col1:
-                                    st.metric("Current Price", f"₹{signal['current_price']:.2f}")
-                                    st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
-                                    st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
-                                
-                                with col2:
-                                    st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
-                                    st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
-                                    st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
-                                
-                                with col3:
-                                    st.metric("Confidence", f"{signal['confidence']:.1f}%")
-                                    st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
-                                    profit = (signal['trade_setup']['entry'] - signal['trade_setup']['target1']) * signal['trade_setup']['position_size']
-                                    st.metric("Profit (T1)", f"₹{profit:,.0f}")
-                                
-                                # 3-Layer Analysis
-                                st.markdown("**📊 3-Layer Analysis:**")
-                                
-                                st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
-                                for factor in signal['technical']['factors']:
-                                    st.caption(f"  • {factor}")
-                                
-                                st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
-                                for factor in signal['sr_analysis']['factors']:
-                                    st.caption(f"  • {factor}")
-                                
-                                # Chart Pattern
-                                if signal['chart_pattern']['pattern']:
-                                    pattern = signal['chart_pattern']['pattern']
-                                    st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                    st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
-                                    if 'strength' in pattern:
-                                        st.caption(f"  • Strength: {pattern['strength']}")
-                                else:
-                                    st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                    st.caption(f"  • No pattern detected")
+                                    col1, col2, col3 = st.columns([2, 2, 1])
+                                    
+                                    with col1:
+                                        st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                        st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                        st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                                    
+                                    with col2:
+                                        st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                        st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                        st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                                    
+                                    with col3:
+                                        st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                        st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                        profit = (signal['trade_setup']['entry'] - signal['trade_setup']['target1']) * signal['trade_setup']['position_size']
+                                        st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                                    
+                                    # 3-Layer Analysis
+                                    st.markdown("**📊 3-Layer Analysis:**")
+                                    
+                                    st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                                    for factor in signal['technical']['factors']:
+                                        st.caption(f"  • {factor}")
+                                    
+                                    st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                                    for factor in signal['sr_analysis']['factors']:
+                                        st.caption(f"  • {factor}")
+                                    
+                                    # Chart Pattern
+                                    if signal['chart_pattern']['pattern']:
+                                        pattern = signal['chart_pattern']['pattern']
+                                        st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                        st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                        if 'strength' in pattern:
+                                            st.caption(f"  • Strength: {pattern['strength']}")
+                                    else:
+                                        st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                        st.caption(f"  • No pattern detected")
                 
                 else:
                     st.warning(f"ℹ️ No signals found matching criteria in {len(batch_stock_list)} stocks")
