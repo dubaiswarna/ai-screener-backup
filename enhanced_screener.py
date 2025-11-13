@@ -196,7 +196,7 @@ st.sidebar.info(f"💰 Capital: ₹{user_config.get('total_capital', 0):,.0f}")
 st.sidebar.subheader("📍 Navigation")
 page = st.sidebar.radio(
     "Go to:",
-    ["Dashboard", "Active Signals", "Generate New Signal", 
+    ["Dashboard", "Chart Analysis", "Generate New Signal", 
      "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
      "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
@@ -221,7 +221,7 @@ if page == "Dashboard":
     
     with col1:
         st.metric(
-            "Active Signals",
+            "Total Signals",
             len(active_signals),
             delta=f"{len([s for s in active_signals if s.get('confidence', 0) > 75])} high confidence"
         )
@@ -285,11 +285,12 @@ if page == "Dashboard":
         st.plotly_chart(fig, use_container_width=True)
 
 # ============================================================
-# PAGE: ACTIVE SIGNALS
+# PAGE: CHART ANALYSIS (Active Signals + Chart Pattern Filter)
 # ============================================================
 
-elif page == "Active Signals":
-    st.header("🔔 Active Signals")
+elif page == "Chart Analysis":
+    st.header("📊 Chart Analysis")
+    st.caption("View all signals and filter by confidence, type, and chart patterns")
     
     # Filters Row 1
     col1, col2 = st.columns(2)
