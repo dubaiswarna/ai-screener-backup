@@ -295,12 +295,12 @@ elif page == "Chart Analysis":
     # Mode selection
     analysis_mode = st.radio(
         "Analysis Mode:",
-        ["Analyze Stock (Real-time)", "Saved Signals (Database)"],
+        ["Single Stock Analysis", "Batch Pattern Scan", "Saved Signals (Database)"],
         horizontal=True,
-        help="Analyze Stock: Run fresh analysis on any stock | Saved Signals: View previously generated signals"
+        help="Single: Analyze one stock | Batch: Scan multiple stocks with pattern filter | Saved: View database signals"
     )
     
-    if analysis_mode == "Analyze Stock (Real-time)":
+    if analysis_mode == "Single Stock Analysis":
         # Stock selection (like S&R Analysis)
         col1, col2, col3 = st.columns(3)
         
@@ -430,6 +430,265 @@ elif page == "Chart Analysis":
                 
                 except Exception as e:
                     st.error(f"❌ Error analyzing {symbol_input}: {e}")
+    
+    elif analysis_mode == "Batch Pattern Scan":
+        st.subheader("📋 Batch Pattern Scan - Multiple Stocks")
+        st.info("💡 Scan multiple stocks and filter by chart patterns (Hammer, Engulfing, etc.)")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col2:
+            st.markdown("**Quick Presets:**")
+            
+            # Nifty 50 preset
+            with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
+                nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK"
+                st.code(nifty50_list, language=None)
+                st.caption("👆 Copy and paste")
+            
+            # Nifty Bank
+            with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
+                bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
+                st.code(bank_list, language=None)
+                st.caption("👆 Copy and paste")
+            
+            # Top 10 Most Active
+            with st.expander("🔥 Top 10 Most Active", expanded=False):
+                active_list = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nBHARTIARTL\nITC\nSBIN\nHINDUNILVR\nKOTAKBANK"
+                st.code(active_list, language=None)
+                st.caption("👆 Copy and paste")
+        
+        with col1:
+            st.markdown("**Enter Stock Symbols (one per line):**")
+            batch_stocks_input = st.text_area(
+                "Stock Symbols:",
+                placeholder="RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK",
+                height=200,
+                help="Enter NSE stock symbols, one per line"
+            )
+        
+        # Chart Pattern Selection
+        st.markdown("#### 📊 Chart Pattern Filter")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            pattern_filter_mode = st.radio(
+                "Pattern Filter:",
+                ["Show ALL Signals", "Only Stocks WITH Patterns", "Specific Patterns Only"],
+                help="Choose how to filter by chart patterns"
+            )
+        
+        with col2:
+            if pattern_filter_mode == "Specific Patterns Only":
+                selected_batch_patterns = st.multiselect(
+                    "Select Patterns:",
+                    ["Hammer", "Shooting Star", "Bullish Engulfing", "Bearish Engulfing",
+                     "Morning Star", "Evening Star", "Three White Soldiers", "Three Black Crows", "Doji"],
+                    default=["Hammer", "Bullish Engulfing"],
+                    help="Only show stocks with these patterns"
+                )
+            else:
+                selected_batch_patterns = None
+        
+        # Analysis Settings
+        col1, col2 = st.columns(2)
+        with col1:
+            batch_min_confidence = st.slider("Min Confidence", 70, 95, 75, 5, help="Minimum confidence threshold")
+        with col2:
+            batch_min_rr = st.slider("Min R:R", 1.0, 5.0, 1.5, 0.5, help="Minimum Risk:Reward ratio")
+        
+        # Parse stock list
+        if batch_stocks_input:
+            batch_stock_list = [s.strip().upper() for s in batch_stocks_input.split('\n') if s.strip()]
+            st.caption(f"✅ Ready to analyze {len(batch_stock_list)} stocks")
+        else:
+            batch_stock_list = []
+            st.warning("⚠️ Please enter stock symbols")
+        
+        if st.button("🔍 Scan Stocks for Patterns", type="primary", disabled=(len(batch_stock_list) == 0)):
+            if len(batch_stock_list) == 0:
+                st.error("❌ Please enter stocks first!")
+                st.stop()
+            
+            st.markdown("---")
+            st.subheader(f"🔍 Scanning {len(batch_stock_list)} stocks...")
+            
+            # Initialize
+            try:
+                from hybrid_signal_generator import HybridSignalGenerator
+                from patterns.chart_pattern_detector import ChartPatternDetector
+                
+                if DUAL_SR_AVAILABLE:
+                    from support_resistance.sr_calculator_enhanced import ProfessionalSRCalculator
+                    SR_CALC_CLASS = ProfessionalSRCalculator
+                else:
+                    SR_CALC_CLASS = SupportResistanceCalculator
+                
+                hybrid_gen = HybridSignalGenerator(min_confidence=batch_min_confidence, min_rr_ratio=batch_min_rr)
+                sr_calc = SR_CALC_CLASS(sensitivity=3, min_touches=2)
+                pattern_detector = ChartPatternDetector()
+                
+                # Progress
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                pattern_results = []
+                
+                for idx, symbol in enumerate(batch_stock_list):
+                    try:
+                        status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(batch_stock_list)})")
+                        
+                        # Fetch data
+                        df = fetch_yahoo_data(symbol)
+                        
+                        if df is not None and not df.empty:
+                            current_price = df['close'].iloc[-1]
+                            
+                            # Run full analysis
+                            result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
+                            
+                            if result and result['is_treasure']:
+                                # Apply pattern filter
+                                has_pattern = result['chart_pattern']['pattern'] is not None
+                                pattern_name = result['chart_pattern']['pattern']['pattern'] if has_pattern else None
+                                
+                                should_include = False
+                                
+                                if pattern_filter_mode == "Show ALL Signals":
+                                    should_include = True
+                                elif pattern_filter_mode == "Only Stocks WITH Patterns":
+                                    should_include = has_pattern
+                                elif pattern_filter_mode == "Specific Patterns Only":
+                                    should_include = has_pattern and pattern_name in selected_batch_patterns
+                                
+                                if should_include:
+                                    pattern_results.append(result)
+                    
+                    except Exception as e:
+                        pass  # Skip errors
+                    
+                    progress_bar.progress((idx + 1) / len(batch_stock_list))
+                
+                # Clear progress
+                progress_bar.empty()
+                status_text.empty()
+                
+                # Display results
+                st.markdown("---")
+                
+                if pattern_results:
+                    st.success(f"📊 Found {len(pattern_results)} signals matching criteria out of {len(batch_stock_list)} stocks ({len(pattern_results)/len(batch_stock_list)*100:.1f}%)")
+                    
+                    # Separate BUY and SELL
+                    buy_signals = [s for s in pattern_results if 'BUY' in s['signal']]
+                    sell_signals = [s for s in pattern_results if 'SELL' in s['signal']]
+                    
+                    # Display BUY signals
+                    if buy_signals:
+                        st.markdown("### 🟢 BUY SIGNALS")
+                        for signal in sorted(buy_signals, key=lambda x: x['confidence'], reverse=True):
+                            with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
+                                col1, col2, col3 = st.columns([2, 2, 1])
+                                
+                                with col1:
+                                    st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                    st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                    st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                                
+                                with col2:
+                                    st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                    st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                    st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                                
+                                with col3:
+                                    st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                    st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                    profit = (signal['trade_setup']['target1'] - signal['trade_setup']['entry']) * signal['trade_setup']['position_size']
+                                    st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                                
+                                # 3-Layer Analysis
+                                st.markdown("**📊 3-Layer Analysis:**")
+                                
+                                st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                                for factor in signal['technical']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                                for factor in signal['sr_analysis']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                # Chart Pattern
+                                if signal['chart_pattern']['pattern']:
+                                    pattern = signal['chart_pattern']['pattern']
+                                    st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                    if 'strength' in pattern:
+                                        st.caption(f"  • Strength: {pattern['strength']}")
+                                else:
+                                    st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • No pattern detected")
+                    
+                    # Display SELL signals
+                    if sell_signals:
+                        st.markdown("### 🔴 SELL SIGNALS")
+                        for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
+                            with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
+                                col1, col2, col3 = st.columns([2, 2, 1])
+                                
+                                with col1:
+                                    st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                    st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                    st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                                
+                                with col2:
+                                    st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                    st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                    st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                                
+                                with col3:
+                                    st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                    st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                    profit = (signal['trade_setup']['entry'] - signal['trade_setup']['target1']) * signal['trade_setup']['position_size']
+                                    st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                                
+                                # 3-Layer Analysis
+                                st.markdown("**📊 3-Layer Analysis:**")
+                                
+                                st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                                for factor in signal['technical']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                                for factor in signal['sr_analysis']['factors']:
+                                    st.caption(f"  • {factor}")
+                                
+                                # Chart Pattern
+                                if signal['chart_pattern']['pattern']:
+                                    pattern = signal['chart_pattern']['pattern']
+                                    st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                    if 'strength' in pattern:
+                                        st.caption(f"  • Strength: {pattern['strength']}")
+                                else:
+                                    st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                    st.caption(f"  • No pattern detected")
+                
+                else:
+                    st.warning(f"ℹ️ No signals found matching criteria in {len(batch_stock_list)} stocks")
+                    st.info("""
+                    **Why no signals?**
+                    - No stocks met confidence threshold
+                    - No patterns detected (if pattern filter enabled)
+                    - Market conditions not favorable
+                    
+                    Try:
+                    • Lower confidence threshold
+                    • Select "Show ALL Signals"
+                    • Try different stocks
+                    """)
+            
+            except Exception as e:
+                st.error(f"❌ Error during batch analysis: {e}")
     
     else:  # Saved Signals mode
         st.subheader("💾 Saved Signals from Database")
