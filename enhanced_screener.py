@@ -433,7 +433,15 @@ elif page == "Chart Analysis":
     
     elif analysis_mode == "Batch Pattern Scan":
         st.subheader("📋 Batch Pattern Scan - Multiple Stocks")
-        st.info("💡 Scan multiple stocks and filter by chart patterns (Hammer, Engulfing, etc.)")
+        st.info("💡 Scan multiple stocks to find what chart patterns formed and their impact/action")
+        
+        # Output mode selection
+        scan_output_mode = st.radio(
+            "Output Format:",
+            ["Pattern Report (Simple)", "Full Trading Signals"],
+            horizontal=True,
+            help="Pattern Report: Shows patterns and their meaning | Full Signals: Complete entry/SL/targets"
+        )
         
         col1, col2 = st.columns([2, 1])
         
@@ -577,20 +585,128 @@ elif page == "Chart Analysis":
                 st.markdown("---")
                 
                 if pattern_results:
-                    st.success(f"📊 Found {len(pattern_results)} signals matching criteria out of {len(batch_stock_list)} stocks ({len(pattern_results)/len(batch_stock_list)*100:.1f}%)")
+                    st.success(f"📊 Found {len(pattern_results)} stocks with patterns/signals out of {len(batch_stock_list)} scanned ({len(pattern_results)/len(batch_stock_list)*100:.1f}%)")
                     
-                    # Separate BUY and SELL
-                    buy_signals = [s for s in pattern_results if 'BUY' in s['signal']]
-                    sell_signals = [s for s in pattern_results if 'SELL' in s['signal']]
-                    
-                    # Display BUY signals
-                    if buy_signals:
-                        st.markdown("### 🟢 BUY SIGNALS")
-                        for signal in sorted(buy_signals, key=lambda x: x['confidence'], reverse=True):
-                            with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
-                                col1, col2, col3 = st.columns([2, 2, 1])
+                    # Pattern Report Mode (Simple)
+                    if scan_output_mode == "Pattern Report (Simple)":
+                        st.markdown("### 📊 Chart Pattern Report")
+                        
+                        # Build pattern report data
+                        pattern_report_data = []
+                        
+                        for result in pattern_results:
+                            pattern_info = result['chart_pattern']['pattern']
+                            
+                            # Determine pattern type and action
+                            if pattern_info:
+                                pattern_name = pattern_info['pattern']
+                                pattern_type = pattern_info.get('type', 'NEUTRAL')
+                                pattern_desc = pattern_info.get('description', '')
+                                pattern_strength = pattern_info.get('strength', 'Moderate')
+                                
+                                # Determine action based on type
+                                if pattern_type == 'BULLISH':
+                                    action = "🟢 Potential BUY (Bullish Reversal/Continuation)"
+                                    impact = "Upward price movement expected"
+                                elif pattern_type == 'BEARISH':
+                                    action = "🔴 Potential SELL (Bearish Reversal/Continuation)"
+                                    impact = "Downward price movement expected"
+                                else:
+                                    action = "⚪ NEUTRAL (Watch for confirmation)"
+                                    impact = "Indecision - wait for breakout"
+                            else:
+                                pattern_name = "No specific pattern"
+                                pattern_type = "NEUTRAL"
+                                pattern_desc = "General technical signal"
+                                pattern_strength = "N/A"
+                                action = f"{result['signal']} based on tech/S&R"
+                                impact = "No pattern, but strong technical confluence"
+                            
+                            # Get technical and S&R info for context
+                            tech_factors = ", ".join(result['technical']['factors'][:2])  # First 2 factors
+                            sr_factors = ", ".join(result['sr_analysis']['factors'][:1])  # First factor
+                            
+                            pattern_report_data.append({
+                                'Stock': result['symbol'],
+                                'Pattern': pattern_name,
+                                'Type': pattern_type,
+                                'Strength': pattern_strength,
+                                'Action': action,
+                                'Impact': impact,
+                                'Price': f"₹{result['current_price']:.2f}",
+                                'Confidence': f"{result['confidence']:.0f}%",
+                                'Tech Context': tech_factors,
+                                'S&R Context': sr_factors
+                            })
+                        
+                        # Display as expandable cards
+                        for idx, report in enumerate(pattern_report_data, 1):
+                            with st.expander(f"{idx}. {report['Stock']} - {report['Pattern']} ({report['Type']})", expanded=(idx <= 3)):
+                                col1, col2, col3 = st.columns(3)
                                 
                                 with col1:
+                                    st.markdown(f"**📊 Pattern Details:**")
+                                    st.caption(f"Pattern: {report['Pattern']}")
+                                    st.caption(f"Type: {report['Type']}")
+                                    st.caption(f"Strength: {report['Strength']}")
+                                
+                                with col2:
+                                    st.markdown(f"**💡 Action & Impact:**")
+                                    st.caption(f"Action: {report['Action']}")
+                                    st.caption(f"Impact: {report['Impact']}")
+                                
+                                with col3:
+                                    st.markdown(f"**📈 Current Status:**")
+                                    st.caption(f"Price: {report['Price']}")
+                                    st.caption(f"Confidence: {report['Confidence']}")
+                                
+                                # Technical context
+                                st.markdown(f"**🔍 Context:**")
+                                st.caption(f"📊 Technical: {report['Tech Context']}")
+                                st.caption(f"📈 S&R: {report['S&R Context']}")
+                        
+                        # Summary table
+                        st.markdown("---")
+                        st.markdown("### 📋 Quick Summary Table")
+                        
+                        summary_df = pd.DataFrame([
+                            {
+                                'Stock': r['Stock'],
+                                'Pattern': r['Pattern'],
+                                'Type': r['Type'],
+                                'Action': r['Action'].split('(')[0].strip(),  # Short action
+                                'Price': r['Price'],
+                                'Confidence': r['Confidence']
+                            }
+                            for r in pattern_report_data
+                        ])
+                        
+                        st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                        
+                        # Export option
+                        if st.button("📥 Download Pattern Report (CSV)"):
+                            full_df = pd.DataFrame(pattern_report_data)
+                            csv = full_df.to_csv(index=False)
+                            st.download_button(
+                                "Download CSV",
+                                csv,
+                                f"pattern_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                "text/csv"
+                            )
+                    
+                    else:  # Full Trading Signals mode
+                        # Separate BUY and SELL
+                        buy_signals = [s for s in pattern_results if 'BUY' in s['signal']]
+                        sell_signals = [s for s in pattern_results if 'SELL' in s['signal']]
+                        
+                        # Display BUY signals
+                        if buy_signals:
+                            st.markdown("### 🟢 BUY SIGNALS")
+                            for signal in sorted(buy_signals, key=lambda x: x['confidence'], reverse=True):
+                                with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
+                                    col1, col2, col3 = st.columns([2, 2, 1])
+                                    
+                                    with col1:
                                     st.metric("Current Price", f"₹{signal['current_price']:.2f}")
                                     st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
                                     st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
