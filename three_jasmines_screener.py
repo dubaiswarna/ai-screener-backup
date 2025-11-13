@@ -84,7 +84,8 @@ class ThreeJasminesScreener:
         support_level = nearest_support['level']
         distance_pct = nearest_support['distance_pct']
         
-        if distance_pct <= self.max_support_distance:
+        # Use absolute value to check proximity (works for price above OR below support)
+        if abs(distance_pct) <= self.max_support_distance:
             return {
                 'passed': True,
                 'reason': f'Near support ₹{support_level:.2f} ({distance_pct:.2f}% away)',
@@ -284,15 +285,31 @@ class ThreeJasminesScreener:
         
         confidence = min(confidence, 95)  # Cap at 95%
         
+        # Flatten trade_setup for easier access in UI
         return {
             'symbol': symbol,
             'current_price': current_price,
             'signal': 'BUY',
             'confidence': round(confidence, 1),
+            
+            # Trade setup fields (flattened for easy access)
+            'entry': trade_setup['entry'],
+            'stop_loss': trade_setup['stop_loss'],
+            'target': trade_setup['target'],
+            'support_level': trade_setup['support_level'],
+            'resistance_level': trade_setup['resistance_level'],
+            'risk': trade_setup['risk'],
+            'reward': trade_setup['reward'],
+            'rr_ratio': trade_setup['rr_ratio'],
+            'position_size': trade_setup['position_size'],
+            'potential_profit': trade_setup['potential_profit'],
+            
+            # Jasmine criteria details
             'jasmine1': jasmine1,
             'jasmine2': jasmine2,
             'jasmine3': jasmine3,
-            'trade_setup': trade_setup,
+            
+            # Strategy info
             'strategy': '3JASMINES',
             'holding_period': '3-10 days (Delivery/Swing)',
             'target_philosophy': 'Conservative (1% before resistance for high probability)'
