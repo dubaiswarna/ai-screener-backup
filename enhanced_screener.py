@@ -552,25 +552,80 @@ elif page == "Chart Analysis":
                         if df is not None and not df.empty:
                             current_price = df['close'].iloc[-1]
                             
-                            # Run full analysis
-                            result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
+                            # DIFFERENT LOGIC FOR PATTERN REPORT VS FULL SIGNALS
+                            if scan_output_mode == "Pattern Report (Simple)":
+                                # PATTERN REPORT MODE: Just detect patterns (NO signal filtering!)
+                                pattern_result = pattern_detector.detect_all_patterns(df)
+                                
+                                if pattern_result:
+                                    # Get the most recent/strongest pattern
+                                    detected_pattern = max(pattern_result, key=lambda x: x.get('strength_score', 0))
+                                    
+                                    # Check if matches filter
+                                    should_include = False
+                                    pattern_name = detected_pattern.get('pattern', '')
+                                    
+                                    if pattern_filter_mode == "Show ALL Signals":
+                                        should_include = True
+                                    elif pattern_filter_mode == "Only Stocks WITH Patterns":
+                                        should_include = True  # Any pattern
+                                    elif pattern_filter_mode == "Specific Patterns Only":
+                                        should_include = pattern_name in selected_batch_patterns
+                                    
+                                    if should_include:
+                                        # Build lightweight result for pattern report
+                                        # Get basic technical context
+                                        rsi_value = None
+                                        if len(df) >= 14:
+                                            delta = df['close'].diff()
+                                            gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+                                            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                                            rs = gain / loss
+                                            rsi = 100 - (100 / (1 + rs))
+                                            rsi_value = rsi.iloc[-1]
+                                        
+                                        # Simple S&R
+                                        sr_data = sr_calc.calculate_support_resistance(df, current_price)
+                                        nearest_sup = sr_data.get('supports', [{}])[0].get('level', 0) if sr_data.get('supports') else 0
+                                        nearest_res = sr_data.get('resistances', [{}])[0].get('level', 0) if sr_data.get('resistances') else 0
+                                        
+                                        pattern_results.append({
+                                            'symbol': symbol,
+                                            'current_price': current_price,
+                                            'chart_pattern': {'pattern': detected_pattern},
+                                            'confidence': detected_pattern.get('strength_score', 50),  # Pattern strength as confidence
+                                            'signal': 'BUY' if detected_pattern.get('type') == 'BULLISH' else ('SELL' if detected_pattern.get('type') == 'BEARISH' else 'NEUTRAL'),
+                                            'technical': {
+                                                'factors': [f"RSI: {rsi_value:.1f}" if rsi_value else "RSI: N/A"],
+                                                'confidence_pct': 50
+                                            },
+                                            'sr_analysis': {
+                                                'factors': [f"Support: ₹{nearest_sup:.2f}, Resistance: ₹{nearest_res:.2f}"],
+                                                'confidence_pct': 50
+                                            },
+                                            'confluence': {'confluence_count': 1}
+                                        })
                             
-                            if result and result['is_treasure']:
-                                # Apply pattern filter
-                                has_pattern = result['chart_pattern']['pattern'] is not None
-                                pattern_name = result['chart_pattern']['pattern']['pattern'] if has_pattern else None
+                            else:
+                                # FULL SIGNALS MODE: Run complete treasure signal analysis
+                                result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
                                 
-                                should_include = False
-                                
-                                if pattern_filter_mode == "Show ALL Signals":
-                                    should_include = True
-                                elif pattern_filter_mode == "Only Stocks WITH Patterns":
-                                    should_include = has_pattern
-                                elif pattern_filter_mode == "Specific Patterns Only":
-                                    should_include = has_pattern and pattern_name in selected_batch_patterns
-                                
-                                if should_include:
-                                    pattern_results.append(result)
+                                if result and result['is_treasure']:
+                                    # Apply pattern filter
+                                    has_pattern = result['chart_pattern']['pattern'] is not None
+                                    pattern_name = result['chart_pattern']['pattern']['pattern'] if has_pattern else None
+                                    
+                                    should_include = False
+                                    
+                                    if pattern_filter_mode == "Show ALL Signals":
+                                        should_include = True
+                                    elif pattern_filter_mode == "Only Stocks WITH Patterns":
+                                        should_include = has_pattern
+                                    elif pattern_filter_mode == "Specific Patterns Only":
+                                        should_include = has_pattern and pattern_name in selected_batch_patterns
+                                    
+                                    if should_include:
+                                        pattern_results.append(result)
                     
                     except Exception as e:
                         pass  # Skip errors
