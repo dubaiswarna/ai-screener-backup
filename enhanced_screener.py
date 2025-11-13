@@ -208,81 +208,281 @@ page = st.sidebar.radio(
 # ============================================================
 
 if page == "Dashboard":
-    st.header("📊 Dashboard Overview")
+    # Professional AI Screener v3.0 - Main Dashboard
     
-    # Get statistics
-    active_signals = db.get_active_signals()
-    portfolio = db.get_portfolio()
-    portfolio_summary = db.get_portfolio_summary()
-    open_trades = db.get_open_trades()
+    # Hero Section
+    st.markdown("""
+    <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; margin-bottom: 2rem;'>
+        <h1 style='color: white; font-size: 3rem; margin: 0;'>🚀 Professional AI Screener v3.0</h1>
+        <p style='color: white; font-size: 1.3rem; margin-top: 1rem;'>AI-Powered Stock Analysis with Multi-Layer Confluence System</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Metrics row
-    col1, col2, col3, col4 = st.columns(4)
+    # System Overview
+    st.markdown("## 🎯 What is Professional AI Screener?")
+    st.markdown("""
+    **Professional AI Screener v3.0** is an advanced stock analysis system that combines multiple technical analysis layers 
+    to generate high-accuracy trading signals. Built with cutting-edge AI algorithms and professional trading principles, 
+    this system helps traders identify potential trading opportunities with confidence.
+    """)
+    
+    # Key Features
+    st.markdown("## ✨ Core Features")
+    
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric(
-            "Total Signals",
-            len(active_signals),
-            delta=f"{len([s for s in active_signals if s.get('confidence', 0) > 75])} high confidence"
-        )
+        st.markdown("""
+        ### 🎯 3-Layer Confluence System
+        - **Technical Analysis**: RSI, MACD, EMA, ADX
+        - **S&R Analysis**: Dual S&R (Primary + Secondary)
+        - **Chart Patterns**: 13+ candlestick patterns
+        
+        **Result:** Only signals with 2/3 layers agreeing (75%+ confidence)
+        """)
     
     with col2:
-        total_invested = portfolio_summary.get('total_invested') or 0
-        st.metric(
-            "Open Positions",
-            len(portfolio),
-            delta=f"₹{total_invested:,.0f} invested"
-        )
+        st.markdown("""
+        ### 📊 Advanced S&R Analysis
+        - Primary S&R (Wick extremes)
+        - Secondary S&R (Battle zones)
+        - Pivot Points (Standard, Fibonacci)
+        - Multi-timeframe confluence
+        - Historical success rate tracking
+        """)
     
     with col3:
-        total_pnl = portfolio_summary.get('total_unrealized_pnl') or 0
-        avg_pnl_pct = portfolio_summary.get('avg_pnl_pct') or 0
-        st.metric(
-            "Unrealized P&L",
-            f"₹{total_pnl:,.0f}",
-            delta=f"{avg_pnl_pct:.2f}%"
-        )
-    
-    with col4:
-        st.metric(
-            "Open Trades",
-            len(open_trades),
-            delta="Active"
-        )
+        st.markdown("""
+        ### 💎 Pattern Recognition
+        - Hammer, Shooting Star
+        - Bullish/Bearish Engulfing
+        - Morning/Evening Star
+        - Three Soldiers/Crows
+        - Doji, and more!
+        
+        **Visual icons for easy verification**
+        """)
     
     st.markdown("---")
     
-    # Recent signals
-    st.subheader("🔔 Recent Signals (Last 24 Hours)")
-    if active_signals:
-        for signal in active_signals[:5]:
-            signal_type = signal.get('signal_type', 'HOLD')
-            color = "green" if signal_type == "BUY" else "red"
-            
-            st.markdown(f"""
-            <div class="signal-card signal-{signal_type.lower()}">
-                <strong>{signal.get('symbol', 'N/A')}</strong> - 
-                <span style="color: {color}; font-weight: bold;">{signal_type}</span> 
-                @ ₹{signal.get('entry_price', 0):.2f} | 
-                Confidence: {signal.get('confidence', 0):.1f}% | 
-                {signal.get('generated_at', 'N/A')}
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No active signals. Generate new signals from 'Generate New Signal' page.")
+    # System Capabilities
+    st.markdown("## 🛠️ System Capabilities")
     
-    # Portfolio pie chart
-    if portfolio:
-        st.subheader("📊 Portfolio Allocation")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 📈 Analysis Tools:
+        - **Chart Analysis**: Pattern detection with visual samples
+        - **Generate New Signal**: Treasure signal system (85%+ accuracy)
+        - **Technical Screener**: Real-time RSI, MACD, MA analysis
+        - **S&R Analysis**: Professional support/resistance levels
+        - **VWAP Strategy**: Volume-weighted average price trading
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 🎯 Trading Features:
+        - **Multi-Mode Backtest**: Test strategies on historical data
+        - **Portfolio Tracking**: Live P&L and position management
+        - **Risk Management**: Auto position sizing, stop loss calculation
+        - **Data Download**: EOD data for 750+ stocks
+        - **Trade History**: Complete trade log with analytics
+        """)
+    
+    st.markdown("---")
+    
+    # Data Sources
+    st.markdown("## 📊 Data & Coverage")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Stock Universe", "750+", delta="Nifty 50/200/500 + Smallcap")
+    
+    with col2:
+        st.metric("Data Source", "Yahoo Finance", delta="Free, No API key")
+    
+    with col3:
+        st.metric("Analysis Depth", "6-12 months", delta="Historical EOD data")
+    
+    with col4:
+        st.metric("Pattern Types", "13+", delta="Candlestick patterns")
+    
+    st.markdown("---")
+    
+    # About Developer
+    st.markdown("## 👩‍💻 About the Developer")
+    
+    st.markdown("""
+    <div style='background-color: #f0f2f6; padding: 2rem; border-radius: 10px; border-left: 5px solid #667eea;'>
+        <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
+        <p style='font-size: 1.1rem; line-height: 1.6;'>
+            <strong>Developer & Trading System Architect</strong><br><br>
+            
+            Passionate about combining <strong>AI technology</strong> with <strong>technical analysis</strong> to create 
+            powerful trading tools. Developed this comprehensive screening system to help traders make informed decisions 
+            using data-driven insights and professional-grade analysis techniques.
+            <br><br>
+            
+            <strong>Expertise:</strong>
+            <ul>
+                <li>Python Programming & AI Development</li>
+                <li>Technical Analysis (Support/Resistance, Chart Patterns, Indicators)</li>
+                <li>Trading Systems & Algorithm Development</li>
+                <li>Data Analytics & Visualization</li>
+                <li>Full-Stack Web Applications (Streamlit, Database Integration)</li>
+            </ul>
+            
+            <strong>Philosophy:</strong> <em>"Quality over Quantity"</em> - Better to have 5 high-accuracy signals 
+            than 50 mediocre ones. Each signal is like finding treasure 💎
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Important Disclaimers
+    st.markdown("## ⚠️ Important Disclaimers")
+    
+    # SEBI Disclaimer
+    st.error("""
+    **📢 NOT A SEBI REGISTERED ANALYST**
+    
+    J Swarnalakshmi is **NOT a SEBI (Securities and Exchange Board of India) registered analyst** or investment advisor. 
+    This system is developed for **educational and research purposes only**.
+    """)
+    
+    # Legal Disclaimer
+    st.warning("""
+    **⚖️ LEGAL DISCLAIMER - PLEASE READ CAREFULLY**
+    
+    **1. No Investment Advice:**
+    - This software provides technical analysis tools and educational content only
+    - All signals, recommendations, and analysis are **NOT** investment advice
+    - This is a research and educational tool, not a financial advisory service
+    
+    **2. Trading Risks:**
+    - Stock trading involves **substantial risk of loss**
+    - Past performance does NOT guarantee future results
+    - You may lose some or all of your invested capital
+    - Only trade with money you can afford to lose
+    
+    **3. User Responsibility:**
+    - All trading decisions are **YOUR responsibility**
+    - Conduct your own research and due diligence
+    - Consult with a SEBI registered financial advisor before making investment decisions
+    - The developer is **NOT responsible** for any losses incurred
+    
+    **4. No Guarantees:**
+    - No guarantee of accuracy, completeness, or profitability
+    - Market conditions change rapidly
+    - Technical analysis has limitations
+    - Historical patterns may not repeat
+    
+    **5. Educational Purpose:**
+    - This tool is for learning technical analysis
+    - Use paper trading mode to practice
+    - Understand the system before risking real money
+    
+    **BY USING THIS SYSTEM, YOU ACKNOWLEDGE:**
+    - You understand the risks of stock trading
+    - You will not hold the developer liable for any losses
+    - You will use this tool responsibly and at your own risk
+    - You will comply with all applicable laws and regulations
+    """)
+    
+    # System Info
+    st.info("""
+    **📌 System Information:**
+    - **Version:** 3.0 (Professional Edition)
+    - **Last Updated:** November 2024
+    - **Data Source:** Yahoo Finance (Free, Public Data)
+    - **Trading Mode:** Paper Trading (Simulation) / Real Trading (At your risk)
+    - **Database:** PostgreSQL (Persistent signal storage)
+    """)
+    
+    st.markdown("---")
+    
+    # Quick Start Guide
+    st.markdown("## 🚀 Quick Start Guide")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 📊 For Beginners:
         
-        df_portfolio = pd.DataFrame(portfolio)
-        fig = go.Figure(data=[go.Pie(
-            labels=df_portfolio['symbol'],
-            values=df_portfolio['current_value'],
-            hole=0.3
-        )])
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
+        **Step 1:** Explore the system
+        - Start with **Technical Screener** to understand indicators
+        - Try **S&R Analysis** to learn support/resistance
+        - Check **Chart Analysis** for pattern recognition
+        
+        **Step 2:** Generate test signals
+        - Use **Paper Trading Mode** (no real money)
+        - Go to **Generate New Signal** → Hybrid Mode
+        - Analyze small stock lists first
+        
+        **Step 3:** Learn and practice
+        - Study the 3-layer analysis breakdown
+        - Understand why signals are generated
+        - Practice pattern recognition
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 💎 For Experienced Traders:
+        
+        **Daily Routine:**
+        - **Morning (9:00 AM):** Run batch analysis on Nifty 50
+        - **Generate Signals:** Use Hybrid Mode (75% confidence)
+        - **Chart Analysis:** Check patterns formed overnight
+        - **Filter Results:** By confidence, R:R, and patterns
+        
+        **Advanced Features:**
+        - **VWAP Strategy:** Volume-weighted trading
+        - **Backtest:** Test strategies on historical data
+        - **Risk Management:** Auto position sizing
+        - **Multi-timeframe S&R:** Daily/Weekly/Monthly confluence
+        """)
+    
+    st.markdown("---")
+    
+    # System Metrics
+    st.markdown("## 📊 System Statistics")
+    
+    # Get current statistics
+    active_signals = db.get_active_signals()
+    portfolio = db.get_portfolio()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Active Signals", len(active_signals), delta="Current")
+    
+    with col2:
+        st.metric("Open Positions", len(portfolio), delta="Portfolio")
+    
+    with col3:
+        high_conf_signals = len([s for s in active_signals if s.get('confidence', 0) >= 75])
+        st.metric("High Confidence", high_conf_signals, delta="75%+ signals")
+    
+    with col4:
+        st.metric("Broker Mode", "Paper Trading", delta="Simulation")
+    
+    st.markdown("---")
+    
+    # Footer
+    st.markdown("""
+    <div style='text-align: center; padding: 2rem; background-color: #f0f2f6; border-radius: 10px; margin-top: 2rem;'>
+        <p style='font-size: 1.1rem; color: #555;'>
+            <strong>Ready to start?</strong> Navigate using the sidebar to explore different analysis tools.
+        </p>
+        <p style='font-size: 0.9rem; color: #888; margin-top: 1rem;'>
+            💡 Tip: Start with "Chart Analysis" to see pattern detection in action!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ============================================================
 # PAGE: CHART ANALYSIS (Active Signals + Chart Pattern Filter)
