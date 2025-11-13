@@ -355,8 +355,26 @@ elif page == "Chart Analysis":
                     else:
                         SR_CALC_CLASS = SupportResistanceCalculator
                     
-                    # Fetch data
-                    df = fetch_yahoo_data(symbol_input)
+                    # Fetch data from Yahoo Finance (SAME as S&R Analysis)
+                    try:
+                        ticker = yf.Ticker(get_yfinance_symbol(symbol_input))
+                        df_raw = ticker.history(period="1y", interval="1d")
+                        
+                        if not df_raw.empty and len(df_raw) > 50:
+                            # Convert to expected format
+                            df = pd.DataFrame({
+                                'time': df_raw.index,
+                                'open': df_raw['Open'].values,
+                                'high': df_raw['High'].values,
+                                'low': df_raw['Low'].values,
+                                'close': df_raw['Close'].values,
+                                'volume': df_raw['Volume'].values
+                            })
+                        else:
+                            df = None
+                    except Exception as e:
+                        df = None
+                        st.error(f"Error fetching data: {e}")
                     
                     if df is None or df.empty:
                         st.error(f"❌ No data available for {symbol_input}")
