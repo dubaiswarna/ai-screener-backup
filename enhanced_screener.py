@@ -314,31 +314,61 @@ if page == "Dashboard":
     # About Developer
     st.markdown("## 👩‍💻 About the Developer")
     
-    st.markdown("""
-    <div style='background-color: #f0f2f6; padding: 2rem; border-radius: 10px; border-left: 5px solid #667eea;'>
-        <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
-        <p style='font-size: 1.1rem; line-height: 1.6;'>
-            <strong>Developer & Trading System Architect</strong><br><br>
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        try:
+            # Display developer photo
+            st.image("C:/Users/admin/Downloads/WhatsApp Image 2025-11-13 at 2.20.42 PM.jpeg", 
+                    width=200, 
+                    caption="J Swarnalakshmi")
+        except:
+            st.markdown("**J Swarnalakshmi**")
+    
+    with col2:
+        st.markdown("""
+        <div style='background-color: #f0f2f6; padding: 2rem; border-radius: 10px; border-left: 5px solid #667eea;'>
+            <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
+            <p style='font-size: 1rem; color: #666; margin-bottom: 1rem;'><strong>Software Developer & Trading Systems Architect</strong></p>
             
-            Passionate about combining <strong>AI technology</strong> with <strong>technical analysis</strong> to create 
-            powerful trading tools. Developed this comprehensive screening system to help traders make informed decisions 
-            using data-driven insights and professional-grade analysis techniques.
-            <br><br>
+            <p style='font-size: 1rem; line-height: 1.8; text-align: justify;'>
+                A dedicated software developer with a passion for creating innovative solutions at the intersection of 
+                <strong>artificial intelligence</strong> and <strong>financial markets</strong>. J Swarnalakshmi has architected 
+                and developed the Professional AI Screener v3.0 from the ground up, combining deep technical expertise with 
+                a thorough understanding of market dynamics and trading psychology.
+                <br><br>
+                
+                With a strong foundation in <strong>Python programming</strong>, <strong>machine learning</strong>, and 
+                <strong>quantitative analysis</strong>, she specializes in building robust trading systems that transform 
+                complex technical concepts into actionable insights. Her approach emphasizes precision, reliability, and 
+                risk management—ensuring every feature serves a practical purpose in real-world trading scenarios.
+                <br><br>
+                
+                <strong>Core Competencies:</strong>
+            </p>
             
-            <strong>Expertise:</strong>
-            <ul>
-                <li>Python Programming & AI Development</li>
-                <li>Technical Analysis (Support/Resistance, Chart Patterns, Indicators)</li>
-                <li>Trading Systems & Algorithm Development</li>
-                <li>Data Analytics & Visualization</li>
-                <li>Full-Stack Web Applications (Streamlit, Database Integration)</li>
+            <ul style='font-size: 0.95rem; line-height: 1.6;'>
+                <li><strong>Advanced Programming:</strong> Python, Pandas, NumPy, Data Structures & Algorithms</li>
+                <li><strong>AI & Machine Learning:</strong> Pattern Recognition, Signal Processing, Predictive Analytics</li>
+                <li><strong>Technical Analysis Mastery:</strong> Support/Resistance Theory, Chart Pattern Analysis, Multi-Indicator Systems</li>
+                <li><strong>Trading System Development:</strong> Strategy Design, Backtesting Engines, Risk Management Algorithms</li>
+                <li><strong>Full-Stack Development:</strong> Streamlit, Database Design (PostgreSQL), Cloud Deployment (Railway)</li>
+                <li><strong>Financial Engineering:</strong> VWAP Strategies, Multi-Timeframe Analysis, Position Sizing</li>
             </ul>
             
-            <strong>Philosophy:</strong> <em>"Quality over Quantity"</em> - Better to have 5 high-accuracy signals 
-            than 50 mediocre ones. Each signal is like finding treasure 💎
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+            <p style='font-size: 1rem; line-height: 1.8; margin-top: 1.5rem; padding: 1rem; background-color: #fff3cd; border-radius: 8px;'>
+                <strong>🎯 Development Philosophy:</strong><br>
+                <em>"Quality over Quantity"</em> — Better to generate 5 high-accuracy treasure signals than 50 mediocre ones. 
+                Every feature is meticulously designed, rigorously tested, and optimized for real-world trading conditions. 
+                Each signal should be treated like finding treasure 💎, backed by multi-layer confluence and strict quality filters.
+            </p>
+            
+            <p style='font-size: 0.9rem; line-height: 1.6; margin-top: 1rem; color: #666;'>
+                <strong>Mission:</strong> To democratize institutional-grade trading analysis tools and empower individual 
+                traders with professional, data-driven insights that were once available only to large financial institutions.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
