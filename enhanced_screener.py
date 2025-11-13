@@ -671,6 +671,7 @@ elif page == "Chart Analysis":
     elif analysis_mode == "Batch Pattern Scan":
         st.subheader("📋 Batch Pattern Scan - Multiple Stocks")
         st.info("💡 Scan multiple stocks to find what chart patterns formed and their impact/action")
+        st.caption("📅 Uses ONLY completed EOD candles (today's incomplete candle excluded). Patterns are stable and reliable!")
         
         # Output mode selection
         scan_output_mode = st.radio(
@@ -809,8 +810,11 @@ elif page == "Chart Analysis":
                             # DIFFERENT LOGIC FOR PATTERN REPORT VS FULL SIGNALS
                             if scan_output_mode == "Pattern Report (Simple)":
                                 # PATTERN REPORT MODE: Just detect patterns (NO signal filtering!)
-                                # Check last 5 candles for patterns
-                                pattern_result = pattern_detector.detect_all_patterns(df, check_last_n_candles=5)
+                                # USE ONLY COMPLETED EOD CANDLES (Exclude today's incomplete candle)
+                                df_eod = df[:-1].copy()  # Remove last candle (today's incomplete)
+                                
+                                # Check last 5 COMPLETED candles for patterns
+                                pattern_result = pattern_detector.detect_all_patterns(df_eod, check_last_n_candles=5)
                                 
                                 if pattern_result and len(pattern_result) > 0:
                                     stocks_with_any_patterns += 1  # Count stocks with ANY patterns
@@ -874,7 +878,10 @@ elif page == "Chart Analysis":
                             
                             else:
                                 # FULL SIGNALS MODE: Run complete treasure signal analysis
-                                result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
+                                # USE ONLY COMPLETED EOD CANDLES (Exclude today's incomplete candle)
+                                df_eod = df[:-1].copy()  # Remove last candle (today's incomplete)
+                                
+                                result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
                                 
                                 if result and result['is_treasure']:
                                     # Apply pattern filter
