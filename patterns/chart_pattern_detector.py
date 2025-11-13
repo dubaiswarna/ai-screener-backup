@@ -358,20 +358,38 @@ class ChartPatternDetector:
     
     def detect_doji(self, df: pd.DataFrame, idx: int) -> Optional[Dict]:
         """
-        Doji: Very small body, indecision pattern
+        Doji: Very small body (open ≈ close), indecision pattern
+        
+        Professional Criteria:
+        - Body < 5% of range (strict for true Doji)
+        - Both wicks should be present
+        - Open and Close very close to each other
         """
         current = self.get_candle_parts(df.iloc[idx])
         
-        # Doji criteria: body < 10% of range
-        is_doji = current['body'] / current['range'] < 0.1 if current['range'] > 0 else False
+        # STRICT Doji criteria: body < 5% of range (was 10%, too loose!)
+        if current['range'] == 0:
+            return None
         
-        if is_doji:
+        body_to_range_ratio = current['body'] / current['range']
+        
+        is_doji = body_to_range_ratio < 0.05  # STRICT: Body must be < 5% of range
+        
+        # Optional: Check if both wicks present (classic Doji)
+        has_upper_wick = current['upper_wick'] > 0
+        has_lower_wick = current['lower_wick'] > 0
+        
+        if is_doji and has_upper_wick and has_lower_wick:
+            # Calculate confidence based on how small the body is
+            confidence = 70 - (body_to_range_ratio * 200)  # Smaller body = higher confidence
+            confidence = max(50, min(85, confidence))
+            
             return {
                 'pattern': 'DOJI',
                 'type': 'NEUTRAL',
-                'confidence': 60.0,
-                'description': 'Indecision - Wait for confirmation',
-                'strength': 'MEDIUM'
+                'confidence': round(confidence, 1),
+                'description': f'Indecision - Open ≈ Close ({body_to_range_ratio*100:.1f}% body)',
+                'strength': 'HIGH' if confidence > 70 else 'MEDIUM'
             }
         
         return None
