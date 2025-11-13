@@ -291,18 +291,52 @@ if page == "Dashboard":
 elif page == "Active Signals":
     st.header("🔔 Active Signals")
     
-    # Filters
+    # Filters Row 1
     col1, col2 = st.columns(2)
     with col1:
         min_confidence = st.slider("Minimum Confidence", 0.0, 100.0, 70.0, 5.0)
     with col2:
         signal_filter = st.selectbox("Filter by Type", ["ALL", "BUY", "SELL"])
     
+    # Filters Row 2: Chart Pattern Filter
+    st.markdown("#### 📊 Chart Pattern Filter (Optional)")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        pattern_filter_enabled = st.checkbox("Filter by Chart Patterns", value=False,
+                                            help="Only show signals with specific chart patterns")
+    
+    with col2:
+        if pattern_filter_enabled:
+            selected_patterns = st.multiselect(
+                "Select Patterns:",
+                ["Hammer", "Shooting Star", "Bullish Engulfing", "Bearish Engulfing",
+                 "Morning Star", "Evening Star", "Three White Soldiers", "Three Black Crows", "Doji"],
+                default=[],
+                help="Show only signals with these patterns"
+            )
+        else:
+            selected_patterns = None
+    
     # Get signals
     signals = db.get_active_signals(min_confidence=min_confidence)
     
     if signal_filter != "ALL":
         signals = [s for s in signals if s.get('signal_type') == signal_filter]
+    
+    # Apply chart pattern filter if enabled
+    if pattern_filter_enabled and selected_patterns:
+        filtered_signals = []
+        for signal in signals:
+            # Check if signal has chart_pattern data (for Hybrid signals)
+            chart_pattern_data = signal.get('chart_pattern') or signal.get('metadata', {}).get('chart_pattern')
+            if chart_pattern_data and isinstance(chart_pattern_data, dict):
+                pattern_info = chart_pattern_data.get('pattern', {})
+                if pattern_info and isinstance(pattern_info, dict):
+                    pattern_name = pattern_info.get('pattern', '')
+                    if pattern_name in selected_patterns:
+                        filtered_signals.append(signal)
+        signals = filtered_signals
     
     st.info(f"📊 Found {len(signals)} signals matching criteria")
     
@@ -471,26 +505,6 @@ elif page == "Generate New Signal":
                 min_rr = st.slider("Minimum R:R", 1.0, 5.0, 1.5, 0.5,
                                   help="Minimum Risk:Reward ratio (Default: 1.5 for bull markets)")
             
-            # Chart Pattern Filter
-            st.markdown("#### 📊 Chart Pattern Filter (Optional)")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                pattern_filter_enabled = st.checkbox("Filter by Chart Patterns", value=False,
-                                                    help="Only show signals with specific chart patterns")
-            
-            with col2:
-                if pattern_filter_enabled:
-                    selected_patterns = st.multiselect(
-                        "Select Patterns:",
-                        ["Hammer", "Shooting Star", "Bullish Engulfing", "Bearish Engulfing",
-                         "Morning Star", "Evening Star", "Three White Soldiers", "Three Black Crows", "Doji"],
-                        default=["Hammer", "Bullish Engulfing", "Morning Star"],
-                        help="Signals must have one of these patterns"
-                    )
-                else:
-                    selected_patterns = None
-            
             # Get stock list
             if "Nifty 50" in universe_choice:
                 stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
@@ -543,18 +557,7 @@ elif page == "Generate New Signal":
                         result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
                         
                         if result and result['is_treasure']:
-                            # Apply chart pattern filter if enabled
-                            if pattern_filter_enabled and selected_patterns:
-                                # Check if the detected pattern matches selected patterns
-                                detected_pattern = result.get('chart_pattern', {}).get('pattern', {})
-                                if detected_pattern:
-                                    pattern_name = detected_pattern.get('pattern', '')
-                                    if pattern_name in selected_patterns:
-                                        treasure_signals.append(result)
-                                # If no pattern detected, skip (pattern filter is enabled)
-                            else:
-                                # No filter, add all treasure signals
-                                treasure_signals.append(result)
+                            treasure_signals.append(result)
                     
                     except Exception as e:
                         # Skip stocks with errors
