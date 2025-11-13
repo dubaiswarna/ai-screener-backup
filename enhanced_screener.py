@@ -542,6 +542,7 @@ elif page == "Chart Analysis":
                 
                 pattern_results = []
                 stocks_with_any_patterns = 0  # Track how many stocks had patterns (before filtering)
+                errors_encountered = []  # Track errors for debugging
                 
                 for idx, symbol in enumerate(batch_stock_list):
                     try:
@@ -641,7 +642,8 @@ elif page == "Chart Analysis":
                                         pattern_results.append(result)
                     
                     except Exception as e:
-                        pass  # Skip errors
+                        errors_encountered.append(f"{symbol}: {str(e)}")
+                        # Continue to next stock
                     
                     progress_bar.progress((idx + 1) / len(batch_stock_list))
                 
@@ -652,8 +654,15 @@ elif page == "Chart Analysis":
                 # Display results
                 st.markdown("---")
                 
+                # Show errors if any (for debugging)
+                if errors_encountered:
+                    with st.expander(f"⚠️ Errors encountered ({len(errors_encountered)} stocks)", expanded=False):
+                        for error in errors_encountered:
+                            st.caption(f"• {error}")
+                
                 if pattern_results:
-                    st.success(f"📊 Found {len(pattern_results)} stocks with patterns/signals out of {len(batch_stock_list)} scanned ({len(pattern_results)/len(batch_stock_list)*100:.1f}%)")
+                    stocks_scanned = len(batch_stock_list) - len(errors_encountered)
+                    st.success(f"📊 Found {len(pattern_results)} stocks with patterns/signals out of {stocks_scanned} successfully scanned ({len(pattern_results)/stocks_scanned*100:.1f}%)")
                     
                     # Pattern Report Mode (Simple)
                     if scan_output_mode == "Pattern Report (Simple)":
