@@ -86,19 +86,23 @@ class ThreeJasminesScreener:
         
         # Use absolute value to check proximity (works for price above OR below support)
         if abs(distance_pct) <= self.max_support_distance:
+            # Calculate score: closer = higher score (max 100)
+            score = max(0, 100 - (abs(distance_pct) * 20))
             return {
                 'passed': True,
-                'reason': f'Near support ₹{support_level:.2f} ({distance_pct:.2f}% away)',
+                'reason': f'Near support ₹{support_level:.2f} ({distance_pct:+.2f}% away)',
                 'distance_pct': distance_pct,
                 'support_level': support_level,
-                'support_strength': nearest_support.get('strength', 0)
+                'support_strength': nearest_support.get('strength', 0),
+                'score': round(score, 0)
             }
         else:
             return {
                 'passed': False,
-                'reason': f'Too far from support ({distance_pct:.2f}% > {self.max_support_distance}%)',
+                'reason': f'Too far from support ({distance_pct:+.2f}% > {self.max_support_distance}%)',
                 'distance_pct': distance_pct,
-                'support_level': support_level
+                'support_level': support_level,
+                'score': 0
             }
     
     def check_jasmine_2_rsi_oversold(self, df: pd.DataFrame) -> Dict:
@@ -114,29 +118,35 @@ class ThreeJasminesScreener:
             return {
                 'passed': False,
                 'reason': 'Insufficient data for RSI calculation',
-                'rsi_value': None
+                'rsi_value': None,
+                'score': 0
             }
         
         if rsi_value < self.max_rsi:
             # Calculate strength based on how oversold
             if rsi_value < 25:
                 strength = 'EXTREMELY OVERSOLD'
+                score = 100
             elif rsi_value < 30:
                 strength = 'VERY OVERSOLD'
+                score = 90
             else:
                 strength = 'OVERSOLD'
+                score = 80
             
             return {
                 'passed': True,
                 'reason': f'RSI {strength} ({rsi_value:.1f})',
                 'rsi_value': rsi_value,
-                'strength': strength
+                'strength': strength,
+                'score': score
             }
         else:
             return {
                 'passed': False,
                 'reason': f'RSI not oversold enough ({rsi_value:.1f} > {self.max_rsi})',
-                'rsi_value': rsi_value
+                'rsi_value': rsi_value,
+                'score': 0
             }
     
     def check_jasmine_3_bullish_pattern(self, pattern_detector, df: pd.DataFrame) -> Dict:
@@ -156,7 +166,8 @@ class ThreeJasminesScreener:
             return {
                 'passed': False,
                 'reason': 'No bullish pattern detected',
-                'pattern': None
+                'pattern': None,
+                'score': 0
             }
         
         # Filter for BULLISH patterns only
@@ -166,18 +177,24 @@ class ThreeJasminesScreener:
             return {
                 'passed': False,
                 'reason': 'Patterns found but not bullish',
-                'pattern': None
+                'pattern': None,
+                'score': 0
             }
         
         # Get strongest bullish pattern
         strongest_pattern = max(bullish_patterns, key=lambda x: x.get('confidence', 0))
+        
+        # Use pattern confidence as score
+        score = strongest_pattern['confidence']
         
         return {
             'passed': True,
             'reason': f"{strongest_pattern['pattern'].replace('_', ' ').title()} detected",
             'pattern': strongest_pattern,
             'pattern_name': strongest_pattern['pattern'],
-            'pattern_confidence': strongest_pattern['confidence']
+            'pattern_confidence': strongest_pattern['confidence'],
+            'score': round(score, 0),
+            'description': strongest_pattern.get('description', '')
         }
     
     def generate_trade_setup(self, symbol: str, current_price: float,
@@ -304,10 +321,10 @@ class ThreeJasminesScreener:
             'position_size': trade_setup['position_size'],
             'potential_profit': trade_setup['potential_profit'],
             
-            # Jasmine criteria details
-            'jasmine1': jasmine1,
-            'jasmine2': jasmine2,
-            'jasmine3': jasmine3,
+            # Jasmine criteria details (with UI-expected field names)
+            'jasmine1_support': jasmine1,
+            'jasmine2_rsi': jasmine2,
+            'jasmine3_pattern': jasmine3,
             
             # Strategy info
             'strategy': '3JASMINES',
