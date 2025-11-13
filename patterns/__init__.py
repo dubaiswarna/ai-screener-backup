@@ -8,3 +8,4 @@ from .chart_pattern_detector import ChartPatternDetector
 
 __all__ = ['ChartPatternDetector']
 
+

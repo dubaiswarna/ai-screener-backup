@@ -531,3 +531,4 @@ class ChartPatternDetector:
 # Export
 __all__ = ['ChartPatternDetector']
 
+
