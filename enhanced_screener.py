@@ -541,6 +541,7 @@ elif page == "Chart Analysis":
                 status_text = st.empty()
                 
                 pattern_results = []
+                stocks_with_any_patterns = 0  # Track how many stocks had patterns (before filtering)
                 
                 for idx, symbol in enumerate(batch_stock_list):
                     try:
@@ -559,6 +560,8 @@ elif page == "Chart Analysis":
                                 pattern_result = pattern_detector.detect_all_patterns(df, check_last_n_candles=5)
                                 
                                 if pattern_result and len(pattern_result) > 0:
+                                    stocks_with_any_patterns += 1  # Count stocks with ANY patterns
+                                    
                                     # Get the most recent/strongest pattern
                                     detected_pattern = max(pattern_result, key=lambda x: x.get('confidence', 0))
                                     
@@ -571,8 +574,16 @@ elif page == "Chart Analysis":
                                     elif pattern_filter_mode == "Only Stocks WITH Patterns":
                                         should_include = True  # Any pattern
                                     elif pattern_filter_mode == "Specific Patterns Only":
-                                        # Match pattern name (e.g., "HAMMER" == "Hammer")
-                                        should_include = any(pattern_name.upper() == selected.upper().replace(' ', '_') for selected in selected_batch_patterns)
+                                        # Match pattern name
+                                        # Detector returns: 'HAMMER', 'BULLISH_ENGULFING', etc.
+                                        # UI sends: 'Hammer', 'Bullish Engulfing', etc.
+                                        # Convert both to same format for matching
+                                        pattern_name_normalized = pattern_name.upper().replace('_', ' ')
+                                        should_include = any(
+                                            pattern_name_normalized == selected.upper() or 
+                                            pattern_name.upper() == selected.upper().replace(' ', '_')
+                                            for selected in selected_batch_patterns
+                                        )
                                     
                                     if should_include:
                                         # Build lightweight result for pattern report
@@ -847,18 +858,33 @@ elif page == "Chart Analysis":
                                         st.caption(f"  • No pattern detected")
                 
                 else:
-                    st.warning(f"ℹ️ No signals found matching criteria in {len(batch_stock_list)} stocks")
-                    st.info("""
-                    **Why no signals?**
-                    - No stocks met confidence threshold
-                    - No patterns detected (if pattern filter enabled)
-                    - Market conditions not favorable
+                    st.warning(f"ℹ️ No patterns found matching your filter criteria")
                     
-                    Try:
-                    • Lower confidence threshold
-                    • Select "Show ALL Signals"
-                    • Try different stocks
-                    """)
+                    if stocks_with_any_patterns > 0:
+                        st.info(f"""
+                        **📊 Patterns were detected but filtered out!**
+                        
+                        - **{stocks_with_any_patterns}** out of {len(batch_stock_list)} stocks had patterns
+                        - But they didn't match your selected pattern filter
+                        
+                        **Try:**
+                        • Change Pattern Filter to "Show ALL Signals"
+                        • Or select different specific patterns
+                        """)
+                    else:
+                        st.info(f"""
+                        **❌ NO patterns detected in any of the {len(batch_stock_list)} stocks!**
+                        
+                        **Why?**
+                        - These stocks didn't form clear patterns in last 5 days
+                        - Low volatility = fewer patterns
+                        - EOD data = only completed daily candles
+                        
+                        **Try these VOLATILE stocks instead:**
+                        BAJFINANCE, TATAMOTORS, ADANIENT, VEDL, TATASTEEL
+                        
+                        Or wait until after market close (3:30 PM) for today's patterns!
+                        """)
             
             except Exception as e:
                 st.error(f"❌ Error during batch analysis: {e}")
