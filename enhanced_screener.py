@@ -555,11 +555,12 @@ elif page == "Chart Analysis":
                             # DIFFERENT LOGIC FOR PATTERN REPORT VS FULL SIGNALS
                             if scan_output_mode == "Pattern Report (Simple)":
                                 # PATTERN REPORT MODE: Just detect patterns (NO signal filtering!)
-                                pattern_result = pattern_detector.detect_all_patterns(df)
+                                # Check last 5 candles for patterns
+                                pattern_result = pattern_detector.detect_all_patterns(df, check_last_n_candles=5)
                                 
-                                if pattern_result:
+                                if pattern_result and len(pattern_result) > 0:
                                     # Get the most recent/strongest pattern
-                                    detected_pattern = max(pattern_result, key=lambda x: x.get('strength_score', 0))
+                                    detected_pattern = max(pattern_result, key=lambda x: x.get('confidence', 0))
                                     
                                     # Check if matches filter
                                     should_include = False
@@ -570,7 +571,8 @@ elif page == "Chart Analysis":
                                     elif pattern_filter_mode == "Only Stocks WITH Patterns":
                                         should_include = True  # Any pattern
                                     elif pattern_filter_mode == "Specific Patterns Only":
-                                        should_include = pattern_name in selected_batch_patterns
+                                        # Match pattern name (e.g., "HAMMER" == "Hammer")
+                                        should_include = any(pattern_name.upper() == selected.upper().replace(' ', '_') for selected in selected_batch_patterns)
                                     
                                     if should_include:
                                         # Build lightweight result for pattern report
@@ -593,7 +595,7 @@ elif page == "Chart Analysis":
                                             'symbol': symbol,
                                             'current_price': current_price,
                                             'chart_pattern': {'pattern': detected_pattern},
-                                            'confidence': detected_pattern.get('strength_score', 50),  # Pattern strength as confidence
+                                            'confidence': detected_pattern.get('confidence', 50),  # Use confidence from pattern
                                             'signal': 'BUY' if detected_pattern.get('type') == 'BULLISH' else ('SELL' if detected_pattern.get('type') == 'BEARISH' else 'NEUTRAL'),
                                             'technical': {
                                                 'factors': [f"RSI: {rsi_value:.1f}" if rsi_value else "RSI: N/A"],
