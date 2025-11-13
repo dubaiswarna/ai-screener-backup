@@ -290,81 +290,223 @@ if page == "Dashboard":
 
 elif page == "Chart Analysis":
     st.header("📊 Chart Analysis")
-    st.caption("View all signals and filter by confidence, type, and chart patterns")
+    st.caption("Analyze any stock OR view saved signals with chart pattern filtering")
     
-    # Filters Row 1
-    col1, col2 = st.columns(2)
-    with col1:
-        min_confidence = st.slider("Minimum Confidence", 0.0, 100.0, 70.0, 5.0)
-    with col2:
-        signal_filter = st.selectbox("Filter by Type", ["ALL", "BUY", "SELL"])
+    # Mode selection
+    analysis_mode = st.radio(
+        "Analysis Mode:",
+        ["Analyze Stock (Real-time)", "Saved Signals (Database)"],
+        horizontal=True,
+        help="Analyze Stock: Run fresh analysis on any stock | Saved Signals: View previously generated signals"
+    )
     
-    # Filters Row 2: Chart Pattern Filter
-    st.markdown("#### 📊 Chart Pattern Filter (Optional)")
-    col1, col2 = st.columns(2)
+    if analysis_mode == "Analyze Stock (Real-time)":
+        # Stock selection (like S&R Analysis)
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if EXPANDED_UNIVERSE_AVAILABLE:
+                # Create categorized stock list
+                stock_categories = {
+                    '--- COMMODITIES (Gold, Silver) ---': COMMODITIES,
+                    '--- NIFTY 50 ---': NIFTY_50,
+                    '--- NIFTY 200 (Mid-cap) ---': [s for s in NIFTY_200 if s not in NIFTY_50],
+                    '--- NIFTY 500 ---': [s for s in NIFTY_500 if s not in NIFTY_200],
+                    '--- SMALLCAP 250 ---': SMALLCAP_250
+                }
+                
+                # Build options list
+                stock_options = []
+                for category, stocks in stock_categories.items():
+                    if stocks:
+                        stock_options.append(category)
+                        stock_options.extend(sorted(stocks))
+                
+                symbol_input = st.selectbox(
+                    "Select Stock:", 
+                    stock_options,
+                    index=stock_options.index('RELIANCE') if 'RELIANCE' in stock_options else 0,
+                    help="Select from 750+ stocks (Nifty 50/200/500 + Smallcap 250)"
+                )
+                
+                # Skip if category header selected
+                if symbol_input.startswith('---'):
+                    st.warning("⚠️ Please select a stock symbol, not a category header")
+                    symbol_input = 'RELIANCE'
+            else:
+                symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
+        
+        with col2:
+            min_confidence_analysis = st.slider("Min Confidence", 70, 95, 75, 5, help="Minimum confidence to show signal")
+        
+        with col3:
+            min_rr_analysis = st.slider("Min R:R", 1.0, 5.0, 1.5, 0.5, help="Minimum Risk:Reward ratio")
+        
+        if st.button("🔍 Analyze Stock", type="primary"):
+            with st.spinner(f"Analyzing {symbol_input}..."):
+                try:
+                    # Import modules
+                    from hybrid_signal_generator import HybridSignalGenerator
+                    from patterns.chart_pattern_detector import ChartPatternDetector
+                    
+                    if DUAL_SR_AVAILABLE:
+                        from support_resistance.sr_calculator_enhanced import ProfessionalSRCalculator
+                        SR_CALC_CLASS = ProfessionalSRCalculator
+                    else:
+                        SR_CALC_CLASS = SupportResistanceCalculator
+                    
+                    # Fetch data
+                    df = fetch_yahoo_data(symbol_input)
+                    
+                    if df is None or df.empty:
+                        st.error(f"❌ No data available for {symbol_input}")
+                    else:
+                        current_price = df['close'].iloc[-1]
+                        
+                        # Initialize analyzers
+                        hybrid_gen = HybridSignalGenerator(min_confidence=min_confidence_analysis, min_rr_ratio=min_rr_analysis)
+                        sr_calc = SR_CALC_CLASS(sensitivity=3, min_touches=2)
+                        pattern_detector = ChartPatternDetector()
+                        
+                        # Run full 3-layer analysis
+                        result = hybrid_gen.analyze_stock(symbol_input, df, sr_calc, pattern_detector)
+                        
+                        if result and result['is_treasure']:
+                            st.success(f"💎 TREASURE SIGNAL FOUND for {symbol_input}!")
+                            
+                            # Display signal
+                            col1, col2, col3 = st.columns([2, 2, 1])
+                            
+                            with col1:
+                                st.metric("Current Price", f"₹{result['current_price']:.2f}")
+                                st.metric("Entry", f"₹{result['trade_setup']['entry']:.2f}")
+                                st.metric("Stop Loss", f"₹{result['trade_setup']['stop_loss']:.2f}")
+                            
+                            with col2:
+                                st.metric("Target 1", f"₹{result['trade_setup']['target1']:.2f}")
+                                st.metric("Risk:Reward", f"1:{result['trade_setup']['rr_ratio']:.2f}")
+                                st.metric("Position Size", f"{result['trade_setup']['position_size']} shares")
+                            
+                            with col3:
+                                st.metric("Confidence", f"{result['confidence']:.1f}%")
+                                st.metric("Confluence", f"{result['confluence']['confluence_count']}/3")
+                                profit = (result['trade_setup']['target1'] - result['trade_setup']['entry']) * result['trade_setup']['position_size']
+                                if result['signal'] == 'STRONG SELL':
+                                    profit = (result['trade_setup']['entry'] - result['trade_setup']['target1']) * result['trade_setup']['position_size']
+                                st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                            
+                            # 3-Layer Analysis
+                            st.markdown("**📊 3-Layer Analysis:**")
+                            
+                            st.markdown(f"**✅ Technical ({result['technical']['confidence_pct']:.0f}%):**")
+                            for factor in result['technical']['factors']:
+                                st.caption(f"  • {factor}")
+                            
+                            st.markdown(f"**✅ S&R Analysis ({result['sr_analysis']['confidence_pct']:.0f}%):**")
+                            for factor in result['sr_analysis']['factors']:
+                                st.caption(f"  • {factor}")
+                            
+                            # Chart Pattern
+                            if result['chart_pattern']['pattern']:
+                                pattern = result['chart_pattern']['pattern']
+                                st.markdown(f"**✅ Chart Pattern ({result['chart_pattern']['confidence_pct']:.0f}%):**")
+                                st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                if 'strength' in pattern:
+                                    st.caption(f"  • Strength: {pattern['strength']}")
+                            else:
+                                st.markdown(f"**⚪ Chart Pattern ({result['chart_pattern']['confidence_pct']:.0f}%):**")
+                                st.caption(f"  • No pattern detected")
+                        
+                        else:
+                            st.warning(f"ℹ️ No treasure signal for {symbol_input}")
+                            st.info(f"""
+                            **Why no signal?**
+                            - Confidence below {min_confidence_analysis}%
+                            - R:R ratio below {min_rr_analysis}
+                            - Not enough confluence (need 2/3 layers agreeing)
+                            
+                            Try: Lower confidence or R:R thresholds
+                            """)
+                
+                except Exception as e:
+                    st.error(f"❌ Error analyzing {symbol_input}: {e}")
     
-    with col1:
-        pattern_filter_enabled = st.checkbox("Filter by Chart Patterns", value=False,
-                                            help="Only show signals with specific chart patterns")
-    
-    with col2:
-        if pattern_filter_enabled:
-            selected_patterns = st.multiselect(
-                "Select Patterns:",
-                ["Hammer", "Shooting Star", "Bullish Engulfing", "Bearish Engulfing",
-                 "Morning Star", "Evening Star", "Three White Soldiers", "Three Black Crows", "Doji"],
-                default=[],
-                help="Show only signals with these patterns"
+    else:  # Saved Signals mode
+        st.subheader("💾 Saved Signals from Database")
+        
+        # Filters Row 1
+        col1, col2 = st.columns(2)
+        with col1:
+            min_confidence = st.slider("Minimum Confidence", 0.0, 100.0, 70.0, 5.0)
+        with col2:
+            signal_filter = st.selectbox("Filter by Type", ["ALL", "BUY", "SELL"])
+        
+        # Filters Row 2: Chart Pattern Filter
+        st.markdown("#### 📊 Chart Pattern Filter (Optional)")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            pattern_filter_enabled = st.checkbox("Filter by Chart Patterns", value=False,
+                                                help="Only show signals with specific chart patterns")
+        
+        with col2:
+            if pattern_filter_enabled:
+                selected_patterns = st.multiselect(
+                    "Select Patterns:",
+                    ["Hammer", "Shooting Star", "Bullish Engulfing", "Bearish Engulfing",
+                     "Morning Star", "Evening Star", "Three White Soldiers", "Three Black Crows", "Doji"],
+                    default=[],
+                    help="Show only signals with these patterns"
+                )
+            else:
+                selected_patterns = None
+        
+        # Get signals
+        signals = db.get_active_signals(min_confidence=min_confidence)
+        
+        if signal_filter != "ALL":
+            signals = [s for s in signals if s.get('signal_type') == signal_filter]
+        
+        # Apply chart pattern filter if enabled
+        if pattern_filter_enabled and selected_patterns:
+            filtered_signals = []
+            for signal in signals:
+                # Check if signal has chart_pattern data (for Hybrid signals)
+                chart_pattern_data = signal.get('chart_pattern') or signal.get('metadata', {}).get('chart_pattern')
+                if chart_pattern_data and isinstance(chart_pattern_data, dict):
+                    pattern_info = chart_pattern_data.get('pattern', {})
+                    if pattern_info and isinstance(pattern_info, dict):
+                        pattern_name = pattern_info.get('pattern', '')
+                        if pattern_name in selected_patterns:
+                            filtered_signals.append(signal)
+            signals = filtered_signals
+        
+        st.info(f"📊 Found {len(signals)} signals matching criteria")
+        
+        if signals:
+            # Convert to DataFrame
+            df_signals = pd.DataFrame(signals)
+            
+            # Display table
+            st.dataframe(
+                df_signals[[
+                    'symbol', 'signal_type', 'confidence', 'entry_price',
+                    'target_price', 'stop_loss', 'generated_at', 'status'
+                ]],
+                use_container_width=True
             )
+            
+            # Export option
+            if st.button("📥 Export Signals to CSV"):
+                csv = df_signals.to_csv(index=False)
+                st.download_button(
+                    "Download CSV",
+                    csv,
+                    "signals.csv",
+                    "text/csv"
+                )
         else:
-            selected_patterns = None
-    
-    # Get signals
-    signals = db.get_active_signals(min_confidence=min_confidence)
-    
-    if signal_filter != "ALL":
-        signals = [s for s in signals if s.get('signal_type') == signal_filter]
-    
-    # Apply chart pattern filter if enabled
-    if pattern_filter_enabled and selected_patterns:
-        filtered_signals = []
-        for signal in signals:
-            # Check if signal has chart_pattern data (for Hybrid signals)
-            chart_pattern_data = signal.get('chart_pattern') or signal.get('metadata', {}).get('chart_pattern')
-            if chart_pattern_data and isinstance(chart_pattern_data, dict):
-                pattern_info = chart_pattern_data.get('pattern', {})
-                if pattern_info and isinstance(pattern_info, dict):
-                    pattern_name = pattern_info.get('pattern', '')
-                    if pattern_name in selected_patterns:
-                        filtered_signals.append(signal)
-        signals = filtered_signals
-    
-    st.info(f"📊 Found {len(signals)} signals matching criteria")
-    
-    if signals:
-        # Convert to DataFrame
-        df_signals = pd.DataFrame(signals)
-        
-        # Display table
-        st.dataframe(
-            df_signals[[
-                'symbol', 'signal_type', 'confidence', 'entry_price',
-                'target_price', 'stop_loss', 'generated_at', 'status'
-            ]],
-            use_container_width=True
-        )
-        
-        # Export option
-        if st.button("📥 Export Signals to CSV"):
-            csv = df_signals.to_csv(index=False)
-            st.download_button(
-                "Download CSV",
-                csv,
-                "signals.csv",
-                "text/csv"
-            )
-    else:
-        st.warning("No signals found matching criteria")
+            st.warning("No signals found matching criteria")
 
 # ============================================================
 # PAGE: GENERATE NEW SIGNAL
