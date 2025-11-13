@@ -548,8 +548,22 @@ elif page == "Chart Analysis":
                     try:
                         status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(batch_stock_list)})")
                         
-                        # Fetch data
-                        df = fetch_yahoo_data(symbol)
+                        # Fetch data from Yahoo Finance
+                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
+                        df_raw = ticker.history(period="6mo", interval="1d")
+                        
+                        if not df_raw.empty and len(df_raw) >= 5:
+                            # Convert to expected format
+                            df = pd.DataFrame({
+                                'time': df_raw.index,
+                                'open': df_raw['Open'].values,
+                                'high': df_raw['High'].values,
+                                'low': df_raw['Low'].values,
+                                'close': df_raw['Close'].values,
+                                'volume': df_raw['Volume'].values
+                            })
+                        else:
+                            df = None
                         
                         if df is not None and not df.empty:
                             current_price = df['close'].iloc[-1]
