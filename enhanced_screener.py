@@ -346,6 +346,7 @@ elif page == "Chart Analysis":
             with st.spinner(f"Analyzing {symbol_input}..."):
                 try:
                     # Import modules
+                    import yfinance as yf  # CRITICAL: Import yfinance!
                     from hybrid_signal_generator import HybridSignalGenerator
                     from patterns.chart_pattern_detector import ChartPatternDetector
                     
@@ -541,6 +542,7 @@ elif page == "Chart Analysis":
             
             # Initialize
             try:
+                import yfinance as yf  # CRITICAL: Import yfinance!
                 from hybrid_signal_generator import HybridSignalGenerator
                 from patterns.chart_pattern_detector import ChartPatternDetector
                 
@@ -929,6 +931,8 @@ elif page == "Chart Analysis":
             
             except Exception as e:
                 st.error(f"❌ Error during batch analysis: {e}")
+                import traceback
+                st.code(traceback.format_exc())
     
     else:  # Saved Signals mode
         st.subheader("💾 Saved Signals from Database")
