@@ -485,37 +485,71 @@ elif page == "Generate New Signal":
             💡 **Result:** More signals while maintaining quality!
             """)
             
-            # Settings
-            col1, col2, col3 = st.columns(3)
+            # Stock Selection Mode
+            st.markdown("#### 📈 Stock Selection")
+            selection_mode = st.radio(
+                "Choose how to select stocks:",
+                ["Universe (Batch Analysis)", "Manual Selection (Specific Stocks)"],
+                horizontal=True,
+                help="Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
+            )
             
-            with col1:
+            stock_list = []
+            
+            if selection_mode == "Universe (Batch Analysis)":
                 if EXPANDED_UNIVERSE_AVAILABLE:
                     universe_choice = st.selectbox(
-                        "Stock Universe:",
+                        "Select Universe:",
                         ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "ALL Stocks (750+)"]
                     )
                 else:
                     universe_choice = "Nifty 50 (51 stocks)"
                 
-            with col2:
+                # Get stock list based on universe
+                if "Nifty 50" in universe_choice:
+                    stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
+                elif "Nifty 200" in universe_choice:
+                    stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+                else:
+                    stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+            
+            else:  # Manual Selection
+                st.info("💡 Enter stock symbols separated by commas (e.g., RELIANCE, TCS, INFY, HDFCBANK)")
+                manual_input = st.text_input(
+                    "Stock Symbols:",
+                    placeholder="RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK",
+                    help="Enter NSE symbols separated by commas"
+                )
+                
+                if manual_input:
+                    # Parse and clean stock symbols
+                    stock_list = [s.strip().upper() for s in manual_input.split(',') if s.strip()]
+                else:
+                    stock_list = []
+            
+            # Settings
+            st.markdown("#### ⚙️ Signal Parameters")
+            col1, col2 = st.columns(2)
+            
+            with col1:
                 min_confidence = st.slider("Minimum Confidence (%)", 70, 95, 75, 5,
                                           help="Only show signals above this confidence (Default: 75% for bull markets)")
             
-            with col3:
+            with col2:
                 min_rr = st.slider("Minimum R:R", 1.0, 5.0, 1.5, 0.5,
                                   help="Minimum Risk:Reward ratio (Default: 1.5 for bull markets)")
             
-            # Get stock list
-            if "Nifty 50" in universe_choice:
-                stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
-            elif "Nifty 200" in universe_choice:
-                stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+            # Display stock count
+            if stock_list:
+                st.caption(f"✅ Ready to analyze {len(stock_list)} stocks")
             else:
-                stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+                st.warning("⚠️ Please select stocks to analyze")
             
-            st.caption(f"Will analyze {len(stock_list)} stocks")
-            
-            if st.button("💎 Find Treasure Signals", type="primary"):
+            if st.button("💎 Find Treasure Signals", type="primary", disabled=(len(stock_list) == 0)):
+                if len(stock_list) == 0:
+                    st.error("❌ Please select stocks first!")
+                    st.stop()
+                
                 st.markdown("---")
                 st.subheader(f"🔍 Analyzing {len(stock_list)} stocks...")
                 
