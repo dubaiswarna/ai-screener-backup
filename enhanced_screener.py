@@ -776,14 +776,50 @@ elif page == "Chart Analysis":
                                 st.caption(f"📊 Technical: {report['Tech Context']}")
                                 st.caption(f"📈 S&R: {report['S&R Context']}")
                         
-                        # Summary table
+                        # Summary table with pattern icons
                         st.markdown("---")
                         st.markdown("### 📋 Quick Summary Table")
+                        
+                        # Pattern visual icons/representations
+                        pattern_icons = {
+                            'HAMMER': '🔨',
+                            'SHOOTING_STAR': '🌠',
+                            'BULLISH_ENGULFING': '🟢📦',
+                            'BEARISH_ENGULFING': '🔴📦',
+                            'MORNING_STAR': '⭐🌅',
+                            'EVENING_STAR': '⭐🌆',
+                            'THREE_WHITE_SOLDIERS': '⬆️⬆️⬆️',
+                            'THREE_BLACK_CROWS': '⬇️⬇️⬇️',
+                            'DOJI': '➕',
+                            'INVERTED_HAMMER': '🔨⬆️',
+                            'HANGING_MAN': '🔨⬇️',
+                            'PIERCING_PATTERN': '🟢➚',
+                            'DARK_CLOUD_COVER': '🔴➘'
+                        }
+                        
+                        # Pattern visual samples (simple ASCII art)
+                        pattern_visuals = {
+                            'HAMMER': '━━┃ (Long lower wick)',
+                            'SHOOTING_STAR': '┃━━ (Long upper wick)',
+                            'BULLISH_ENGULFING': '▮▯ → ▮▮ (Green engulfs red)',
+                            'BEARISH_ENGULFING': '▮▮ → ▮▯ (Red engulfs green)',
+                            'MORNING_STAR': '▯ ━ ▮ (3-candle bull)',
+                            'EVENING_STAR': '▮ ━ ▯ (3-candle bear)',
+                            'THREE_WHITE_SOLDIERS': '▮ ▮ ▮ (3 green up)',
+                            'THREE_BLACK_CROWS': '▯ ▯ ▯ (3 red down)',
+                            'DOJI': '━┃━ (Cross, indecision)',
+                            'INVERTED_HAMMER': '┃━━ (Upper wick, bullish)',
+                            'HANGING_MAN': '━━┃ (Lower wick, bearish)',
+                            'PIERCING_PATTERN': '▯ ▮ (Green pierces red)',
+                            'DARK_CLOUD_COVER': '▮ ▯ (Red covers green)'
+                        }
                         
                         summary_df = pd.DataFrame([
                             {
                                 'Stock': r['Stock'],
-                                'Pattern': r['Pattern'],
+                                'Icon': pattern_icons.get(r['Pattern'], '📊'),
+                                'Pattern': r['Pattern'].replace('_', ' ').title(),
+                                'Visual': pattern_visuals.get(r['Pattern'], ''),
                                 'Type': r['Type'],
                                 'Action': r['Action'].split('(')[0].strip(),  # Short action
                                 'Price': r['Price'],
@@ -854,12 +890,12 @@ elif page == "Chart Analysis":
                                     else:
                                         st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
                                         st.caption(f"  • No pattern detected")
-                    
-                    # Display SELL signals
-                    if sell_signals:
-                        st.markdown("### 🔴 SELL SIGNALS")
-                        for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
-                            with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
+                        
+                        # Display SELL signals
+                        if sell_signals:
+                            st.markdown("### 🔴 SELL SIGNALS")
+                            for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
+                                with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
                                     col1, col2, col3 = st.columns([2, 2, 1])
                                     
                                     with col1:
