@@ -314,22 +314,10 @@ if page == "Dashboard":
     # About Developer
     st.markdown("## 👩‍💻 About the Developer")
     
-    col1, col2 = st.columns([1, 3])
-    
-    with col1:
-        try:
-            # Display developer photo
-            st.image("C:/Users/admin/Downloads/WhatsApp Image 2025-11-13 at 2.20.42 PM.jpeg", 
-                    width=200, 
-                    caption="J Swarnalakshmi")
-        except:
-            st.markdown("**J Swarnalakshmi**")
-    
-    with col2:
-        st.markdown("""
-        <div style='background-color: #f0f2f6; padding: 2rem; border-radius: 10px; border-left: 5px solid #667eea;'>
-            <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
-            <p style='font-size: 1rem; color: #666; margin-bottom: 1rem;'><strong>Software Developer & Trading Systems Architect</strong></p>
+    st.markdown("""
+    <div style='background-color: #f0f2f6; padding: 2rem; border-radius: 10px; border-left: 5px solid #667eea;'>
+        <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
+        <p style='font-size: 1rem; color: #666; margin-bottom: 1rem;'><strong>Software Developer & Trading Systems Architect</strong></p>
             
             <p style='font-size: 1rem; line-height: 1.8; text-align: justify;'>
                 A dedicated software developer with a passion for creating innovative solutions at the intersection of 
@@ -364,11 +352,11 @@ if page == "Dashboard":
             </p>
             
             <p style='font-size: 0.9rem; line-height: 1.6; margin-top: 1rem; color: #666;'>
-                <strong>Mission:</strong> To democratize institutional-grade trading analysis tools and empower individual 
-                traders with professional, data-driven insights that were once available only to large financial institutions.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+            <strong>Mission:</strong> To democratize institutional-grade trading analysis tools and empower individual 
+            traders with professional, data-driven insights that were once available only to large financial institutions.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
