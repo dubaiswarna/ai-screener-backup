@@ -389,6 +389,16 @@ if page == "Dashboard":
     - **Database:** PostgreSQL (Persistent signal storage)
     """)
     
+    # Today's Work Log
+    today_label = datetime.now().strftime("%d %b %Y")
+    st.markdown(f"## 🗓️ Today's Work — {today_label}")
+    st.markdown("""
+    - ✅ Confirmed Siga-based candlestick rules across chart analysis and batch pattern reporting (EOD-only candles)
+    - ✅ Upgraded Technical Screener with universe, manual, and single-stock modes plus safer run controls
+    - ✅ Refreshed dashboard hero copy and developer bio for a concise professional introduction
+    - ✅ Updated Dhan integration token so live data utilities remain operational
+    """)
+    
     st.markdown("---")
     
     # Quick Start Guide
