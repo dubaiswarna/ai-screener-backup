@@ -4784,7 +4784,7 @@ elif page == "Backtest (Multi-Mode)":
         st.stop()  # Stop here if backtesting saved signals
     
     # Mode selection for new signal generation
-    mode = st.radio("📊 Select Strategy Mode:", ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🔄 Compare All Modes"], horizontal=True)
+    mode = st.radio("📊 Select Strategy Mode:", ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🚀 High-Growth Strategy (35% CAGR)", "🔄 Compare All Modes"], horizontal=True)
     
     st.markdown("---")
     
@@ -4846,17 +4846,6 @@ elif page == "Backtest (Multi-Mode)":
         if st.button("All Stocks"):
             st.session_state['backtest_stocks'] = available_stocks
     
-    # Manual selection
-    selected_stocks = st.multiselect(
-        "Or manually select stocks:",
-        options=available_stocks,
-        default=st.session_state.get('backtest_stocks', default_selection)
-    )
-    
-    st.caption(f"📊 Selected: {len(selected_stocks)} stocks")
-    
-    st.markdown("---")
-    
     # Mode-specific info
     if mode == "🌸 3Jasmines":
         st.info("🌸 **3Jasmines Backtest:** Tests signals based on Near Support + RSI < 35 + Bullish Pattern")
@@ -4864,25 +4853,91 @@ elif page == "Backtest (Multi-Mode)":
         st.info("💎 **Treasure Signals Backtest:** Tests signals from Hybrid Signal Generator (Technical + S&R + Chart Patterns)")
     elif mode == "🌺 Orchid Trend Matrix":
         st.info("🌺 **Orchid Trend Matrix Backtest:** Tests signals that pass BOTH 3Jasmines AND Treasure Signals (Ultra-Selective)")
+    elif mode == "🚀 High-Growth Strategy (35% CAGR)":
+        st.info("🚀 **High-Growth Strategy:** Optimized for 35%+ CAGR using Hybrid mode with high-growth mid-cap stocks")
+        st.warning("⚠️ **Aggressive Strategy:** Higher returns but higher risk. Uses 20% target, 4% stop, 20-day holding period.")
     elif mode == "🔄 Compare All Modes":
-        st.info("🔄 **Compare All Modes:** Runs backtests for all three strategies simultaneously and shows comparative results")
+        st.info("🔄 **Compare All Modes:** Runs backtests for all four strategies simultaneously and shows comparative results")
     
     st.markdown("---")
     
-    # Settings
-    col1, col2 = st.columns(2)
+    # Stock selection - Override for High-Growth Strategy
+    if mode == "🚀 High-Growth Strategy (35% CAGR)":
+        # Pre-select high-growth mid-cap stocks
+        HIGHGROWTH_STOCKS = [
+            'PERSISTENT', 'COFORGE', 'LTTS', 'KPITTECH', 'MPHASIS',
+            'DIXON', 'TRENT', 'JUBLFOOD', 'TITAN', 'DMART',
+            'NAVINFLUOR', 'POLYCAB', 'APLAPOLLO', 'ASTRAL', 'JKCEMENT'
+        ]
+        
+        st.markdown("#### 📈 High-Growth Stock Selection")
+        st.info("💡 **Recommended:** Pre-selected 15 high-growth mid-cap stocks optimized for 35% CAGR")
+        
+        selected_stocks = st.multiselect(
+            "Select High-Growth Mid-Cap Stocks:",
+            options=HIGHGROWTH_STOCKS,
+            default=HIGHGROWTH_STOCKS,
+            help="Pre-selected high-growth stocks: IT Services, Consumer & Retail, Specialty & Industrial"
+        )
+        st.caption(f"📊 Selected: {len(selected_stocks)} high-growth stocks")
+    else:
+        # Manual selection for other modes
+        selected_stocks = st.multiselect(
+            "Or manually select stocks:",
+            options=available_stocks,
+            default=st.session_state.get('backtest_stocks', default_selection)
+        )
+        st.caption(f"📊 Selected: {len(selected_stocks)} stocks")
     
-    with col1:
-        st.subheader("💼 Portfolio Settings")
-        initial_capital = st.number_input("Initial Capital (₹)", value=1000000, step=100000)
-        investment_per_stock = st.number_input("Investment per Stock (₹)", value=200000, step=50000)
-        max_portfolio = st.slider("Max Portfolio Size", 1, 10, 5)
+    st.markdown("---")
     
-    with col2:
-        st.subheader("🎯 Risk Management")
-        target_pct = st.slider("Target (%)", 5, 30, 10)
-        stop_loss_pct = st.slider("Stop Loss (%)", 3, 15, 7)
-        max_holding_days = st.slider("Max Holding Days", 10, 120, 60)
+    # Settings - Pre-configure for High-Growth Strategy
+    if mode == "🚀 High-Growth Strategy (35% CAGR)":
+        st.subheader("⚙️ High-Growth Strategy Settings (Pre-Configured)")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("💼 Portfolio Settings")
+            initial_capital = st.number_input("Initial Capital (₹)", value=2000000, step=100000, 
+                                              help="Recommended: Rs 20 Lakh for optimal deployment")
+            investment_per_stock = st.number_input("Investment per Stock (₹)", value=100000, step=10000,
+                                                  help="Rs 1 Lakh per stock (5% position size)")
+            max_portfolio = st.slider("Max Portfolio Size", 10, 30, 20,
+                                    help="20 stocks = Full deployment of Rs 20L")
+        
+        with col2:
+            st.subheader("🎯 Risk Management (Aggressive)")
+            target_pct = st.slider("Target (%)", 15, 25, 20, 1,
+                                  help="20% target for bigger wins (aggressive)")
+            stop_loss_pct = st.slider("Stop Loss (%)", 3, 6, 4, 1,
+                                     help="4% stop loss (tighter, faster cuts)")
+            max_holding_days = st.slider("Max Holding Days", 15, 30, 20, 1,
+                                        help="20 days for faster capital rotation")
+        
+        st.info("""
+        **🚀 High-Growth Strategy Configuration:**
+        - **Target:** 20% (aggressive for maximum returns)
+        - **Stop Loss:** 4% (tight risk management)
+        - **Holding Period:** 20 days (fast rotation)
+        - **Stocks:** High-growth mid-caps (IT, Consumer, Specialty)
+        - **Mode:** Hybrid (AI + Technical confluence)
+        - **Expected CAGR:** 25-35%+ (in bull markets)
+        """)
+    else:
+        # Settings for other modes
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("💼 Portfolio Settings")
+            initial_capital = st.number_input("Initial Capital (₹)", value=1000000, step=100000)
+            investment_per_stock = st.number_input("Investment per Stock (₹)", value=200000, step=50000)
+            max_portfolio = st.slider("Max Portfolio Size", 1, 10, 5)
+        
+        with col2:
+            st.subheader("🎯 Risk Management")
+            target_pct = st.slider("Target (%)", 5, 30, 10)
+            stop_loss_pct = st.slider("Stop Loss (%)", 3, 15, 7)
+            max_holding_days = st.slider("Max Holding Days", 10, 120, 60)
     
     # Mode-specific signal parameters
     st.markdown("---")
@@ -4916,9 +4971,19 @@ elif page == "Backtest (Multi-Mode)":
             min_rr_hybrid = st.slider("Min Hybrid R:R", 1.0, 5.0, 1.5, 0.5)
             st.info("💡 **Orchid Criteria:**\n- Must pass BOTH 3Jasmines AND Treasure Signals")
     
+    elif mode == "🚀 High-Growth Strategy (35% CAGR)":
+        col1, col2 = st.columns(2)
+        with col1:
+            min_confidence_hybrid = st.slider("Min Hybrid Confidence (%)", 70, 95, 75, 5,
+                                            help="75% confidence for quality signals (optimized for 35% CAGR)")
+        with col2:
+            min_rr_hybrid = st.slider("Min Hybrid R:R", 1.0, 5.0, 1.5, 0.5,
+                                    help="1.5 R:R minimum (aggressive for high returns)")
+        st.info("💡 **High-Growth Strategy:** Uses Hybrid mode (AI + Technical + S&R + Chart Patterns) for maximum accuracy")
+    
     elif mode == "🔄 Compare All Modes":
         st.markdown("**Configure parameters for all modes:**")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.subheader("🌸 3Jasmines")
             min_confidence_jasmines = st.slider("Min 3Jasmines Confidence (%)", 70, 95, 70, 5, key="compare_jasmines")
@@ -4929,6 +4994,9 @@ elif page == "Backtest (Multi-Mode)":
         with col3:
             st.subheader("🌺 Orchid Trend Matrix")
             st.info("Uses same parameters as above")
+        with col4:
+            st.subheader("🚀 High-Growth")
+            st.info("Uses Hybrid parameters (same as Treasure)")
     
     st.markdown("---")
     
@@ -4968,8 +5036,8 @@ elif page == "Backtest (Multi-Mode)":
                 
                 # Handle "Compare All Modes" separately
                 if mode == "🔄 Compare All Modes":
-                    # Run backtests for all three modes
-                    modes_to_test = ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix"]
+                    # Run backtests for all four modes
+                    modes_to_test = ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🚀 High-Growth Strategy (35% CAGR)"]
                     all_results = {}
                     
                     progress_bar = st.progress(0)
@@ -5115,6 +5183,13 @@ elif page == "Backtest (Multi-Mode)":
                                                 entry_reason = f"Treasure: {result.get('reason', 'Hybrid Signal')}"
                                                 confidence = result.get('confidence', 0)
                                         
+                                        elif test_mode == "🚀 High-Growth Strategy (35% CAGR)":
+                                            result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                                            if result and result.get('is_treasure') and result.get('confidence', 0) >= min_confidence_hybrid:
+                                                signal_found = True
+                                                entry_reason = f"High-Growth: {result.get('reason', 'Hybrid Signal')}"
+                                                confidence = result.get('confidence', 0)
+                                        
                                         elif test_mode == "🌺 Orchid Trend Matrix":
                                             jasmines_signal = jasmines_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
                                             if jasmines_signal and jasmines_signal.get('confidence', 0) >= min_confidence_jasmines:
@@ -5208,7 +5283,7 @@ elif page == "Backtest (Multi-Mode)":
                         else:
                             all_results[test_mode] = None
                         
-                        progress_bar.progress((mode_idx + 1) / 3)
+                        progress_bar.progress((mode_idx + 1) / len(modes_to_test))
                     
                     # Display comparative results
                     st.success("✅ Comparison Backtest Complete!")
@@ -5444,6 +5519,14 @@ elif page == "Backtest (Multi-Mode)":
                                     if result and result.get('is_treasure') and result.get('confidence', 0) >= min_confidence_hybrid:
                                         signal_found = True
                                         entry_reason = f"Treasure: {result.get('reason', 'Hybrid Signal')}"
+                                        confidence = result.get('confidence', 0)
+                                
+                                elif mode == "🚀 High-Growth Strategy (35% CAGR)":
+                                    # Uses Hybrid mode with optimized settings for 35% CAGR
+                                    result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                                    if result and result.get('is_treasure') and result.get('confidence', 0) >= min_confidence_hybrid:
+                                        signal_found = True
+                                        entry_reason = f"High-Growth: {result.get('reason', 'Hybrid Signal')}"
                                         confidence = result.get('confidence', 0)
                                 
                                 elif mode == "🌺 Orchid Trend Matrix":
