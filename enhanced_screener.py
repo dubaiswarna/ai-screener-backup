@@ -1410,7 +1410,7 @@ elif page == "Generate New Signal":
                 if EXPANDED_UNIVERSE_AVAILABLE:
                     universe_choice = st.selectbox(
                         "Select Universe:",
-                        ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "ALL Stocks (750+)"]
+                        ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "Small Cap 250 (250 stocks)", "ALL Stocks (750+)"]
                     )
                 else:
                     universe_choice = "Nifty 50 (51 stocks)"
@@ -1420,6 +1420,8 @@ elif page == "Generate New Signal":
                     stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
                 elif "Nifty 200" in universe_choice:
                     stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+                elif "Small Cap 250" in universe_choice:
+                    stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
                 else:
                     stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
             
@@ -1708,7 +1710,7 @@ elif page == "3Jasmines 🌸":
     
     selection_mode = st.radio(
         "Choose stock universe:",
-        ["Nifty 50", "Nifty 200", "ALL Stocks (750+)", "Manual Selection"],
+        ["Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
         horizontal=True
     )
     
@@ -1718,6 +1720,8 @@ elif page == "3Jasmines 🌸":
         stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
     elif selection_mode == "Nifty 200":
         stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "Small Cap 250":
+        stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
     elif selection_mode == "ALL Stocks (750+)":
         stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
     else:  # Manual Selection
