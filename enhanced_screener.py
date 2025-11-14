@@ -2404,9 +2404,10 @@ elif page == "Orchid Trend Matrix":
             
             # Step 1: Run 3Jasmines Screener
             st.markdown("#### 🌸 Step 1: Running 3Jasmines Screener...")
+            st.caption(f"📊 Min 3Jasmines Confidence: {min_confidence_jasmines}%")
             for idx, symbol in enumerate(stock_list):
                 try:
-                    status_text.text(f"3Jasmines: {symbol}... ({idx+1}/{len(stock_list)})")
+                    status_text.text(f"🌸 3Jasmines (Min {min_confidence_jasmines}%): {symbol}... ({idx+1}/{len(stock_list)})")
                     
                     ticker = yf.Ticker(get_yfinance_symbol(symbol))
                     df_raw = ticker.history(period="6mo", interval="1d")
@@ -2438,11 +2439,12 @@ elif page == "Orchid Trend Matrix":
             # Step 2: Run Hybrid Signal Generator on 3Jasmines signals
             if jasmines_signals:
                 st.markdown("#### 💎 Step 2: Running Hybrid Signal Generator on 3Jasmines stocks...")
+                st.caption(f"📊 Min Hybrid Confidence: {min_confidence_hybrid}% | Min R:R: {min_rr_hybrid}")
                 jasmines_symbols = list(jasmines_signals.keys())
                 
                 for idx, symbol in enumerate(jasmines_symbols):
                     try:
-                        status_text.text(f"Hybrid: {symbol}... ({idx+1}/{len(jasmines_symbols)})")
+                        status_text.text(f"💎 Hybrid (Min {min_confidence_hybrid}%, R:R {min_rr_hybrid}): {symbol}... ({idx+1}/{len(jasmines_symbols)})")
                         
                         ticker = yf.Ticker(get_yfinance_symbol(symbol))
                         df_raw = ticker.history(period="6mo", interval="1d")
