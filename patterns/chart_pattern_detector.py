@@ -1,27 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-Professional Chart Pattern Detector
-====================================
+Professional Chart Pattern Detector - UPDATED WITH SIGA CRITERIA
+=================================================================
 
-Detects 12 major candlestick patterns with high accuracy:
+✅ UPDATED PATTERNS (Based on Siga Candle Pattern Reference):
+1. 🔨 Bullish Hammer - Long lower wick (≥2x body), small/no upper shadow
+2. ➕ Doji - Open/close difference ≤10% of range
+3. 💚 Bullish Harami - Small green inside large red (NEW!)
+4. 📦 Bullish Engulfing - Large green engulfs previous red
+5. ⭐🌅 Morning Star - 3-candle bullish reversal
 
-BULLISH PATTERNS (6):
-1. Hammer - Long lower wick at support
-2. Inverted Hammer - Long upper wick, reversal signal
-3. Bullish Engulfing - Large green candle engulfs previous red
-4. Piercing Pattern - Green candle pierces >50% of previous red
-5. Morning Star - 3-candle bullish reversal
-6. Three White Soldiers - 3 consecutive strong green candles
+BULLISH PATTERNS (7):
+1. Hammer - Long lower wick at support (SIGA)
+2. Bullish Harami - Small green inside large red (NEW - SIGA)
+3. Inverted Hammer - Long upper wick, reversal signal
+4. Bullish Engulfing - Large green candle engulfs previous red (SIGA)
+5. Piercing Pattern - Green candle pierces >50% of previous red
+6. Morning Star - 3-candle bullish reversal (SIGA)
+7. Three White Soldiers - 3 consecutive strong green candles
 
 BEARISH PATTERNS (6):
-7. Shooting Star - Long upper wick at resistance
-8. Hanging Man - Long lower wick at top (bearish)
-9. Bearish Engulfing - Large red candle engulfs previous green
-10. Dark Cloud Cover - Red candle covers >50% of previous green
-11. Evening Star - 3-candle bearish reversal
-12. Three Black Crows - 3 consecutive strong red candles
+8. Shooting Star - Long upper wick at resistance
+9. Hanging Man - Long lower wick at top (bearish)
+10. Bearish Engulfing - Large red candle engulfs previous green
+11. Dark Cloud Cover - Red candle covers >50% of previous green
+12. Evening Star - 3-candle bearish reversal
+13. Three Black Crows - 3 consecutive strong red candles
 
-Based on institutional trading standards and Japanese candlestick analysis.
+NEUTRAL PATTERNS (1):
+14. Doji - Indecision pattern (SIGA - 10% threshold)
+
+Based on SIGA candle pattern criteria & institutional trading standards.
 """
 
 import pandas as pd
@@ -91,12 +100,12 @@ class ChartPatternDetector:
     
     def detect_hammer(self, df: pd.DataFrame, idx: int) -> Optional[Dict]:
         """
-        Hammer: Long lower wick, small body at top, bullish reversal at support
+        🔨 Bullish Hammer (SIGA CRITERIA)
         
-        Criteria:
-        - Lower wick >= 2x body
-        - Upper wick very small (<10% of range)
-        - Body in upper 1/3 of range
+        ✅ Siga Definition:
+        - Long lower wick (at least 2× the body length)
+        - Small or no upper shadow
+        - Color doesn't matter (can be red or green)
         - Appears at support (downtrend)
         
         Returns:
@@ -133,16 +142,55 @@ class ChartPatternDetector:
         
         return None
     
+    def detect_bullish_harami(self, df: pd.DataFrame, idx: int) -> Optional[Dict]:
+        """
+        💚 Bullish Harami (SIGA CRITERIA)
+        
+        ✅ Siga Definition:
+        - Previous candle: large red (bearish)
+        - Current candle: smaller green (bullish) inside the previous candle's body
+        
+        Returns:
+            Dict with pattern info or None
+        """
+        if idx < 1:
+            return None
+        
+        prev = self.get_candle_parts(df.iloc[idx-1])
+        current = self.get_candle_parts(df.iloc[idx])
+        
+        # Siga Criteria:
+        # 1. Previous candle is large red (bearish)
+        prev_is_large_red = not prev['is_bullish'] and prev['body'] / prev['range'] > 0.6
+        
+        # 2. Current candle is smaller green (bullish) inside previous body
+        current_is_green = current['is_bullish']
+        current_inside_prev = (current['open'] > prev['close'] and 
+                               current['close'] < prev['open'] and
+                               current['body'] < prev['body'])
+        
+        if prev_is_large_red and current_is_green and current_inside_prev:
+            # Calculate confidence
+            size_ratio = current['body'] / prev['body']
+            confidence = 70 + (15 if size_ratio < 0.5 else 10)  # Smaller inside = stronger
+            
+            return {
+                'pattern': 'BULLISH_HARAMI',
+                'type': 'BULLISH',
+                'confidence': round(confidence, 1),
+                'description': 'Bullish reversal - Small green inside large red',
+                'strength': 'HIGH' if confidence > 75 else 'MEDIUM'
+            }
+        
+        return None
+    
     def detect_bullish_engulfing(self, df: pd.DataFrame, idx: int) -> Optional[Dict]:
         """
-        Bullish Engulfing: Large green candle completely engulfs previous red candle
+        📦 Bullish Engulfing (SIGA CRITERIA)
         
-        Criteria:
-        - Previous candle is red (bearish)
-        - Current candle is green (bullish)
-        - Current body completely covers previous body
-        - Current opens below previous close
-        - Current closes above previous open
+        ✅ Siga Definition:
+        - First candle red (small)
+        - Second candle green and large enough to engulf the previous red body
         
         Returns:
             Dict with pattern info or None
@@ -185,12 +233,12 @@ class ChartPatternDetector:
     
     def detect_morning_star(self, df: pd.DataFrame, idx: int) -> Optional[Dict]:
         """
-        Morning Star: 3-candle bullish reversal pattern
+        ⭐🌅 Morning Star (SIGA CRITERIA)
         
-        Criteria:
-        - Candle 1: Large red (bearish)
-        - Candle 2: Small body (doji/spinning top) - gap down
-        - Candle 3: Large green (bullish) - closes above candle 1 midpoint
+        ✅ Siga Definition:
+        - 1st candle: big red
+        - 2nd candle: doji or spinning top (small body)
+        - 3rd candle: big green, closes above mid of 1st candle
         
         Returns:
             Dict with pattern info or None
@@ -358,30 +406,30 @@ class ChartPatternDetector:
     
     def detect_doji(self, df: pd.DataFrame, idx: int) -> Optional[Dict]:
         """
-        Doji: Very small body (open ≈ close), indecision pattern
+        ➕ Doji (SIGA CRITERIA)
         
-        Professional Criteria:
-        - Body < 5% of range (strict for true Doji)
-        - Both wicks should be present
-        - Open and Close very close to each other
+        ✅ Siga Definition:
+        - Open and close are nearly the same (difference ≤ 10% of total range)
+        - Long or short wicks possible
+        - Used to classify types like Dragonfly, Gravestone, etc.
         """
         current = self.get_candle_parts(df.iloc[idx])
         
-        # STRICT Doji criteria: body < 5% of range (was 10%, too loose!)
+        # Siga Doji criteria: body ≤ 10% of range
         if current['range'] == 0:
             return None
         
         body_to_range_ratio = current['body'] / current['range']
         
-        is_doji = body_to_range_ratio < 0.05  # STRICT: Body must be < 5% of range
+        is_doji = body_to_range_ratio <= 0.10  # SIGA: Body ≤ 10% of range
         
-        # Optional: Check if both wicks present (classic Doji)
+        # Check if both wicks present (classic Doji)
         has_upper_wick = current['upper_wick'] > 0
         has_lower_wick = current['lower_wick'] > 0
         
-        if is_doji and has_upper_wick and has_lower_wick:
+        if is_doji:
             # Calculate confidence based on how small the body is
-            confidence = 70 - (body_to_range_ratio * 200)  # Smaller body = higher confidence
+            confidence = 70 - (body_to_range_ratio * 100)  # Smaller body = higher confidence
             confidence = max(50, min(85, confidence))
             
             return {
@@ -477,6 +525,10 @@ class ChartPatternDetector:
             hammer = self.detect_hammer(df, i)
             if hammer:
                 patterns_found.append(hammer)
+            
+            harami_bull = self.detect_bullish_harami(df, i)
+            if harami_bull:
+                patterns_found.append(harami_bull)
             
             engulfing_bull = self.detect_bullish_engulfing(df, i)
             if engulfing_bull:
