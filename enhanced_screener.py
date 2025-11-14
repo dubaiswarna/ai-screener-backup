@@ -44,6 +44,74 @@ except ImportError:
     ALL_ASSETS = []
 
 # ============================================================
+# HELPER: My Stocks Management
+# ============================================================
+
+def initialize_my_stocks():
+    """Initialize My Stocks list with default favorites"""
+    if 'my_stocks' not in st.session_state:
+        st.session_state.my_stocks = ['MGL', 'LEMONTREE']
+    return st.session_state.my_stocks
+
+def get_my_stocks():
+    """Get current My Stocks list"""
+    initialize_my_stocks()
+    return st.session_state.my_stocks
+
+def add_to_my_stocks(symbol):
+    """Add a stock to My Stocks list"""
+    initialize_my_stocks()
+    symbol = symbol.strip().upper()
+    if symbol and symbol not in st.session_state.my_stocks:
+        st.session_state.my_stocks.append(symbol)
+        return True
+    return False
+
+def remove_from_my_stocks(symbol):
+    """Remove a stock from My Stocks list"""
+    initialize_my_stocks()
+    symbol = symbol.strip().upper()
+    if symbol in st.session_state.my_stocks:
+        st.session_state.my_stocks.remove(symbol)
+        return True
+    return False
+
+def render_my_stocks_manager():
+    """Render UI to manage My Stocks list"""
+    initialize_my_stocks()
+    
+    with st.expander("⭐ Manage My Stocks", expanded=False):
+        st.markdown("**Your Favorite Stocks:**")
+        
+        # Display current stocks
+        if st.session_state.my_stocks:
+            cols = st.columns(min(len(st.session_state.my_stocks), 5))
+            for idx, stock in enumerate(st.session_state.my_stocks):
+                with cols[idx % len(cols)]:
+                    if st.button(f"❌ {stock}", key=f"remove_{stock}", use_container_width=True):
+                        remove_from_my_stocks(stock)
+                        st.rerun()
+        else:
+            st.info("No stocks in your list. Add some below!")
+        
+        # Add new stock
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            new_stock = st.text_input("Add Stock Symbol:", key="add_stock_input", 
+                                    placeholder="Enter symbol (e.g., RELIANCE)")
+        with col2:
+            st.write("")  # Spacing
+            if st.button("➕ Add", key="add_stock_btn", use_container_width=True):
+                if new_stock:
+                    if add_to_my_stocks(new_stock):
+                        st.success(f"✅ Added {new_stock.upper()} to My Stocks!")
+                        st.rerun()
+                    else:
+                        st.warning(f"⚠️ {new_stock.upper()} is already in your list or invalid")
+        
+        st.caption(f"📊 Total: {len(st.session_state.my_stocks)} stocks in My Stocks")
+
+# ============================================================
 # HELPER: Symbol Mapping for Yahoo Finance
 # ============================================================
 
@@ -1400,14 +1468,17 @@ elif page == "Lotus Momentum Trio":
             st.markdown("#### 📈 Stock Selection")
             selection_mode = st.radio(
                 "Choose how to select stocks:",
-                ["Universe (Batch Analysis)", "Manual Selection (Specific Stocks)"],
+                ["⭐ My Stocks", "Universe (Batch Analysis)", "Manual Selection (Specific Stocks)"],
                 horizontal=True,
-                help="Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
+                help="My Stocks: Your favorites | Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
             )
             
             stock_list = []
             
-            if selection_mode == "Universe (Batch Analysis)":
+            if selection_mode == "⭐ My Stocks":
+                stock_list = get_my_stocks()
+                render_my_stocks_manager()
+            elif selection_mode == "Universe (Batch Analysis)":
                 if EXPANDED_UNIVERSE_AVAILABLE:
                     universe_choice = st.selectbox(
                         "Select Universe:",
@@ -1681,14 +1752,17 @@ elif page == "Hybrid Signal Generator 💎":
         st.markdown("#### 📈 Stock Selection")
         selection_mode = st.radio(
             "Choose how to select stocks:",
-            ["Universe (Batch Analysis)", "Manual Selection (Specific Stocks)"],
+            ["⭐ My Stocks", "Universe (Batch Analysis)", "Manual Selection (Specific Stocks)"],
             horizontal=True,
-            help="Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
+            help="My Stocks: Your favorites | Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
         )
         
         stock_list = []
         
-        if selection_mode == "Universe (Batch Analysis)":
+        if selection_mode == "⭐ My Stocks":
+            stock_list = get_my_stocks()
+            render_my_stocks_manager()
+        elif selection_mode == "Universe (Batch Analysis)":
             if EXPANDED_UNIVERSE_AVAILABLE:
                 universe_choice = st.selectbox(
                     "Select Universe:",
@@ -1992,13 +2066,16 @@ elif page == "3Jasmines 🌸":
     
     selection_mode = st.radio(
         "Choose stock universe:",
-        ["Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
+        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
         horizontal=True
     )
     
     stock_list = []
     
-    if selection_mode == "Nifty 50":
+    if selection_mode == "⭐ My Stocks":
+        stock_list = get_my_stocks()
+        render_my_stocks_manager()
+    elif selection_mode == "Nifty 50":
         stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
     elif selection_mode == "Nifty 200":
         stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
@@ -2221,13 +2298,16 @@ elif page == "Orchid Trend Matrix":
     
     selection_mode = st.radio(
         "Choose stock universe:",
-        ["Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
+        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
         horizontal=True
     )
     
     stock_list = []
     
-    if selection_mode == "Nifty 50":
+    if selection_mode == "⭐ My Stocks":
+        stock_list = get_my_stocks()
+        render_my_stocks_manager()
+    elif selection_mode == "Nifty 50":
         stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
     elif selection_mode == "Nifty 200":
         stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
@@ -2531,7 +2611,7 @@ elif page == "Technical Screener":
     
     selection_mode = st.radio(
         "Choose how to pick stocks:",
-        ("Universe (Batch Analysis)", "Manual Selection", "Single Stock Analysis"),
+        ("⭐ My Stocks", "Universe (Batch Analysis)", "Manual Selection", "Single Stock Analysis"),
         index=0,
         key="technical_screener_stock_mode"
     )
@@ -2540,7 +2620,10 @@ elif page == "Technical Screener":
     manual_input = ""
     single_symbol = ""
     
-    if selection_mode == "Universe (Batch Analysis)":
+    if selection_mode == "⭐ My Stocks":
+        stocks = get_my_stocks()
+        render_my_stocks_manager()
+    elif selection_mode == "Universe (Batch Analysis)":
         if EXPANDED_UNIVERSE_AVAILABLE:
             universe_options = [
                 "Top 10 (Quick Test)",
@@ -4823,12 +4906,16 @@ elif page == "Backtest (Multi-Mode)":
     if EXPANDED_UNIVERSE_AVAILABLE:
         universe_selection = st.radio(
             "Choose Stock Universe:",
-            ["Nifty 50", "Nifty 200", "Nifty 500", "Smallcap 250", "Commodities (Gold, Silver)", "ALL Stocks (750+)", "ALL Assets (Stocks + Commodities)", "Custom Selection"],
+            ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Nifty 500", "Smallcap 250", "Commodities (Gold, Silver)", "ALL Stocks (750+)", "ALL Assets (Stocks + Commodities)", "Custom Selection"],
             horizontal=True
         )
         
         # Map selection to stock list
-        if universe_selection == "Nifty 50":
+        if universe_selection == "⭐ My Stocks":
+            available_stocks = get_my_stocks()
+            default_selection = get_my_stocks()
+            render_my_stocks_manager()
+        elif universe_selection == "Nifty 50":
             available_stocks = NIFTY_50
             default_selection = NIFTY_50[:10]
         elif universe_selection == "Nifty 200":
