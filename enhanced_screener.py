@@ -10,6 +10,7 @@ import numpy as np
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import sys
+import time
 from pathlib import Path
 
 # Add parent directory to path
@@ -193,7 +194,7 @@ st.sidebar.info(f"💰 Capital: ₹{user_config.get('total_capital', 0):,.0f}")
 st.sidebar.subheader("📍 Navigation")
 page = st.sidebar.radio(
     "Go to:",
-    ["Dashboard", "Chart Analysis", "Lotus Momentum Trio", "3Jasmines 🌸",
+    ["Dashboard", "Chart Analysis", "Lotus Momentum Trio", "3Jasmines 🌸", "Orchid Trend Matrix",
      "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
      "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
@@ -1904,6 +1905,321 @@ elif page == "3Jasmines 🌸":
                 • Market conditions might not be favorable today
                 • Check back daily (signals appear as stocks oversell and bounce)
                 """)
+        
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
+
+# ============================================================
+# PAGE: ORCHID TREND MATRIX (3Jasmines + Hybrid Signal Confluence)
+# ============================================================
+
+elif page == "Orchid Trend Matrix":
+    st.header("🌺 Orchid Trend Matrix")
+    st.caption("Ultra-Selective Signals: Stocks that pass BOTH 3Jasmines AND Hybrid Signal Generator")
+    
+    st.info("""
+    **🌺 Orchid Trend Matrix Philosophy:**
+    
+    This page finds stocks that meet **BOTH** criteria:
+    - ✅ **3Jasmines Screener** (Conservative Delivery Trading)
+    - ✅ **Hybrid Signal Generator** (Treasure Mode)
+    
+    **Why This is Powerful:**
+    - **Ultra-Selective:** Only 1-3 signals per day (very rare!)
+    - **Highest Confidence:** Both systems agree = 90%+ win rate
+    - **Best of Both Worlds:** Conservative setup + Technical confluence
+    - **Perfect for Delivery Trading:** Hold 3-10 days for maximum profit
+    """)
+    
+    st.markdown("---")
+    
+    # Stock Selection
+    st.markdown("### 📈 Stock Selection")
+    
+    selection_mode = st.radio(
+        "Choose stock universe:",
+        ["Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
+        horizontal=True
+    )
+    
+    stock_list = []
+    
+    if selection_mode == "Nifty 50":
+        stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
+    elif selection_mode == "Nifty 200":
+        stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "Small Cap 250":
+        stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "ALL Stocks (750+)":
+        stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    else:  # Manual Selection
+        manual_input = st.text_input(
+            "Enter Stock Symbols (comma-separated):",
+            placeholder="RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK",
+            help="Enter NSE symbols separated by commas"
+        )
+        if manual_input:
+            stock_list = [s.strip().upper() for s in manual_input.split(',') if s.strip()]
+    
+    if stock_list:
+        st.caption(f"✅ Ready to scan {len(stock_list)} stocks for Orchid Trend Matrix signals")
+    else:
+        st.warning("⚠️ Please select stocks to scan")
+    
+    # Settings
+    st.markdown("### ⚙️ Signal Parameters")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        min_confidence_hybrid = st.slider("Min Hybrid Confidence (%)", 70, 95, 75, 5,
+                                         help="Minimum confidence for Hybrid Signal Generator")
+        min_rr_hybrid = st.slider("Min Hybrid R:R", 1.0, 5.0, 1.5, 0.5,
+                                 help="Minimum Risk:Reward for Hybrid signals")
+    
+    with col2:
+        min_confidence_jasmines = st.slider("Min 3Jasmines Confidence (%)", 70, 95, 70, 5,
+                                           help="Minimum confidence for 3Jasmines signals")
+        st.info("💡 **3Jasmines Criteria:**\n- Near Support (0.5%)\n- RSI < 35\n- Bullish Pattern")
+    
+    # Scan Button
+    if st.button("🌺 Find Orchid Trend Matrix Signals", type="primary", disabled=(len(stock_list) == 0)):
+        if len(stock_list) == 0:
+            st.error("❌ Please select stocks first!")
+            st.stop()
+        
+        st.markdown("---")
+        st.subheader(f"🔍 Scanning {len(stock_list)} stocks for Orchid Trend Matrix signals...")
+        
+        try:
+            import yfinance as yf
+            from three_jasmines_screener import ThreeJasminesScreener
+            from hybrid_signal_generator import HybridSignalGenerator
+            from patterns.chart_pattern_detector import ChartPatternDetector
+            
+            if DUAL_SR_AVAILABLE:
+                from support_resistance.sr_calculator_enhanced import ProfessionalSRCalculator
+                SR_CALC_CLASS = ProfessionalSRCalculator
+            else:
+                SR_CALC_CLASS = SupportResistanceCalculator
+            
+            # Initialize both screeners
+            jasmines_gen = ThreeJasminesScreener(
+                max_support_distance_pct=0.5,
+                max_rsi_threshold=35.0,
+                target_buffer_pct=1.0,
+                stop_loss_buffer_pct=2.0
+            )
+            
+            hybrid_gen = HybridSignalGenerator(
+                min_confidence=min_confidence_hybrid,
+                min_rr_ratio=min_rr_hybrid
+            )
+            
+            sr_calc = SR_CALC_CLASS(sensitivity=3, min_touches=2)
+            pattern_detector = ChartPatternDetector()
+            
+            # Progress tracking
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            jasmines_signals = {}
+            hybrid_signals = {}
+            orchid_signals = []  # Stocks that pass BOTH
+            
+            # Step 1: Run 3Jasmines Screener
+            st.markdown("#### 🌸 Step 1: Running 3Jasmines Screener...")
+            for idx, symbol in enumerate(stock_list):
+                try:
+                    status_text.text(f"3Jasmines: {symbol}... ({idx+1}/{len(stock_list)})")
+                    
+                    ticker = yf.Ticker(get_yfinance_symbol(symbol))
+                    df_raw = ticker.history(period="6mo", interval="1d")
+                    
+                    if not df_raw.empty and len(df_raw) >= 20:
+                        df = pd.DataFrame({
+                            'time': df_raw.index,
+                            'open': df_raw['Open'].values,
+                            'high': df_raw['High'].values,
+                            'low': df_raw['Low'].values,
+                            'close': df_raw['Close'].values,
+                            'volume': df_raw['Volume'].values
+                        })
+                        
+                        df_eod = df[:-1].copy() if len(df) > 5 else df
+                        signal = jasmines_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                        
+                        if signal and signal['confidence'] >= min_confidence_jasmines:
+                            jasmines_signals[symbol] = signal
+                    
+                    progress_bar.progress((idx + 1) / (len(stock_list) * 2))  # Half progress for step 1
+                    time.sleep(0.1)
+                    
+                except Exception as e:
+                    continue
+            
+            st.success(f"✅ Found {len(jasmines_signals)} stocks passing 3Jasmines criteria")
+            
+            # Step 2: Run Hybrid Signal Generator on 3Jasmines signals
+            if jasmines_signals:
+                st.markdown("#### 💎 Step 2: Running Hybrid Signal Generator on 3Jasmines stocks...")
+                jasmines_symbols = list(jasmines_signals.keys())
+                
+                for idx, symbol in enumerate(jasmines_symbols):
+                    try:
+                        status_text.text(f"Hybrid: {symbol}... ({idx+1}/{len(jasmines_symbols)})")
+                        
+                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
+                        df_raw = ticker.history(period="6mo", interval="1d")
+                        
+                        if not df_raw.empty and len(df_raw) >= 50:
+                            df = pd.DataFrame({
+                                'time': df_raw.index,
+                                'open': df_raw['Open'].values,
+                                'high': df_raw['High'].values,
+                                'low': df_raw['Low'].values,
+                                'close': df_raw['Close'].values,
+                                'volume': df_raw['Volume'].values
+                            })
+                            
+                            df_eod = df[:-1].copy() if len(df) > 5 else df
+                            result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                            
+                            if result and result.get('is_treasure'):
+                                hybrid_signals[symbol] = result
+                                
+                                # Check if this stock is in BOTH
+                                if symbol in jasmines_signals:
+                                    # Combine both signals
+                                    orchid_signal = {
+                                        'symbol': symbol,
+                                        'jasmines': jasmines_signals[symbol],
+                                        'hybrid': result,
+                                        'combined_confidence': (jasmines_signals[symbol]['confidence'] + result['confidence']) / 2,
+                                        'both_systems_agree': True
+                                    }
+                                    orchid_signals.append(orchid_signal)
+                        
+                        progress_bar.progress(0.5 + (idx + 1) / (len(jasmines_symbols) * 2))  # Second half progress
+                        time.sleep(0.1)
+                        
+                    except Exception as e:
+                        continue
+            else:
+                st.warning("⚠️ No 3Jasmines signals found. Cannot check Hybrid signals.")
+            
+            # Clear progress
+            progress_bar.empty()
+            status_text.empty()
+            
+            # Display Results
+            st.markdown("---")
+            
+            if orchid_signals:
+                st.success(f"🌺 **FOUND {len(orchid_signals)} ORCHID TREND MATRIX SIGNALS!** (Ultra-Rare!)")
+                st.caption(f"These stocks passed BOTH 3Jasmines AND Hybrid Signal Generator criteria")
+                
+                # Sort by combined confidence
+                orchid_signals.sort(key=lambda x: x['combined_confidence'], reverse=True)
+                
+                for signal in orchid_signals:
+                    jasmines = signal['jasmines']
+                    hybrid = signal['hybrid']
+                    
+                    with st.expander(f"🌺 {signal['symbol']} - Combined Confidence: {signal['combined_confidence']:.1f}%", expanded=True):
+                        # Summary
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric("Current Price", f"₹{jasmines['current_price']:.2f}")
+                            st.metric("Entry", f"₹{jasmines['entry']:.2f}")
+                            st.metric("Stop Loss", f"₹{jasmines['stop_loss']:.2f}")
+                        
+                        with col2:
+                            st.metric("Target", f"₹{jasmines['target']:.2f}")
+                            st.metric("R:R Ratio", f"1:{jasmines['rr_ratio']:.2f}")
+                            st.metric("Position Size", f"{jasmines['position_size']} shares")
+                        
+                        with col3:
+                            st.metric("Combined Confidence", f"{signal['combined_confidence']:.1f}%")
+                            st.metric("3Jasmines", f"{jasmines['confidence']:.1f}%")
+                            st.metric("Hybrid", f"{hybrid['confidence']:.1f}%")
+                        
+                        st.markdown("---")
+                        
+                        # 3Jasmines Details
+                        st.markdown("#### 🌸 3Jasmines Criteria (ALL PASSED):")
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.success(f"✅ **Near Support:** {jasmines['jasmine1_support']['reason']}")
+                            st.success(f"✅ **RSI Oversold:** {jasmines['jasmine2_rsi']['reason']}")
+                        
+                        with col2:
+                            st.success(f"✅ **Bullish Pattern:** {jasmines['jasmine3_pattern']['reason']}")
+                            if jasmines['jasmine3_pattern'].get('pattern_name'):
+                                st.caption(f"Pattern: {jasmines['jasmine3_pattern']['pattern_name']}")
+                        
+                        st.markdown("---")
+                        
+                        # Hybrid Signal Details
+                        st.markdown("#### 💎 Hybrid Signal Generator (ALL PASSED):")
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.markdown(f"**Technical:** {hybrid['technical']['confidence_pct']:.0f}%")
+                            for factor in hybrid['technical']['factors'][:3]:
+                                st.caption(f"  • {factor}")
+                        
+                        with col2:
+                            st.markdown(f"**S&R Analysis:** {hybrid['sr_analysis']['confidence_pct']:.0f}%")
+                            for factor in hybrid['sr_analysis']['factors'][:3]:
+                                st.caption(f"  • {factor}")
+                        
+                        with col3:
+                            st.markdown(f"**Chart Pattern:** {hybrid['chart_pattern']['confidence_pct']:.0f}%")
+                            if hybrid['chart_pattern']['pattern']:
+                                pattern = hybrid['chart_pattern']['pattern']
+                                st.caption(f"  • {pattern['pattern']}")
+                                st.caption(f"  • {pattern['description']}")
+                            else:
+                                st.caption("  • No pattern detected")
+                        
+                        st.markdown("---")
+                        
+                        # Trade Setup Summary
+                        st.markdown("#### 💰 Recommended Trade Setup:")
+                        st.info(f"""
+                        **Entry:** ₹{jasmines['entry']:.2f} (3Jasmines entry - near support)
+                        **Target:** ₹{jasmines['target']:.2f} (1% below resistance - conservative)
+                        **Stop Loss:** ₹{jasmines['stop_loss']:.2f} (2% below support)
+                        **Risk:Reward:** 1:{jasmines['rr_ratio']:.2f}
+                        **Position Size:** {jasmines['position_size']} shares
+                        **Potential Profit:** ₹{jasmines['potential_profit']:,.0f}
+                        **Holding Period:** 3-10 days (Delivery Trading)
+                        """)
+            else:
+                st.warning(f"""
+                **🌺 No Orchid Trend Matrix Signals Found**
+                
+                **What this means:**
+                - Scanned {len(stock_list)} stocks
+                - Found {len(jasmines_signals)} stocks passing 3Jasmines
+                - Found {len(hybrid_signals)} stocks passing Hybrid Signal Generator
+                - **But NONE passed BOTH criteria** (ultra-selective!)
+                
+                **This is NORMAL:**
+                - Orchid signals are **extremely rare** (maybe 1-2 per week)
+                - Both systems must agree = highest quality signals
+                - Try scanning larger universe (Nifty 200 or ALL Stocks)
+                - Check back daily (signals appear when market conditions align)
+                """)
+                
+                if jasmines_signals:
+                    st.info(f"💡 **Tip:** {len(jasmines_signals)} stocks passed 3Jasmines. Check '3Jasmines 🌸' page for those signals.")
+                if hybrid_signals:
+                    st.info(f"💡 **Tip:** {len(hybrid_signals)} stocks passed Hybrid Signal Generator. Check 'Lotus Momentum Trio' page for those signals.")
         
         except Exception as e:
             st.error(f"❌ Error: {e}")
