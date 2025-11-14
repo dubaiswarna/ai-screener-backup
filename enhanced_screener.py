@@ -4520,22 +4520,49 @@ elif page == "Backtest (Multi-Mode)":
         
         if not saved_signals:
             st.warning("⚠️ No saved signals found in database. Generate signals first using the screeners.")
-            st.info("💡 **Tip:** Use 3Jasmines, Hybrid Signal Generator, or Orchid Trend Matrix to generate and save signals.")
+            st.info("""
+            💡 **Tip:** Generate and save signals using:
+            - **🌸 3Jasmines Screener** - Conservative delivery trading signals
+            - **💎 Hybrid Signal Generator** - Treasure signals (Technical + S&R + Patterns)
+            - **🌺 Orchid Trend Matrix** - Ultra-selective (passes both 3Jasmines AND Hybrid)
+            - **🪷 Lotus Momentum Trio** - Manual entry or Hybrid mode signals
+            - **🚀 High-Growth Strategy** - Aggressive 35% CAGR signals
+            
+            All signals will be saved to database and available for backtesting here!
+            """)
             st.stop()
         
         # Filter options
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             min_confidence_filter = st.slider("Min Confidence Filter", 0, 100, 70, 5)
         with col2:
             signal_type_filter = st.selectbox("Signal Type", ["ALL", "BUY", "SELL"])
+        with col3:
+            # Get unique model names from signals
+            model_names = sorted(set([s.get('model_name', 'Unknown') for s in saved_signals]))
+            model_filter = st.selectbox("Model/Strategy", ["ALL"] + model_names,
+                                      help="Filter by signal generation method")
         
         # Filter signals
         filtered_signals = [s for s in saved_signals if s.get('confidence', 0) >= min_confidence_filter]
         if signal_type_filter != "ALL":
             filtered_signals = [s for s in filtered_signals if s.get('signal_type') == signal_type_filter]
+        if model_filter != "ALL":
+            filtered_signals = [s for s in filtered_signals if s.get('model_name', 'Unknown') == model_filter]
         
         st.caption(f"📊 Found {len(filtered_signals)} saved signals matching criteria")
+        
+        # Show signal breakdown by model/strategy
+        if filtered_signals:
+            from collections import Counter
+            model_counts = Counter([s.get('model_name', 'Unknown') for s in filtered_signals])
+            st.markdown("#### 📈 Signal Breakdown by Strategy:")
+            breakdown_cols = st.columns(min(len(model_counts), 5))
+            for idx, (model, count) in enumerate(model_counts.most_common()):
+                if idx < len(breakdown_cols):
+                    with breakdown_cols[idx]:
+                        st.metric(model, count)
         
         if not filtered_signals:
             st.warning("⚠️ No signals match the filter criteria. Adjust filters and try again.")
@@ -4552,8 +4579,10 @@ elif page == "Backtest (Multi-Mode)":
             confidence = signal.get('confidence', 0)
             entry = signal.get('entry_price', 0)
             generated_at = signal.get('generated_at', '')
+            model_name = signal.get('model_name', 'Unknown')
             
-            label = f"{symbol} | {signal_type} | {confidence:.1f}% | Entry: ₹{entry:.2f} | {generated_at}"
+            # Format label with model name
+            label = f"{symbol} | {model_name} | {signal_type} | {confidence:.1f}% | Entry: ₹{entry:.2f} | {generated_at}"
             signal_options[label] = signal
         
         selected_labels = st.multiselect(
