@@ -577,15 +577,17 @@ elif page == "Chart Analysis":
                     if df is None or df.empty:
                         st.error(f"❌ No data available for {symbol_input}")
                     else:
-                        current_price = df['close'].iloc[-1]
+                        # USE ONLY EOD DATA (exclude today's incomplete candle)
+                        df_eod = df[:-1].copy() if len(df) > 5 else df
+                        current_price = df_eod['close'].iloc[-1]
                         
                         # Initialize analyzers
                         hybrid_gen = HybridSignalGenerator(min_confidence=min_confidence_analysis, min_rr_ratio=min_rr_analysis)
                         sr_calc = SR_CALC_CLASS(sensitivity=3, min_touches=2)
                         pattern_detector = ChartPatternDetector()
                         
-                        # Run full 3-layer analysis
-                        result = hybrid_gen.analyze_stock(symbol_input, df, sr_calc, pattern_detector)
+                        # Run full 3-layer analysis (using EOD data only)
+                        result = hybrid_gen.analyze_stock(symbol_input, df_eod, sr_calc, pattern_detector)
                         
                         if result and result['is_treasure']:
                             st.success(f"💎 TREASURE SIGNAL FOUND for {symbol_input}!")
@@ -1493,8 +1495,11 @@ elif page == "Generate New Signal":
                             'volume': df_raw['Volume'].values
                         })
                         
-                        # Analyze (3-layer confluence)
-                        result = hybrid_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
+                        # USE ONLY EOD DATA (exclude today's incomplete candle)
+                        df_eod = df[:-1].copy() if len(df) > 5 else df
+                        
+                        # Analyze (3-layer confluence) - using EOD data only
+                        result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
                         
                         if result and result['is_treasure']:
                             treasure_signals.append(result)
@@ -1783,8 +1788,11 @@ elif page == "3Jasmines 🌸":
                             'volume': df_raw['Volume'].values
                         })
                         
-                        # Analyze for 3Jasmines signal
-                        signal = jasmines_gen.analyze_stock(symbol, df, sr_calc, pattern_detector)
+                        # USE ONLY EOD DATA (exclude today's incomplete candle)
+                        df_eod = df[:-1].copy() if len(df) > 5 else df
+                        
+                        # Analyze for 3Jasmines signal (using EOD data only)
+                        signal = jasmines_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
                         
                         if signal:
                             jasmines_signals.append(signal)
