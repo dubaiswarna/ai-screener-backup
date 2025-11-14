@@ -50,7 +50,7 @@ except ImportError:
 def initialize_my_stocks():
     """Initialize My Stocks list with default favorites"""
     if 'my_stocks' not in st.session_state:
-        st.session_state.my_stocks = ['MGL', 'LEMONTREE']
+        st.session_state.my_stocks = ['MGL', 'LEMONTREE', 'CAPLINPOINT', 'PFC', 'REC', 'HAL']
     return st.session_state.my_stocks
 
 def get_my_stocks():
@@ -1004,9 +1004,22 @@ elif page == "Chart Analysis":
                         tech_factors = ", ".join(result['technical']['factors'][:2])
                         sr_factors = ", ".join(result['sr_analysis']['factors'][:1])
                         
+                        # Get detected date from pattern
+                        detected_date_str = ''
+                        if pattern_info and isinstance(pattern_info, dict):
+                            detected_date_str = pattern_info.get('detected_date_str', '')
+                            if detected_date_str:
+                                try:
+                                    from datetime import datetime
+                                    date_obj = datetime.strptime(detected_date_str, '%Y-%m-%d')
+                                    detected_date_str = f"formed on {date_obj.strftime('%d %b').lower()}"
+                                except:
+                                    detected_date_str = f"formed on {detected_date_str}"
+                        
                         pattern_report_data.append({
                             'Stock': result['symbol'],
                             'Pattern': pattern_name,
+                            'Actual': detected_date_str,
                             'Type': pattern_type,
                             'Strength': pattern_strength,
                             'Action': action,
