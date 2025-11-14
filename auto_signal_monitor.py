@@ -75,24 +75,21 @@ def is_signal_new(signal_id):
 
 
 def send_telegram_message(message):
-    """Send message to Telegram"""
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ Telegram not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
-        return False
+    """Send message to Telegram (OPTIONAL - for future live signals)"""
+    # Telegram disabled for now - will be used for live signals later
+    return False
     
-    try:
-        import requests
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {
-            'chat_id': TELEGRAM_CHAT_ID,
-            'text': message,
-            'parse_mode': 'HTML'
-        }
-        response = requests.post(url, data=data, timeout=10)
-        return response.status_code == 200
-    except Exception as e:
-        print(f"❌ Telegram error: {e}")
-        return False
+    # Future implementation:
+    # if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+    #     return False
+    # try:
+    #     import requests
+    #     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    #     data = {'chat_id': TELEGRAM_CHAT_ID, 'text': message, 'parse_mode': 'HTML'}
+    #     response = requests.post(url, data=data, timeout=10)
+    #     return response.status_code == 200
+    # except Exception as e:
+    #     return False
 
 
 def format_jasmines_signal(signal):

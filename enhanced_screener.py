@@ -193,7 +193,7 @@ st.sidebar.info(f"💰 Capital: ₹{user_config.get('total_capital', 0):,.0f}")
 st.sidebar.subheader("📍 Navigation")
 page = st.sidebar.radio(
     "Go to:",
-    ["Dashboard", "Chart Analysis", "Generate New Signal", "3Jasmines 🌸",
+    ["Dashboard", "Chart Analysis", "Lotus Momentum Trio", "3Jasmines 🌸",
      "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
      "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
@@ -275,7 +275,7 @@ if page == "Dashboard":
         st.markdown("""
         ### 📈 Analysis Tools:
         - **Chart Analysis**: Pattern detection with visual samples
-        - **Generate New Signal**: Treasure signal system (85%+ accuracy)
+        - **Lotus Momentum Trio**: Treasure signal system (85%+ accuracy)
         - **Technical Screener**: Real-time RSI, MACD, MA analysis
         - **S&R Analysis**: Professional support/resistance levels
         - **VWAP Strategy**: Volume-weighted average price trading
@@ -419,7 +419,7 @@ if page == "Dashboard":
         
         **Step 2:** Generate test signals
         - Use **Paper Trading Mode** (no real money)
-        - Go to **Generate New Signal** → Hybrid Mode
+        - Go to **Lotus Momentum Trio** → Hybrid Mode
         - Analyze small stock lists first
         
         **Step 3:** Learn and practice
@@ -1276,11 +1276,11 @@ elif page == "Chart Analysis":
             st.warning("No signals found matching criteria")
 
 # ============================================================
-# PAGE: GENERATE NEW SIGNAL
+# PAGE: LOTUS MOMENTUM TRIO (formerly Generate New Signal)
 # ============================================================
 
-elif page == "Generate New Signal":
-    st.header("🎯 Generate New Trading Signal")
+elif page == "Lotus Momentum Trio":
+    st.header("🪷 Lotus Momentum Trio")
     
     # Mode selection: Manual Entry OR Hybrid Analysis
     signal_generation_mode = st.radio(
