@@ -4507,7 +4507,283 @@ elif page == "Backtest (Multi-Mode)":
     st.header("🏆 Multi-Mode Backtest Dashboard")
     st.info("🎯 Backtest your trading strategies on historical data using real signal generators")
     
-    # Mode selection
+    # Backtest type selection
+    backtest_type = st.radio("📊 Backtest Type:", ["Generate New Signals", "Backtest Saved Signals"], horizontal=True)
+    
+    if backtest_type == "Backtest Saved Signals":
+        st.markdown("---")
+        st.subheader("📋 Backtest Signals from Database")
+        st.info("💡 Select previously saved signals from your database and backtest their performance")
+        
+        # Get saved signals
+        saved_signals = db.get_active_signals()
+        
+        if not saved_signals:
+            st.warning("⚠️ No saved signals found in database. Generate signals first using the screeners.")
+            st.info("💡 **Tip:** Use 3Jasmines, Hybrid Signal Generator, or Orchid Trend Matrix to generate and save signals.")
+            st.stop()
+        
+        # Filter options
+        col1, col2 = st.columns(2)
+        with col1:
+            min_confidence_filter = st.slider("Min Confidence Filter", 0, 100, 70, 5)
+        with col2:
+            signal_type_filter = st.selectbox("Signal Type", ["ALL", "BUY", "SELL"])
+        
+        # Filter signals
+        filtered_signals = [s for s in saved_signals if s.get('confidence', 0) >= min_confidence_filter]
+        if signal_type_filter != "ALL":
+            filtered_signals = [s for s in filtered_signals if s.get('signal_type') == signal_type_filter]
+        
+        st.caption(f"📊 Found {len(filtered_signals)} saved signals matching criteria")
+        
+        if not filtered_signals:
+            st.warning("⚠️ No signals match the filter criteria. Adjust filters and try again.")
+            st.stop()
+        
+        # Display signals to select
+        st.markdown("#### Select Signals to Backtest:")
+        
+        # Create a multiselect with signal details
+        signal_options = {}
+        for signal in filtered_signals:
+            symbol = signal.get('symbol', 'UNKNOWN')
+            signal_type = signal.get('signal_type', 'UNKNOWN')
+            confidence = signal.get('confidence', 0)
+            entry = signal.get('entry_price', 0)
+            generated_at = signal.get('generated_at', '')
+            
+            label = f"{symbol} | {signal_type} | {confidence:.1f}% | Entry: ₹{entry:.2f} | {generated_at}"
+            signal_options[label] = signal
+        
+        selected_labels = st.multiselect(
+            "Choose signals to backtest:",
+            options=list(signal_options.keys()),
+            default=list(signal_options.keys())[:min(10, len(signal_options))]  # Default: first 10
+        )
+        
+        selected_signals = [signal_options[label] for label in selected_labels]
+        
+        st.caption(f"✅ Selected {len(selected_signals)} signals for backtesting")
+        
+        # Backtest settings
+        st.markdown("---")
+        st.subheader("⚙️ Backtest Settings")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            use_signal_target = st.checkbox("Use Signal's Target Price", value=True, 
+                                          help="If unchecked, will use custom target %")
+            if not use_signal_target:
+                target_pct = st.slider("Target (%)", 5, 30, 10)
+            else:
+                target_pct = 10  # Default, will be overridden by signal
+        
+        with col2:
+            use_signal_stop = st.checkbox("Use Signal's Stop Loss", value=True,
+                                        help="If unchecked, will use custom stop loss %")
+            if not use_signal_stop:
+                stop_loss_pct = st.slider("Stop Loss (%)", 3, 15, 7)
+            else:
+                stop_loss_pct = 7  # Default, will be overridden by signal
+        
+        max_holding_days = st.slider("Max Holding Days", 10, 120, 60)
+        
+        st.markdown("---")
+        
+        if st.button("🚀 Backtest Selected Signals", type="primary", use_container_width=True):
+            if not selected_signals:
+                st.error("❌ Please select at least one signal!")
+            else:
+                with st.spinner(f"Backtesting {len(selected_signals)} saved signals..."):
+                    import yfinance as yf
+                    
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    trades = []
+                    
+                    for idx, signal in enumerate(selected_signals):
+                        symbol = signal.get('symbol', '').replace('NSE_', '').replace('BSE_', '')
+                        status_text.text(f"Backtesting {symbol}... ({idx+1}/{len(selected_signals)})")
+                        
+                        try:
+                            # Get entry details from signal
+                            entry_price = signal.get('entry_price', 0)
+                            signal_target = signal.get('target_price', 0)
+                            signal_stop = signal.get('stop_loss', 0)
+                            signal_date_str = signal.get('generated_at', '')
+                            
+                            # Parse signal date
+                            try:
+                                if isinstance(signal_date_str, str):
+                                    signal_date = pd.to_datetime(signal_date_str)
+                                else:
+                                    signal_date = pd.Timestamp(signal_date_str)
+                            except:
+                                signal_date = datetime.now() - timedelta(days=30)  # Fallback
+                            
+                            # Fetch historical data from signal date
+                            ticker = yf.Ticker(get_yfinance_symbol(symbol))
+                            df_raw = ticker.history(start=signal_date, period="6mo", interval="1d")
+                            
+                            if df_raw.empty or len(df_raw) < 5:
+                                continue
+                            
+                            df = pd.DataFrame({
+                                'time': df_raw.index,
+                                'open': df_raw['Open'].values,
+                                'high': df_raw['High'].values,
+                                'low': df_raw['Low'].values,
+                                'close': df_raw['Close'].values,
+                                'volume': df_raw['Volume'].values
+                            })
+                            
+                            # Determine target and stop
+                            if use_signal_target and signal_target > 0:
+                                target_price = signal_target
+                            else:
+                                target_price = entry_price * (1 + target_pct / 100)
+                            
+                            if use_signal_stop and signal_stop > 0:
+                                stop_price = signal_stop
+                            else:
+                                stop_price = entry_price * (1 - stop_loss_pct / 100)
+                            
+                            # Simulate trade from signal date
+                            entry_date = signal_date
+                            qty = 100  # Default quantity
+                            
+                            # Find exit
+                            exit_reason = None
+                            exit_price = entry_price
+                            exit_date = entry_date
+                            days_held = 0
+                            
+                            for i, row in df.iterrows():
+                                current_date = row['time']
+                                current_price = row['close']
+                                
+                                days_held = (current_date - entry_date).days if isinstance(current_date, pd.Timestamp) else 0
+                                
+                                # Check exit conditions
+                                if current_price >= target_price:
+                                    exit_reason = "TARGET"
+                                    exit_price = target_price
+                                    exit_date = current_date
+                                    break
+                                elif current_price <= stop_price:
+                                    exit_reason = "STOP_LOSS"
+                                    exit_price = stop_price
+                                    exit_date = current_date
+                                    break
+                                elif days_held >= max_holding_days:
+                                    exit_reason = "TIME_EXIT"
+                                    exit_price = current_price
+                                    exit_date = current_date
+                                    break
+                            
+                            # If no exit found, use last price
+                            if not exit_reason:
+                                exit_reason = "END_OF_PERIOD"
+                                exit_price = df['close'].iloc[-1]
+                                exit_date = df['time'].iloc[-1]
+                                days_held = (exit_date - entry_date).days if isinstance(exit_date, pd.Timestamp) else max_holding_days
+                            
+                            # Calculate P&L
+                            return_pct = ((exit_price - entry_price) / entry_price) * 100
+                            pnl = qty * (exit_price - entry_price)
+                            
+                            trades.append({
+                                'Symbol': symbol,
+                                'Entry_Date': entry_date.strftime('%Y-%m-%d') if hasattr(entry_date, 'strftime') else str(entry_date),
+                                'Entry_Price': f"{entry_price:.2f}",
+                                'Exit_Date': exit_date.strftime('%Y-%m-%d') if hasattr(exit_date, 'strftime') else str(exit_date),
+                                'Exit_Price': f"{exit_price:.2f}",
+                                'Exit_Reason': exit_reason,
+                                'Qty': qty,
+                                'Investment': f"{qty * entry_price:,.0f}",
+                                'PnL': pnl,
+                                'Return_%': return_pct,
+                                'Holding_Days': days_held,
+                                'Entry_Reason': f"Saved Signal ({signal.get('model_name', 'Unknown')})",
+                                'Confidence': signal.get('confidence', 0)
+                            })
+                        
+                        except Exception as e:
+                            continue
+                        
+                        progress_bar.progress((idx + 1) / len(selected_signals))
+                    
+                    progress_bar.empty()
+                    status_text.empty()
+                    
+                    if not trades:
+                        st.warning("⚠️ No trades could be backtested. Check signal data and dates.")
+                        st.stop()
+                    
+                    # Display results (same as regular backtest)
+                    df_trades = pd.DataFrame(trades)
+                    df_trades['PnL'] = pd.to_numeric(df_trades['PnL'], errors='coerce')
+                    df_trades['Return_%'] = pd.to_numeric(df_trades['Return_%'], errors='coerce')
+                    df_trades['Holding_Days'] = pd.to_numeric(df_trades['Holding_Days'], errors='coerce')
+                    
+                    # Calculate metrics
+                    total_trades = len(df_trades)
+                    winners = len(df_trades[df_trades['PnL'] > 0])
+                    win_rate = (winners / total_trades * 100) if total_trades > 0 else 0
+                    total_pnl = df_trades['PnL'].sum()
+                    avg_return = df_trades['Return_%'].mean()
+                    best_return = df_trades['Return_%'].max()
+                    worst_return = df_trades['Return_%'].min()
+                    
+                    # Display results
+                    st.success("✅ Backtest Complete!")
+                    st.markdown("---")
+                    st.subheader("📊 Performance Summary")
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total Trades", total_trades)
+                        st.metric("Winners", f"{winners} ({win_rate:.1f}%)")
+                    with col2:
+                        st.metric("Total P&L", f"{total_pnl:,.0f}")
+                        st.metric("Avg Return", f"{avg_return:.2f}%")
+                    with col3:
+                        st.metric("Best Trade", f"{best_return:.2f}%")
+                        st.metric("Worst Trade", f"{worst_return:.2f}%")
+                    with col4:
+                        avg_holding = df_trades['Holding_Days'].mean()
+                        st.metric("Avg Holding", f"{avg_holding:.1f} days")
+                    
+                    # Trades table
+                    st.markdown("---")
+                    st.subheader("📋 Trade History")
+                    
+                    def color_pnl(val):
+                        if isinstance(val, (int, float)):
+                            return 'background-color: #d4edda' if val > 0 else 'background-color: #f8d7da'
+                        return ''
+                    
+                    st.dataframe(
+                        df_trades.style.applymap(color_pnl, subset=['PnL']),
+                        use_container_width=True,
+                        height=400
+                    )
+                    
+                    # Download button
+                    st.markdown("---")
+                    csv = df_trades.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download Results as CSV",
+                        data=csv,
+                        file_name=f"backtest_saved_signals_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+        
+        st.stop()  # Stop here if backtesting saved signals
+    
+    # Mode selection for new signal generation
     mode = st.radio("📊 Select Strategy Mode:", ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🔄 Compare All Modes"], horizontal=True)
     
     st.markdown("---")
