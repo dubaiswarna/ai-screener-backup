@@ -4227,7 +4227,7 @@ elif page == "Backtest (Multi-Mode)":
     st.info("🎯 Backtest your trading strategies on historical data using real signal generators")
     
     # Mode selection
-    mode = st.radio("📊 Select Strategy Mode:", ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix"], horizontal=True)
+    mode = st.radio("📊 Select Strategy Mode:", ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🔄 Compare All Modes"], horizontal=True)
     
     st.markdown("---")
     
@@ -4307,6 +4307,8 @@ elif page == "Backtest (Multi-Mode)":
         st.info("💎 **Treasure Signals Backtest:** Tests signals from Hybrid Signal Generator (Technical + S&R + Chart Patterns)")
     elif mode == "🌺 Orchid Trend Matrix":
         st.info("🌺 **Orchid Trend Matrix Backtest:** Tests signals that pass BOTH 3Jasmines AND Treasure Signals (Ultra-Selective)")
+    elif mode == "🔄 Compare All Modes":
+        st.info("🔄 **Compare All Modes:** Runs backtests for all three strategies simultaneously and shows comparative results")
     
     st.markdown("---")
     
@@ -4357,6 +4359,20 @@ elif page == "Backtest (Multi-Mode)":
             min_rr_hybrid = st.slider("Min Hybrid R:R", 1.0, 5.0, 1.5, 0.5)
             st.info("💡 **Orchid Criteria:**\n- Must pass BOTH 3Jasmines AND Treasure Signals")
     
+    elif mode == "🔄 Compare All Modes":
+        st.markdown("**Configure parameters for all modes:**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.subheader("🌸 3Jasmines")
+            min_confidence_jasmines = st.slider("Min 3Jasmines Confidence (%)", 70, 95, 70, 5, key="compare_jasmines")
+        with col2:
+            st.subheader("💎 Treasure Signals")
+            min_confidence_hybrid = st.slider("Min Hybrid Confidence (%)", 70, 95, 75, 5, key="compare_hybrid")
+            min_rr_hybrid = st.slider("Min Hybrid R:R", 1.0, 5.0, 1.5, 0.5, key="compare_rr")
+        with col3:
+            st.subheader("🌺 Orchid Trend Matrix")
+            st.info("Uses same parameters as above")
+    
     st.markdown("---")
     
     # Time period selection
@@ -4370,7 +4386,11 @@ elif page == "Backtest (Multi-Mode)":
     st.markdown("---")
     
     # Run backtest button
-    button_text = f"🚀 Run {mode} Backtest"
+    if mode == "🔄 Compare All Modes":
+        button_text = "🚀 Run Comparison Backtest (All 3 Modes)"
+    else:
+        button_text = f"🚀 Run {mode} Backtest"
+    
     if st.button(button_text, type="primary", use_container_width=True):
         if not selected_stocks:
             st.error("❌ Please select at least one stock!")
@@ -4389,7 +4409,312 @@ elif page == "Backtest (Multi-Mode)":
                     from support_resistance.sr_calculator import SupportResistanceCalculator
                     SR_CALC_CLASS = SupportResistanceCalculator
                 
-                # Initialize signal generators
+                # Handle "Compare All Modes" separately
+                if mode == "🔄 Compare All Modes":
+                    # Run backtests for all three modes
+                    modes_to_test = ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix"]
+                    all_results = {}
+                    
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    for mode_idx, test_mode in enumerate(modes_to_test):
+                        status_text.text(f"🔄 Running {test_mode} backtest... ({mode_idx+1}/3)")
+                        
+                        # Initialize signal generators for this mode
+                        jasmines_gen = ThreeJasminesScreener(
+                            max_support_distance_pct=0.5,
+                            max_rsi_threshold=35.0,
+                            target_buffer_pct=1.0,
+                            stop_loss_buffer_pct=2.0
+                        )
+                        
+                        hybrid_gen = HybridSignalGenerator(
+                            min_confidence=min_confidence_hybrid,
+                            min_rr_ratio=min_rr_hybrid
+                        )
+                        
+                        sr_calc = SR_CALC_CLASS(sensitivity=3, min_touches=2)
+                        pattern_detector = ChartPatternDetector()
+                        
+                        trades = []
+                        portfolio = []
+                        
+                        # Get historical data for all stocks
+                        all_data = {}
+                        for symbol in selected_stocks:
+                            try:
+                                ticker = yf.Ticker(get_yfinance_symbol(symbol))
+                                df_raw = ticker.history(period=f"{lookback_months}mo", interval="1d")
+                                
+                                if not df_raw.empty and len(df_raw) >= 50:
+                                    df = pd.DataFrame({
+                                        'time': df_raw.index,
+                                        'open': df_raw['Open'].values,
+                                        'high': df_raw['High'].values,
+                                        'low': df_raw['Low'].values,
+                                        'close': df_raw['Close'].values,
+                                        'volume': df_raw['Volume'].values
+                                    })
+                                    all_data[symbol] = df
+                            except Exception:
+                                continue
+                        
+                        # Run backtest (reuse the same logic but with test_mode)
+                        if all_data:
+                            all_dates = set()
+                            for df in all_data.values():
+                                all_dates.update(df['time'].tolist())
+                            all_dates = sorted(list(all_dates))
+                            
+                            for current_date in all_dates:
+                                # Check exits
+                                positions_to_remove = []
+                                for pos in portfolio:
+                                    symbol = pos['symbol']
+                                    if symbol in all_data:
+                                        df = all_data[symbol]
+                                        df_until_date = df[df['time'] <= current_date].copy()
+                                        
+                                        if len(df_until_date) > 0:
+                                            current_price = df_until_date['close'].iloc[-1]
+                                            entry_price = pos['entry_price']
+                                            if isinstance(current_date, pd.Timestamp):
+                                                entry_dt = pd.Timestamp(pos['entry_date'])
+                                                days_held = (current_date - entry_dt).days
+                                            else:
+                                                days_held = 0
+                                            
+                                            target_price = entry_price * (1 + target_pct / 100)
+                                            stop_price = entry_price * (1 - stop_loss_pct / 100)
+                                            
+                                            exit_reason = None
+                                            exit_price = current_price
+                                            
+                                            if current_price >= target_price:
+                                                exit_reason = "TARGET"
+                                            elif current_price <= stop_price:
+                                                exit_reason = "STOP_LOSS"
+                                            elif days_held >= max_holding_days:
+                                                exit_reason = "TIME_EXIT"
+                                            
+                                            if exit_reason:
+                                                return_pct = ((exit_price - entry_price) / entry_price) * 100
+                                                qty = pos['qty']
+                                                pnl = qty * (exit_price - entry_price)
+                                                
+                                                trades.append({
+                                                    'Symbol': symbol,
+                                                    'Entry_Date': pos['entry_date'].strftime('%Y-%m-%d') if hasattr(pos['entry_date'], 'strftime') else str(pos['entry_date']),
+                                                    'Entry_Price': f"{entry_price:.2f}",
+                                                    'Exit_Date': current_date.strftime('%Y-%m-%d') if hasattr(current_date, 'strftime') else str(current_date),
+                                                    'Exit_Price': f"{exit_price:.2f}",
+                                                    'Exit_Reason': exit_reason,
+                                                    'Qty': qty,
+                                                    'Investment': f"{pos['investment']:,.0f}",
+                                                    'PnL': pnl,
+                                                    'Return_%': return_pct,
+                                                    'Holding_Days': days_held,
+                                                    'Entry_Reason': pos['entry_reason'],
+                                                    'Confidence': pos.get('confidence', 0)
+                                                })
+                                                positions_to_remove.append(pos)
+                                
+                                for pos in positions_to_remove:
+                                    portfolio.remove(pos)
+                                
+                                # Check for new signals
+                                if len(portfolio) < max_portfolio:
+                                    for symbol in selected_stocks:
+                                        if symbol not in all_data or any(p['symbol'] == symbol for p in portfolio):
+                                            continue
+                                        
+                                        df = all_data[symbol]
+                                        df_until_date = df[df['time'] <= current_date].copy()
+                                        
+                                        if len(df_until_date) < 50:
+                                            continue
+                                        
+                                        df_eod = df_until_date[:-1].copy() if len(df_until_date) > 5 else df_until_date
+                                        
+                                        if len(df_eod) < 20:
+                                            continue
+                                        
+                                        signal_found = False
+                                        entry_reason = ""
+                                        confidence = 0
+                                        
+                                        if test_mode == "🌸 3Jasmines":
+                                            signal = jasmines_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                                            if signal and signal.get('confidence', 0) >= min_confidence_jasmines:
+                                                signal_found = True
+                                                entry_reason = f"3Jasmines: {signal.get('pattern', 'Bullish Pattern')}"
+                                                confidence = signal.get('confidence', 0)
+                                        
+                                        elif test_mode == "💎 Treasure Signals":
+                                            result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                                            if result and result.get('is_treasure') and result.get('confidence', 0) >= min_confidence_hybrid:
+                                                signal_found = True
+                                                entry_reason = f"Treasure: {result.get('reason', 'Hybrid Signal')}"
+                                                confidence = result.get('confidence', 0)
+                                        
+                                        elif test_mode == "🌺 Orchid Trend Matrix":
+                                            jasmines_signal = jasmines_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                                            if jasmines_signal and jasmines_signal.get('confidence', 0) >= min_confidence_jasmines:
+                                                hybrid_result = hybrid_gen.analyze_stock(symbol, df_eod, sr_calc, pattern_detector)
+                                                if hybrid_result and hybrid_result.get('is_treasure') and hybrid_result.get('confidence', 0) >= min_confidence_hybrid:
+                                                    signal_found = True
+                                                    combined_conf = (jasmines_signal.get('confidence', 0) + hybrid_result.get('confidence', 0)) / 2
+                                                    entry_reason = f"Orchid: Both 3Jasmines + Treasure"
+                                                    confidence = combined_conf
+                                        
+                                        if signal_found:
+                                            current_price = df_eod['close'].iloc[-1]
+                                            qty = int(investment_per_stock / current_price)
+                                            
+                                            portfolio.append({
+                                                'symbol': symbol,
+                                                'entry_date': current_date,
+                                                'entry_price': current_price,
+                                                'qty': qty,
+                                                'investment': qty * current_price,
+                                                'entry_reason': entry_reason,
+                                                'confidence': confidence
+                                            })
+                                            
+                                            if len(portfolio) >= max_portfolio:
+                                                break
+                            
+                            # Close remaining positions
+                            for pos in portfolio:
+                                symbol = pos['symbol']
+                                if symbol in all_data:
+                                    df = all_data[symbol]
+                                    if len(df) > 0:
+                                        exit_price = df['close'].iloc[-1]
+                                        entry_price = pos['entry_price']
+                                        return_pct = ((exit_price - entry_price) / entry_price) * 100
+                                        qty = pos['qty']
+                                        pnl = qty * (exit_price - entry_price)
+                                        exit_date = df['time'].iloc[-1]
+                                        if isinstance(exit_date, pd.Timestamp):
+                                            entry_dt = pd.Timestamp(pos['entry_date'])
+                                            days_held = (exit_date - entry_dt).days
+                                        else:
+                                            days_held = 0
+                                        
+                                        trades.append({
+                                            'Symbol': symbol,
+                                            'Entry_Date': pos['entry_date'].strftime('%Y-%m-%d') if hasattr(pos['entry_date'], 'strftime') else str(pos['entry_date']),
+                                            'Entry_Price': f"{entry_price:.2f}",
+                                            'Exit_Date': exit_date.strftime('%Y-%m-%d') if hasattr(exit_date, 'strftime') else str(exit_date),
+                                            'Exit_Price': f"{exit_price:.2f}",
+                                            'Exit_Reason': "END_OF_PERIOD",
+                                            'Qty': qty,
+                                            'Investment': f"{pos['investment']:,.0f}",
+                                            'PnL': pnl,
+                                            'Return_%': return_pct,
+                                            'Holding_Days': days_held,
+                                            'Entry_Reason': pos['entry_reason'],
+                                            'Confidence': pos.get('confidence', 0)
+                                        })
+                        
+                        # Store results
+                        if trades:
+                            df_trades = pd.DataFrame(trades)
+                            df_trades['PnL'] = pd.to_numeric(df_trades['PnL'], errors='coerce')
+                            df_trades['Return_%'] = pd.to_numeric(df_trades['Return_%'], errors='coerce')
+                            
+                            total_trades = len(df_trades)
+                            winners = len(df_trades[df_trades['PnL'] > 0])
+                            win_rate = (winners / total_trades * 100) if total_trades > 0 else 0
+                            total_pnl = df_trades['PnL'].sum()
+                            avg_return = df_trades['Return_%'].mean()
+                            best_return = df_trades['Return_%'].max()
+                            worst_return = df_trades['Return_%'].min()
+                            total_return_pct = (total_pnl / initial_capital) * 100
+                            years = lookback_months / 12.0
+                            cagr = ((1 + total_return_pct/100) ** (1/years) - 1) * 100 if years > 0 else 0
+                            
+                            all_results[test_mode] = {
+                                'trades': df_trades,
+                                'total_trades': total_trades,
+                                'winners': winners,
+                                'win_rate': win_rate,
+                                'total_pnl': total_pnl,
+                                'avg_return': avg_return,
+                                'best_return': best_return,
+                                'worst_return': worst_return,
+                                'total_return_pct': total_return_pct,
+                                'cagr': cagr
+                            }
+                        else:
+                            all_results[test_mode] = None
+                        
+                        progress_bar.progress((mode_idx + 1) / 3)
+                    
+                    # Display comparative results
+                    st.success("✅ Comparison Backtest Complete!")
+                    st.markdown("---")
+                    st.subheader("📊 Comparative Performance Summary")
+                    
+                    # Create comparison table
+                    comparison_data = []
+                    for mode_name, results in all_results.items():
+                        if results:
+                            comparison_data.append({
+                                'Strategy': mode_name,
+                                'Total Trades': results['total_trades'],
+                                'Win Rate (%)': f"{results['win_rate']:.1f}",
+                                'Total P&L (₹)': f"{results['total_pnl']:,.0f}",
+                                'Total Return (%)': f"{results['total_return_pct']:.2f}",
+                                'CAGR (%)': f"{results['cagr']:.2f}",
+                                'Avg Return (%)': f"{results['avg_return']:.2f}",
+                                'Best Trade (%)': f"{results['best_return']:.2f}",
+                                'Worst Trade (%)': f"{results['worst_return']:.2f}"
+                            })
+                        else:
+                            comparison_data.append({
+                                'Strategy': mode_name,
+                                'Total Trades': 0,
+                                'Win Rate (%)': 'N/A',
+                                'Total P&L (₹)': 'N/A',
+                                'Total Return (%)': 'N/A',
+                                'CAGR (%)': 'N/A',
+                                'Avg Return (%)': 'N/A',
+                                'Best Trade (%)': 'N/A',
+                                'Worst Trade (%)': 'N/A'
+                            })
+                    
+                    df_comparison = pd.DataFrame(comparison_data)
+                    st.dataframe(df_comparison, use_container_width=True)
+                    
+                    # Show individual results
+                    st.markdown("---")
+                    st.subheader("📋 Individual Strategy Details")
+                    
+                    for mode_name, results in all_results.items():
+                        if results:
+                            with st.expander(f"{mode_name} - {results['total_trades']} trades, {results['win_rate']:.1f}% win rate"):
+                                col1, col2, col3, col4 = st.columns(4)
+                                with col1:
+                                    st.metric("Total Trades", results['total_trades'])
+                                    st.metric("Winners", f"{results['winners']} ({results['win_rate']:.1f}%)")
+                                with col2:
+                                    st.metric("Total P&L", f"{results['total_pnl']:,.0f}")
+                                    st.metric("Total Return", f"{results['total_return_pct']:.2f}%")
+                                with col3:
+                                    st.metric("CAGR", f"{results['cagr']:.2f}%")
+                                    st.metric("Avg Return", f"{results['avg_return']:.2f}%")
+                                with col4:
+                                    st.metric("Best Trade", f"{results['best_return']:.2f}%")
+                                    st.metric("Worst Trade", f"{results['worst_return']:.2f}%")
+                                
+                                st.dataframe(results['trades'], use_container_width=True, height=300)
+                    
+                    st.stop()
+                
+                # Initialize signal generators for single mode
                 jasmines_gen = ThreeJasminesScreener(
                     max_support_distance_pct=0.5,
                     max_rsi_threshold=35.0,
