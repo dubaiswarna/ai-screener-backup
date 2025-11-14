@@ -92,7 +92,7 @@ def init_dhan():
     """Initialize Dhan API client"""
     try:
         client_id = "1104147457"
-        access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzYyNDkwMDUxLCJpYXQiOjE3NjI0MDM2NTEsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA0MTQ3NDU3In0.H91FqXQGRmtfJ229QDO8j_u-l6e79oBjascO9kd7vkmRZEuN0IEKYT6M64pYfZlun2iJJ3Ra8YZyrSLRYreqTg"
+        access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzYzMTgwMzY5LCJpYXQiOjE3NjMwOTM5NjksInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA0MTQ3NDU3In0.xWL8SRJ5wy5PihqHYVlPnANn9UsYjH43UK8dAGxIW2IG2AP90YEYl8CGUcjVY_Y6QeuKlkZ4iy_n83bU12xAPw"
         dhan = dhanhq(client_id, access_token)
         return dhan
     except Exception as e:

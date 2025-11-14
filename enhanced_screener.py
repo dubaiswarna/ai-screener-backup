@@ -219,11 +219,10 @@ if page == "Dashboard":
     """, unsafe_allow_html=True)
     
     # System Overview
-    st.markdown("## 🎯 What is Professional AI Screener?")
     st.markdown("""
-    **Professional AI Screener v3.0** is an advanced stock analysis system that combines multiple technical analysis layers 
-    to generate high-accuracy trading signals. Built with cutting-edge AI algorithms and professional trading principles, 
-    this system helps traders identify potential trading opportunities with confidence.
+    **Professional AI Screener v3.0** is an advanced stock analysis system that combines multiple technical layers 
+    to surface high-probability opportunities. Built with practical trading experience and disciplined risk management, 
+    it gives you a professional workflow the moment you log in.
     """)
     
     # Key Features
@@ -315,45 +314,15 @@ if page == "Dashboard":
     st.markdown("## 👩‍💻 About the Developer")
     
     st.markdown("""
-    <div style='background-color: #f0f2f6; padding: 2rem; border-radius: 10px; border-left: 5px solid #667eea;'>
+    <div style='background-color: #f0f2f6; padding: 1.75rem; border-radius: 10px; border-left: 5px solid #667eea;'>
         <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
-        <p style='font-size: 1rem; color: #666; margin-bottom: 1rem;'><strong>Software Developer & Trading Systems Architect</strong></p>
-            
-            <p style='font-size: 1rem; line-height: 1.8; text-align: justify;'>
-                A dedicated software developer with a passion for creating innovative solutions at the intersection of 
-                <strong>artificial intelligence</strong> and <strong>financial markets</strong>. J Swarnalakshmi has architected 
-                and developed the Professional AI Screener v3.0 from the ground up, combining deep technical expertise with 
-                a thorough understanding of market dynamics and trading psychology.
-                <br><br>
-                
-                With a strong foundation in <strong>Python programming</strong>, <strong>machine learning</strong>, and 
-                <strong>quantitative analysis</strong>, she specializes in building robust trading systems that transform 
-                complex technical concepts into actionable insights. Her approach emphasizes precision, reliability, and 
-                risk management—ensuring every feature serves a practical purpose in real-world trading scenarios.
-                <br><br>
-                
-                <strong>Core Competencies:</strong>
-            </p>
-            
-            <ul style='font-size: 0.95rem; line-height: 1.6;'>
-                <li><strong>Advanced Programming:</strong> Python, Pandas, NumPy, Data Structures & Algorithms</li>
-                <li><strong>AI & Machine Learning:</strong> Pattern Recognition, Signal Processing, Predictive Analytics</li>
-                <li><strong>Technical Analysis Mastery:</strong> Support/Resistance Theory, Chart Pattern Analysis, Multi-Indicator Systems</li>
-                <li><strong>Trading System Development:</strong> Strategy Design, Backtesting Engines, Risk Management Algorithms</li>
-                <li><strong>Full-Stack Development:</strong> Streamlit, Database Design (PostgreSQL), Cloud Deployment (Railway)</li>
-                <li><strong>Financial Engineering:</strong> VWAP Strategies, Multi-Timeframe Analysis, Position Sizing</li>
-            </ul>
-            
-            <p style='font-size: 1rem; line-height: 1.8; margin-top: 1.5rem; padding: 1rem; background-color: #fff3cd; border-radius: 8px;'>
-                <strong>🎯 Development Philosophy:</strong><br>
-                <em>"Quality over Quantity"</em> — Better to generate 5 high-accuracy treasure signals than 50 mediocre ones. 
-                Every feature is meticulously designed, rigorously tested, and optimized for real-world trading conditions. 
-                Each signal should be treated like finding treasure 💎, backed by multi-layer confluence and strict quality filters.
-            </p>
-            
-            <p style='font-size: 0.9rem; line-height: 1.6; margin-top: 1rem; color: #666;'>
-            <strong>Mission:</strong> To democratize institutional-grade trading analysis tools and empower individual 
-            traders with professional, data-driven insights that were once available only to large financial institutions.
+        <p style='font-size: 1rem; color: #4a4a4a; margin-bottom: 0.6rem;'><strong>Developer, Professional AI Screener v3.0</strong></p>
+        <p style='font-size: 0.95rem; line-height: 1.7; color: #555; margin-bottom: 1rem;'>
+            Crafts AI-assisted trading tools that blend quantitative research with live market experience. 
+            Focused on clear confluence, disciplined risk controls, and reliable execution for active traders.
+        </p>
+        <p style='font-size: 0.95rem; line-height: 1.7; color: #555; margin-bottom: 0;'>
+            <strong>Focus Areas:</strong> Multi-layer technical analysis · Pattern recognition systems · Portfolio & risk automation
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -906,294 +875,314 @@ elif page == "Chart Analysis":
                     
                     progress_bar.progress((idx + 1) / len(batch_stock_list))
                 
-                # Clear progress
+                # Clear progress indicators
                 progress_bar.empty()
                 status_text.empty()
                 
-                # Display results
-                st.markdown("---")
+                pattern_state = {
+                    'pattern_results': pattern_results,
+                    'errors': errors_encountered,
+                    'stocks_with_any_patterns': stocks_with_any_patterns,
+                    'total_requested': len(batch_stock_list),
+                    'stocks_scanned': len(batch_stock_list) - len(errors_encountered),
+                    'scan_output_mode': scan_output_mode,
+                    'pattern_filter_mode': pattern_filter_mode,
+                    'selected_patterns': selected_batch_patterns,
+                    'generated_at': pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
                 
-                # Show errors if any (for debugging)
-                if errors_encountered:
-                    with st.expander(f"⚠️ Errors encountered ({len(errors_encountered)} stocks)", expanded=False):
-                        for error in errors_encountered:
-                            st.caption(f"• {error}")
-                
-                if pattern_results:
-                    stocks_scanned = len(batch_stock_list) - len(errors_encountered)
-                    st.success(f"📊 Found {len(pattern_results)} stocks with patterns/signals out of {stocks_scanned} successfully scanned ({len(pattern_results)/stocks_scanned*100:.1f}%)")
+                if pattern_results and scan_output_mode == "Pattern Report (Simple)":
+                    pattern_report_data = []
                     
-                    # Pattern Report Mode (Simple)
-                    if scan_output_mode == "Pattern Report (Simple)":
-                        st.markdown("### 📊 Chart Pattern Report")
+                    for result in pattern_results:
+                        pattern_info = result['chart_pattern']['pattern']
                         
-                        # Build pattern report data
-                        pattern_report_data = []
-                        
-                        for result in pattern_results:
-                            pattern_info = result['chart_pattern']['pattern']
+                        if pattern_info:
+                            pattern_name = pattern_info['pattern']
+                            pattern_type = pattern_info.get('type', 'NEUTRAL')
+                            pattern_strength = pattern_info.get('strength', 'Moderate')
                             
-                            # Determine pattern type and action
-                            if pattern_info:
-                                pattern_name = pattern_info['pattern']
-                                pattern_type = pattern_info.get('type', 'NEUTRAL')
-                                pattern_desc = pattern_info.get('description', '')
-                                pattern_strength = pattern_info.get('strength', 'Moderate')
-                                
-                                # Determine action based on type
-                                if pattern_type == 'BULLISH':
-                                    action = "🟢 Potential BUY (Bullish Reversal/Continuation)"
-                                    impact = "Upward price movement expected"
-                                elif pattern_type == 'BEARISH':
-                                    action = "🔴 Potential SELL (Bearish Reversal/Continuation)"
-                                    impact = "Downward price movement expected"
-                                else:
-                                    action = "⚪ NEUTRAL (Watch for confirmation)"
-                                    impact = "Indecision - wait for breakout"
+                            if pattern_type == 'BULLISH':
+                                action = "🟢 Potential BUY (Bullish Reversal/Continuation)"
+                                impact = "Upward price movement expected"
+                            elif pattern_type == 'BEARISH':
+                                action = "🔴 Potential SELL (Bearish Reversal/Continuation)"
+                                impact = "Downward price movement expected"
                             else:
-                                pattern_name = "No specific pattern"
-                                pattern_type = "NEUTRAL"
-                                pattern_desc = "General technical signal"
-                                pattern_strength = "N/A"
-                                action = f"{result['signal']} based on tech/S&R"
-                                impact = "No pattern, but strong technical confluence"
-                            
-                            # Get technical and S&R info for context
-                            tech_factors = ", ".join(result['technical']['factors'][:2])  # First 2 factors
-                            sr_factors = ", ".join(result['sr_analysis']['factors'][:1])  # First factor
-                            
-                            pattern_report_data.append({
-                                'Stock': result['symbol'],
-                                'Pattern': pattern_name,
-                                'Type': pattern_type,
-                                'Strength': pattern_strength,
-                                'Action': action,
-                                'Impact': impact,
-                                'Price': f"₹{result['current_price']:.2f}",
-                                'Confidence': f"{result['confidence']:.0f}%",
-                                'Tech Context': tech_factors,
-                                'S&R Context': sr_factors
-                            })
+                                action = "⚪ NEUTRAL (Watch for confirmation)"
+                                impact = "Indecision - wait for breakout"
+                        else:
+                            pattern_name = "No specific pattern"
+                            pattern_type = "NEUTRAL"
+                            pattern_strength = "N/A"
+                            action = f"{result['signal']} based on tech/S&R"
+                            impact = "No pattern, but strong technical confluence"
                         
-                        # Display as expandable cards
-                        for idx, report in enumerate(pattern_report_data, 1):
-                            with st.expander(f"{idx}. {report['Stock']} - {report['Pattern']} ({report['Type']})", expanded=(idx <= 3)):
-                                col1, col2, col3 = st.columns(3)
-                                
-                                with col1:
-                                    st.markdown(f"**📊 Pattern Details:**")
-                                    st.caption(f"Pattern: {report['Pattern']}")
-                                    st.caption(f"Type: {report['Type']}")
-                                    st.caption(f"Strength: {report['Strength']}")
-                                
-                                with col2:
-                                    st.markdown(f"**💡 Action & Impact:**")
-                                    st.caption(f"Action: {report['Action']}")
-                                    st.caption(f"Impact: {report['Impact']}")
-                                
-                                with col3:
-                                    st.markdown(f"**📈 Current Status:**")
-                                    st.caption(f"Price: {report['Price']}")
-                                    st.caption(f"Confidence: {report['Confidence']}")
-                                
-                                # Technical context
-                                st.markdown(f"**🔍 Context:**")
-                                st.caption(f"📊 Technical: {report['Tech Context']}")
-                                st.caption(f"📈 S&R: {report['S&R Context']}")
+                        tech_factors = ", ".join(result['technical']['factors'][:2])
+                        sr_factors = ", ".join(result['sr_analysis']['factors'][:1])
                         
-                        # Summary table with pattern icons
-                        st.markdown("---")
-                        st.markdown("### 📋 Quick Summary Table")
-                        
-                        # Pattern visual icons/representations
-                        pattern_icons = {
-                            'HAMMER': '🔨',
-                            'SHOOTING_STAR': '🌠',
-                            'BULLISH_ENGULFING': '🟢📦',
-                            'BEARISH_ENGULFING': '🔴📦',
-                            'MORNING_STAR': '⭐🌅',
-                            'EVENING_STAR': '⭐🌆',
-                            'THREE_WHITE_SOLDIERS': '⬆️⬆️⬆️',
-                            'THREE_BLACK_CROWS': '⬇️⬇️⬇️',
-                            'DOJI': '➕',
-                            'INVERTED_HAMMER': '🔨⬆️',
-                            'HANGING_MAN': '🔨⬇️',
-                            'PIERCING_PATTERN': '🟢➚',
-                            'DARK_CLOUD_COVER': '🔴➘'
-                        }
-                        
-                        # Pattern visual samples (simple ASCII art)
-                        pattern_visuals = {
-                            'HAMMER': '━━┃ (Long lower wick)',
-                            'SHOOTING_STAR': '┃━━ (Long upper wick)',
-                            'BULLISH_ENGULFING': '▮▯ → ▮▮ (Green engulfs red)',
-                            'BEARISH_ENGULFING': '▮▮ → ▮▯ (Red engulfs green)',
-                            'MORNING_STAR': '▯ ━ ▮ (3-candle bull)',
-                            'EVENING_STAR': '▮ ━ ▯ (3-candle bear)',
-                            'THREE_WHITE_SOLDIERS': '▮ ▮ ▮ (3 green up)',
-                            'THREE_BLACK_CROWS': '▯ ▯ ▯ (3 red down)',
-                            'DOJI': '━┃━ (Cross, indecision)',
-                            'INVERTED_HAMMER': '┃━━ (Upper wick, bullish)',
-                            'HANGING_MAN': '━━┃ (Lower wick, bearish)',
-                            'PIERCING_PATTERN': '▯ ▮ (Green pierces red)',
-                            'DARK_CLOUD_COVER': '▮ ▯ (Red covers green)'
-                        }
-                        
-                        summary_df = pd.DataFrame([
-                            {
-                                'Stock': r['Stock'],
-                                'Icon': pattern_icons.get(r['Pattern'], '📊'),
-                                'Pattern': r['Pattern'].replace('_', ' ').title(),
-                                'Visual': pattern_visuals.get(r['Pattern'], ''),
-                                'Type': r['Type'],
-                                'Action': r['Action'].split('(')[0].strip(),  # Short action
-                                'Price': r['Price'],
-                                'Confidence': r['Confidence']
-                            }
-                            for r in pattern_report_data
-                        ])
-                        
-                        st.dataframe(summary_df, use_container_width=True, hide_index=True)
-                        
-                        # Export option
-                        if st.button("📥 Download Pattern Report (CSV)"):
-                            full_df = pd.DataFrame(pattern_report_data)
-                            csv = full_df.to_csv(index=False)
-                            st.download_button(
-                                "Download CSV",
-                                csv,
-                                f"pattern_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                "text/csv"
-                            )
+                        pattern_report_data.append({
+                            'Stock': result['symbol'],
+                            'Pattern': pattern_name,
+                            'Type': pattern_type,
+                            'Strength': pattern_strength,
+                            'Action': action,
+                            'Impact': impact,
+                            'Price': f"₹{result['current_price']:.2f}",
+                            'Confidence': f"{result['confidence']:.0f}%",
+                            'Tech Context': tech_factors,
+                            'S&R Context': sr_factors
+                        })
                     
-                    else:  # Full Trading Signals mode
-                        # Separate BUY and SELL
-                        buy_signals = [s for s in pattern_results if 'BUY' in s['signal']]
-                        sell_signals = [s for s in pattern_results if 'SELL' in s['signal']]
-                        
-                        # Display BUY signals
-                        if buy_signals:
-                            st.markdown("### 🟢 BUY SIGNALS")
-                            for signal in sorted(buy_signals, key=lambda x: x['confidence'], reverse=True):
-                                with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
-                                    col1, col2, col3 = st.columns([2, 2, 1])
-                                    
-                                    with col1:
-                                        st.metric("Current Price", f"₹{signal['current_price']:.2f}")
-                                        st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
-                                        st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
-                                    
-                                    with col2:
-                                        st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
-                                        st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
-                                        st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
-                                    
-                                    with col3:
-                                        st.metric("Confidence", f"{signal['confidence']:.1f}%")
-                                        st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
-                                        profit = (signal['trade_setup']['target1'] - signal['trade_setup']['entry']) * signal['trade_setup']['position_size']
-                                        st.metric("Profit (T1)", f"₹{profit:,.0f}")
-                                    
-                                    # 3-Layer Analysis
-                                    st.markdown("**📊 3-Layer Analysis:**")
-                                    
-                                    st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
-                                    for factor in signal['technical']['factors']:
-                                        st.caption(f"  • {factor}")
-                                    
-                                    st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
-                                    for factor in signal['sr_analysis']['factors']:
-                                        st.caption(f"  • {factor}")
-                                    
-                                    # Chart Pattern
-                                    if signal['chart_pattern']['pattern']:
-                                        pattern = signal['chart_pattern']['pattern']
-                                        st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                        st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
-                                        if 'strength' in pattern:
-                                            st.caption(f"  • Strength: {pattern['strength']}")
-                                    else:
-                                        st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                        st.caption(f"  • No pattern detected")
-                        
-                        # Display SELL signals
-                        if sell_signals:
-                            st.markdown("### 🔴 SELL SIGNALS")
-                            for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
-                                with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
-                                    col1, col2, col3 = st.columns([2, 2, 1])
-                                    
-                                    with col1:
-                                        st.metric("Current Price", f"₹{signal['current_price']:.2f}")
-                                        st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
-                                        st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
-                                    
-                                    with col2:
-                                        st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
-                                        st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
-                                        st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
-                                    
-                                    with col3:
-                                        st.metric("Confidence", f"{signal['confidence']:.1f}%")
-                                        st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
-                                        profit = (signal['trade_setup']['entry'] - signal['trade_setup']['target1']) * signal['trade_setup']['position_size']
-                                        st.metric("Profit (T1)", f"₹{profit:,.0f}")
-                                    
-                                    # 3-Layer Analysis
-                                    st.markdown("**📊 3-Layer Analysis:**")
-                                    
-                                    st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
-                                    for factor in signal['technical']['factors']:
-                                        st.caption(f"  • {factor}")
-                                    
-                                    st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
-                                    for factor in signal['sr_analysis']['factors']:
-                                        st.caption(f"  • {factor}")
-                                    
-                                    # Chart Pattern
-                                    if signal['chart_pattern']['pattern']:
-                                        pattern = signal['chart_pattern']['pattern']
-                                        st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                        st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
-                                        if 'strength' in pattern:
-                                            st.caption(f"  • Strength: {pattern['strength']}")
-                                    else:
-                                        st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
-                                        st.caption(f"  • No pattern detected")
-                
+                    pattern_state['pattern_report_data'] = pattern_report_data
                 else:
-                    st.warning(f"ℹ️ No patterns found matching your filter criteria")
-                    
-                    if stocks_with_any_patterns > 0:
-                        st.info(f"""
-                        **📊 Patterns were detected but filtered out!**
-                        
-                        - **{stocks_with_any_patterns}** out of {len(batch_stock_list)} stocks had patterns
-                        - But they didn't match your selected pattern filter
-                        
-                        **Try:**
-                        • Change Pattern Filter to "Show ALL Signals"
-                        • Or select different specific patterns
-                        """)
-                    else:
-                        st.info(f"""
-                        **❌ NO patterns detected in any of the {len(batch_stock_list)} stocks!**
-                        
-                        **Why?**
-                        - These stocks didn't form clear patterns in last 5 days
-                        - Low volatility = fewer patterns
-                        - EOD data = only completed daily candles
-                        
-                        **Try these VOLATILE stocks instead:**
-                        BAJFINANCE, TATAMOTORS, ADANIENT, VEDL, TATASTEEL
-                        
-                        Or wait until after market close (3:30 PM) for today's patterns!
-                        """)
+                    pattern_state['pattern_report_data'] = None
+                
+                st.session_state['batch_pattern_state'] = pattern_state
             
             except Exception as e:
+                progress_bar.empty()
+                status_text.empty()
                 st.error(f"❌ Error during batch analysis: {e}")
                 import traceback
                 st.code(traceback.format_exc())
+    
+    # =========================
+    # Display stored results
+    # =========================
+    pattern_state = st.session_state.get('batch_pattern_state')
+    
+    if pattern_state:
+        st.markdown("---")
+        
+        errors_encountered = pattern_state.get('errors', [])
+        pattern_results = pattern_state.get('pattern_results', [])
+        stocks_scanned = pattern_state.get('stocks_scanned', 0)
+        total_requested = pattern_state.get('total_requested', 0)
+        stocks_with_any_patterns = pattern_state.get('stocks_with_any_patterns', 0)
+        stored_output_mode = pattern_state.get('scan_output_mode', "Pattern Report (Simple)")
+        pattern_report_data = pattern_state.get('pattern_report_data')
+        generated_at = pattern_state.get('generated_at', '')
+        
+        st.caption(f"🕒 Last scan: {generated_at} | Stocks requested: {total_requested}")
+        
+        if errors_encountered:
+            with st.expander(f"⚠️ Errors encountered ({len(errors_encountered)} stocks)", expanded=False):
+                for error in errors_encountered:
+                    st.caption(f"• {error}")
+        
+        if pattern_results:
+            st.success(f"📊 Found {len(pattern_results)} stocks with patterns/signals out of {stocks_scanned} successfully scanned ({(len(pattern_results)/stocks_scanned*100):.1f}%)")
+            
+            if stored_output_mode == "Pattern Report (Simple)":
+                st.markdown("### 📊 Chart Pattern Report")
+                
+                if pattern_report_data is None:
+                    st.info("ℹ️ Run the scan again to refresh the pattern report.")
+                else:
+                    for idx, report in enumerate(pattern_report_data, 1):
+                        with st.expander(f"{idx}. {report['Stock']} - {report['Pattern']} ({report['Type']})", expanded=(idx <= 3)):
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.markdown("**📊 Pattern Details:**")
+                                st.caption(f"Pattern: {report['Pattern']}")
+                                st.caption(f"Type: {report['Type']}")
+                                st.caption(f"Strength: {report['Strength']}")
+                            
+                            with col2:
+                                st.markdown("**💡 Action & Impact:**")
+                                st.caption(f"Action: {report['Action']}")
+                                st.caption(f"Impact: {report['Impact']}")
+                            
+                            with col3:
+                                st.markdown("**📈 Current Status:**")
+                                st.caption(f"Price: {report['Price']}")
+                                st.caption(f"Confidence: {report['Confidence']}")
+                            
+                            st.markdown("**🔍 Context:**")
+                            st.caption(f"📊 Technical: {report['Tech Context']}")
+                            st.caption(f"📈 S&R: {report['S&R Context']}")
+                    
+                    st.markdown("---")
+                    st.markdown("### 📋 Quick Summary Table")
+                    
+                    pattern_icons = {
+                        'HAMMER': '🔨',
+                        'SHOOTING_STAR': '🌠',
+                        'BULLISH_ENGULFING': '🟢📦',
+                        'BEARISH_ENGULFING': '🔴📦',
+                        'MORNING_STAR': '⭐🌅',
+                        'EVENING_STAR': '⭐🌆',
+                        'THREE_WHITE_SOLDIERS': '⬆️⬆️⬆️',
+                        'THREE_BLACK_CROWS': '⬇️⬇️⬇️',
+                        'DOJI': '➕',
+                        'INVERTED_HAMMER': '🔨⬆️',
+                        'HANGING_MAN': '🔨⬇️',
+                        'PIERCING_PATTERN': '🟢➚',
+                        'DARK_CLOUD_COVER': '🔴➘'
+                    }
+                    
+                    pattern_visuals = {
+                        'HAMMER': '━━┃ (Long lower wick)',
+                        'SHOOTING_STAR': '┃━━ (Long upper wick)',
+                        'BULLISH_ENGULFING': '▮▯ → ▮▮ (Green engulfs red)',
+                        'BEARISH_ENGULFING': '▮▮ → ▮▯ (Red engulfs green)',
+                        'MORNING_STAR': '▯ ━ ▮ (3-candle bull)',
+                        'EVENING_STAR': '▮ ━ ▯ (3-candle bear)',
+                        'THREE_WHITE_SOLDIERS': '▮ ▮ ▮ (3 green up)',
+                        'THREE_BLACK_CROWS': '▯ ▯ ▯ (3 red down)',
+                        'DOJI': '━┃━ (Cross, indecision)',
+                        'INVERTED_HAMMER': '┃━━ (Upper wick, bullish)',
+                        'HANGING_MAN': '━━┃ (Lower wick, bearish)',
+                        'PIERCING_PATTERN': '▯ ▮ (Green pierces red)',
+                        'DARK_CLOUD_COVER': '▮ ▯ (Red covers green)'
+                    }
+                    
+                    summary_df = pd.DataFrame([
+                        {
+                            'Stock': r['Stock'],
+                            'Icon': pattern_icons.get(r['Pattern'], '📊'),
+                            'Pattern': r['Pattern'].replace('_', ' ').title(),
+                            'Visual': pattern_visuals.get(r['Pattern'], ''),
+                            'Type': r['Type'],
+                            'Action': r['Action'].split('(')[0].strip(),
+                            'Price': r['Price'],
+                            'Confidence': r['Confidence']
+                        }
+                        for r in pattern_report_data
+                    ])
+                    
+                    st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                    
+                    full_df = pd.DataFrame(pattern_report_data)
+                    csv_data = full_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        "⬇️ Download Pattern Report",
+                        csv_data,
+                        f"pattern_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        "text/csv",
+                        key="pattern_report_download"
+                    )
+            
+            else:
+                # Full Trading Signals mode display
+                buy_signals = [s for s in pattern_results if 'BUY' in s['signal']]
+                sell_signals = [s for s in pattern_results if 'SELL' in s['signal']]
+                
+                if buy_signals:
+                    st.markdown("### 🟢 BUY SIGNALS")
+                    for signal in sorted(buy_signals, key=lambda x: x['confidence'], reverse=True):
+                        with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
+                            col1, col2, col3 = st.columns([2, 2, 1])
+                            
+                            with col1:
+                                st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                            
+                            with col2:
+                                st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                            
+                            with col3:
+                                st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                profit = (signal['trade_setup']['target1'] - signal['trade_setup']['entry']) * signal['trade_setup']['position_size']
+                                st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                            
+                            st.markdown("**📊 3-Layer Analysis:**")
+                            st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                            for factor in signal['technical']['factors']:
+                                st.caption(f"  • {factor}")
+                            
+                            st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                            for factor in signal['sr_analysis']['factors']:
+                                st.caption(f"  • {factor}")
+                            
+                            if signal['chart_pattern']['pattern']:
+                                pattern = signal['chart_pattern']['pattern']
+                                st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                if 'strength' in pattern:
+                                    st.caption(f"  • Strength: {pattern['strength']}")
+                            else:
+                                st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                st.caption("  • No pattern detected")
+                
+                if sell_signals:
+                    st.markdown("### 🔴 SELL SIGNALS")
+                    for signal in sorted(sell_signals, key=lambda x: x['confidence'], reverse=True):
+                        with st.expander(f"💎 {signal['symbol']} - {signal['confidence']:.1f}% Confidence", expanded=False):
+                            col1, col2, col3 = st.columns([2, 2, 1])
+                            
+                            with col1:
+                                st.metric("Current Price", f"₹{signal['current_price']:.2f}")
+                                st.metric("Entry", f"₹{signal['trade_setup']['entry']:.2f}")
+                                st.metric("Stop Loss", f"₹{signal['trade_setup']['stop_loss']:.2f}")
+                            
+                            with col2:
+                                st.metric("Target 1", f"₹{signal['trade_setup']['target1']:.2f}")
+                                st.metric("Risk:Reward", f"1:{signal['trade_setup']['rr_ratio']:.2f}")
+                                st.metric("Position Size", f"{signal['trade_setup']['position_size']} shares")
+                            
+                            with col3:
+                                st.metric("Confidence", f"{signal['confidence']:.1f}%")
+                                st.metric("Confluence", f"{signal['confluence']['confluence_count']}/3")
+                                profit = (signal['trade_setup']['entry'] - signal['trade_setup']['target1']) * signal['trade_setup']['position_size']
+                                st.metric("Profit (T1)", f"₹{profit:,.0f}")
+                            
+                            st.markdown("**📊 3-Layer Analysis:**")
+                            st.markdown(f"**✅ Technical ({signal['technical']['confidence_pct']:.0f}%):**")
+                            for factor in signal['technical']['factors']:
+                                st.caption(f"  • {factor}")
+                            
+                            st.markdown(f"**✅ S&R Analysis ({signal['sr_analysis']['confidence_pct']:.0f}%):**")
+                            for factor in signal['sr_analysis']['factors']:
+                                st.caption(f"  • {factor}")
+                            
+                            if signal['chart_pattern']['pattern']:
+                                pattern = signal['chart_pattern']['pattern']
+                                st.markdown(f"**✅ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
+                                if 'strength' in pattern:
+                                    st.caption(f"  • Strength: {pattern['strength']}")
+                            else:
+                                st.markdown(f"**⚪ Chart Pattern ({signal['chart_pattern']['confidence_pct']:.0f}%):**")
+                                st.caption("  • No pattern detected")
+            
+            if stored_output_mode != scan_output_mode:
+                st.info(f"ℹ️ Displaying last scan results generated in **{stored_output_mode}** mode. Run the scan again to refresh for the current selection.")
+        
+        else:
+            st.warning("ℹ️ No patterns found matching your filter criteria")
+            
+            if stocks_with_any_patterns > 0:
+                st.info(f"""
+                **📊 Patterns were detected but filtered out!**
+                
+                - **{stocks_with_any_patterns}** out of {total_requested} stocks had patterns
+                - But they didn't match your selected pattern filter
+                
+                **Try:**
+                • Change Pattern Filter to "Show ALL Signals"
+                • Or select different specific patterns
+                """)
+            else:
+                st.info(f"""
+                **❌ NO patterns detected in any of the {total_requested} stocks!**
+                
+                **Why?**
+                - These stocks didn't form clear patterns in last 5 days
+                - Low volatility = fewer patterns
+                - EOD data = only completed daily candles
+                
+                **Try these VOLATILE stocks instead:**
+                BAJFINANCE, TATAMOTORS, ADANIENT, VEDL, TATASTEEL
+                
+                Or wait until after market close (3:30 PM) for today's patterns!
+                """)
     
     else:  # Saved Signals mode
         st.subheader("💾 Saved Signals from Database")
@@ -1916,11 +1905,21 @@ elif page == "Technical Screener":
     
     st.markdown("---")
     
-    # Settings
-    col1, col2, col3 = st.columns(3)
+    # Stock selection
+    st.subheader("📈 Stock Selection")
     
-    with col1:
-        st.subheader("📈 Stock Universe")
+    selection_mode = st.radio(
+        "Choose how to pick stocks:",
+        ("Universe (Batch Analysis)", "Manual Selection", "Single Stock Analysis"),
+        index=0,
+        key="technical_screener_stock_mode"
+    )
+    
+    stocks = []
+    manual_input = ""
+    single_symbol = ""
+    
+    if selection_mode == "Universe (Batch Analysis)":
         if EXPANDED_UNIVERSE_AVAILABLE:
             universe_options = [
                 "Top 10 (Quick Test)",
@@ -1936,22 +1935,78 @@ elif page == "Technical Screener":
         else:
             universe_options = ["Top 10 (Quick)", "Top 20 (Standard)", "Top 50"]
         
-        universe_size = st.selectbox("Stocks:", universe_options)
+        universe_size = st.selectbox("Universe:", universe_options)
+        
+        if "Top 10" in universe_size:
+            stocks = TOP_50_STOCKS[:10]
+        elif "Top 20" in universe_size:
+            stocks = TOP_50_STOCKS[:20]
+        elif "Nifty 50" in universe_size:
+            stocks = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+        elif "Nifty 200" in universe_size:
+            stocks = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+        elif "Nifty 500" in universe_size:
+            stocks = NIFTY_500 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+        elif "Smallcap 250" in universe_size:
+            stocks = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+        elif "Commodities" in universe_size:
+            stocks = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else []
+        elif "ALL Assets" in universe_size:
+            stocks = ALL_ASSETS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+        elif "ALL" in universe_size:
+            stocks = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+        else:
+            stocks = TOP_50_STOCKS
+        
+        st.caption(f"🔍 Ready to analyze {len(stocks)} stocks from the {universe_size} universe")
     
-    with col2:
+    elif selection_mode == "Manual Selection":
+        manual_input = st.text_area(
+            "Enter stock symbols (comma or newline separated):",
+            placeholder="Example:\nRELIANCE\nTCS\nINFY\nHDFCBANK",
+            height=140
+        )
+        
+        if manual_input.strip():
+            parsed_symbols = []
+            seen = set()
+            for line in manual_input.splitlines():
+                tokens = [token.strip().upper() for token in line.replace(',', ' ').split() if token.strip()]
+                for token in tokens:
+                    if token not in seen:
+                        seen.add(token)
+                        parsed_symbols.append(token)
+            stocks = parsed_symbols
+            st.caption(f"✅ Ready to analyze {len(stocks)} manually selected stocks")
+        else:
+            st.info("Enter one symbol per line or separate with commas (e.g., RELIANCE, TCS, INFY)")
+    
+    else:  # Single Stock Analysis
+        single_symbol = st.text_input(
+            "Enter a single stock symbol:",
+            placeholder="Example: RELIANCE"
+        )
+        cleaned_symbol = single_symbol.strip().upper()
+        if cleaned_symbol:
+            stocks = [cleaned_symbol]
+            st.caption(f"🎯 Single stock analysis selected: {cleaned_symbol}")
+        else:
+            st.info("Type any NSE stock symbol (e.g., RELIANCE) to analyze it instantly")
+    
+    # Screening parameters
+    param_col1, param_col2 = st.columns(2)
+    with param_col1:
         st.subheader("🎯 Min Strength")
         min_pattern_strength = st.slider("Pattern Strength", 5.0, 9.0, 7.0, 0.5)
-    
-    with col3:
+    with param_col2:
         st.subheader("⏱️ Lookback")
         lookback_days = st.selectbox(
-            "Days", 
-            [90, 180, 365, 730], 
+            "Days",
+            [90, 180, 365, 730],
             index=2,
-            help="More data = Better accuracy! 365 days (1 year) recommended for swing trading"
+            help="More data = better accuracy (365 days recommended for swing trading)"
         )
     
-    # Stock universe selection
     TOP_50_STOCKS = [
         'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
         'ITC', 'HINDUNILVR', 'KOTAKBANK', 'LT', 'ASIANPAINTS', 'MARUTI', 'HCLTECH', 
@@ -1963,29 +2018,9 @@ elif page == "Technical Screener":
         'ADANIENT', 'SBILIFE', 'HDFCLIFE', 'JIOFIN'
     ]
     
-    # Select stocks based on universe
-    if "Top 10" in universe_size:
-        stocks = TOP_50_STOCKS[:10]
-    elif "Top 20" in universe_size:
-        stocks = TOP_50_STOCKS[:20]
-    elif "Nifty 50" in universe_size:
-        stocks = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
-    elif "Nifty 200" in universe_size:
-        stocks = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
-    elif "Nifty 500" in universe_size:
-        stocks = NIFTY_500 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
-    elif "Smallcap 250" in universe_size:
-        stocks = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
-    elif "Commodities" in universe_size:
-        stocks = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else []
-    elif "ALL Assets" in universe_size:
-        stocks = ALL_ASSETS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
-    elif "ALL" in universe_size:
-        stocks = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
-    else:
-        stocks = TOP_50_STOCKS
+    if len(stocks) == 0:
+        st.warning("⚠️ No stocks selected yet. Add at least one symbol to continue.")
     
-    st.caption(f"🔍 Analyzing {len(stocks)} stocks with REAL indicators")
     
     # New improvements badge
     st.success("✨ **NEW IMPROVEMENTS:** Now includes SMA 200, Fibonacci retracements, and up to 2 years lookback! Expect 15-20% better accuracy!")
@@ -2004,7 +2039,7 @@ elif page == "Technical Screener":
     st.markdown("---")
     
     # Run Screening
-    if st.button("🚀 Run Technical Screening", type="primary", use_container_width=True):
+    if st.button("🚀 Run Technical Screening", type="primary", use_container_width=True, disabled=len(stocks) == 0):
         
         with st.spinner(f"Calculating REAL RSI, MACD, MAs for {len(stocks)} stocks..."):
             
@@ -2063,16 +2098,17 @@ elif page == "Technical Screener":
                 
                 try:
                     # Load data based on user preference
+                    hist = None
                     if use_local_data:
                         hist = load_local_data(symbol, lookback_days + 50)  # Extra days for MA calculation
                         if hist is None or hist.empty or len(hist) < 20:
                             # Fall back to Yahoo Finance if local data not available
                             ticker = yf.Ticker(get_yfinance_symbol(symbol))
                             hist = ticker.history(period=f"{lookback_days}d")
-                    else:
+                    if not use_local_data or hist is None or hist.empty or len(hist) < 20:
                         # Fetch from Yahoo Finance
                         ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                    hist = ticker.history(period=f"{lookback_days}d")
+                        hist = ticker.history(period=f"{lookback_days}d")
                     
                     if hist.empty or len(hist) < 20:
                         continue
