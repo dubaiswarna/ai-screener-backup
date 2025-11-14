@@ -40,22 +40,30 @@ for idx, csv_file in enumerate(csv_files, 1):
         hist = ticker.history(start='2025-03-01', end=None)  # From March 1 to today
         
         if len(hist) == 0:
-            print("❌ No data")
+            print("ERROR: No data")
             fail_count += 1
             continue
         
         # Read existing CSV
         df_existing = pd.read_csv(csv_file)
         
-        # Parse dates
+        # Parse dates and get last date from existing data
         df_existing['time'] = pd.to_datetime(df_existing['time'], errors='coerce')
-        last_date = df_existing['time'].max()
+        last_date_str = df_existing['time'].max()
+        # Convert to naive datetime (remove timezone if present)
+        if pd.notna(last_date_str):
+            last_date = pd.Timestamp(last_date_str)
+            if last_date.tz is not None:
+                last_date = last_date.tz_localize(None)
+        else:
+            last_date = pd.Timestamp('2025-02-28')  # Fallback to Feb 28
         
         # Remove timezone from Yahoo data
-        hist.index = hist.index.tz_localize(None)
+        hist.index = hist.index.tz_localize(None) if hist.index.tz is not None else hist.index
         
-        # Get only new data (after last_date)
-        new_data = hist[hist.index > last_date]
+        # Get only new data (after last_date) - convert index to datetime for comparison
+        hist_index_dt = pd.to_datetime(hist.index)
+        new_data = hist[hist_index_dt > last_date]
         
         if len(new_data) > 0:
             # Add new rows
@@ -76,12 +84,12 @@ for idx, csv_file in enumerate(csv_files, 1):
             
             # Save updated CSV
             df_existing.to_csv(csv_file, index=False)
-            print(f"✅ +{len(new_data)} rows")
+            print(f"OK +{len(new_data)} rows")
             success_count += 1
             updated_count += 1
             total_new_rows += len(new_data)
         else:
-            print("✅ Up-to-date")
+            print("OK Up-to-date")
             success_count += 1
         
         # Rate limiting: pause every 10 stocks
@@ -89,7 +97,8 @@ for idx, csv_file in enumerate(csv_files, 1):
             time.sleep(2)  # 2 second pause
             
     except Exception as e:
-        print(f"❌ ERROR: {str(e)[:40]}")
+        error_msg = str(e).replace('\n', ' ')[:60]
+        print(f"ERROR: {error_msg}")
         fail_count += 1
 
 print()

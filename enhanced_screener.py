@@ -170,11 +170,8 @@ def init_services():
 db, risk_engine, broker, user_config = init_services()
 
 # ============================================================
-# HEADER
+# HEADER (Will be shown after page selection - hidden on Dashboard)
 # ============================================================
-
-st.markdown('<div class="main-header">🚀 PROFESSIONAL AI SCREENER v3.0</div>', unsafe_allow_html=True)
-st.markdown("**AI-Powered Trading with Database Persistence & Risk Management**")
 
 # ============================================================
 # SIDEBAR
@@ -200,6 +197,11 @@ page = st.sidebar.radio(
      "Technical Screener", "S&R Analysis", "VWAP Strategy", "Backtest (Multi-Mode)",
      "Data Download", "Portfolio", "Trade History", "Risk Report", "Settings"]
 )
+
+# Show main header on all pages EXCEPT Dashboard (Dashboard has its own hero section)
+if page != "Dashboard":
+    st.markdown('<div class="main-header">🚀 PROFESSIONAL AI SCREENER v3.0</div>', unsafe_allow_html=True)
+    st.markdown("**AI-Powered Trading with Database Persistence & Risk Management**")
 
 # REAL Technical Screener: Calculates actual RSI, MACD, MAs - NO random predictions!
 
