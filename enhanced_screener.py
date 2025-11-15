@@ -1004,22 +1004,9 @@ elif page == "Chart Analysis":
                         tech_factors = ", ".join(result['technical']['factors'][:2])
                         sr_factors = ", ".join(result['sr_analysis']['factors'][:1])
                         
-                        # Get detected date from pattern
-                        detected_date_str = ''
-                        if pattern_info and isinstance(pattern_info, dict):
-                            detected_date_str = pattern_info.get('detected_date_str', '')
-                            if detected_date_str:
-                                try:
-                                    from datetime import datetime
-                                    date_obj = datetime.strptime(detected_date_str, '%Y-%m-%d')
-                                    detected_date_str = f"formed on {date_obj.strftime('%d %b').lower()}"
-                                except:
-                                    detected_date_str = f"formed on {detected_date_str}"
-                        
                         pattern_report_data.append({
                             'Stock': result['symbol'],
                             'Pattern': pattern_name,
-                            'Actual': detected_date_str,
                             'Type': pattern_type,
                             'Strength': pattern_strength,
                             'Action': action,
@@ -2246,21 +2233,62 @@ elif page == "3Jasmines 🌸":
                 
                 # Export option
                 st.markdown("---")
-                if st.button("📥 Download 3Jasmines Signals (CSV)"):
-                    df_export = pd.DataFrame(jasmines_signals)
-                    csv = df_export.to_csv(index=False)
-                    st.download_button(
-                        "Download CSV",
-                        csv,
-                        f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        "text/csv"
-                    )
+                st.subheader("📥 Download 3Jasmines Signals")
+                
+                try:
+                    if jasmines_signals:
+                        export_data = []
+                        for s in jasmines_signals:
+                            j1 = s.get('jasmine1_support', {}) if isinstance(s.get('jasmine1_support'), dict) else {}
+                            j2 = s.get('jasmine2_rsi', {}) if isinstance(s.get('jasmine2_rsi'), dict) else {}
+                            j3 = s.get('jasmine3_pattern', {}) if isinstance(s.get('jasmine3_pattern'), dict) else {}
+                            export_data.append({
+                                'Symbol': str(s.get('symbol', '')),
+                                'Current_Price': float(s.get('current_price', 0)),
+                                'Entry': float(s.get('entry', 0)),
+                                'Stop_Loss': float(s.get('stop_loss', 0)),
+                                'Target': float(s.get('target', 0)),
+                                'Support_Level': float(s.get('support_level', 0)),
+                                'Resistance_Level': float(s.get('resistance_level', 0)),
+                                'Risk': float(s.get('risk', 0)),
+                                'Reward': float(s.get('reward', 0)),
+                                'RR_Ratio': float(s.get('rr_ratio', 0)),
+                                'Position_Size': int(s.get('position_size', 0)),
+                                'Potential_Profit': float(s.get('potential_profit', 0)),
+                                'Confidence': float(s.get('confidence', 0)),
+                                'Jasmine1_Score': float(j1.get('score', 0)),
+                                'Jasmine1_Reason': str(j1.get('reason', '')),
+                                'Jasmine2_RSI': float(j2.get('rsi_value', 0)),
+                                'Jasmine2_Score': float(j2.get('score', 0)),
+                                'Jasmine2_Reason': str(j2.get('reason', '')),
+                                'Jasmine3_Pattern': str(j3.get('pattern_name', '')),
+                                'Jasmine3_Score': float(j3.get('score', 0)),
+                                'Jasmine3_Reason': str(j3.get('reason', '')),
+                                'Strategy': str(s.get('strategy', '')),
+                                'Holding_Period': str(s.get('holding_period', ''))
+                            })
+                        df_export = pd.DataFrame(export_data)
+                        csv_data = df_export.to_csv(index=False)
+                        st.download_button(
+                            "📥 Download 3Jasmines Signals (CSV)",
+                            csv_data,
+                            f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            "text/csv",
+                            key="download_jasmines_csv",
+                            type="primary",
+                            use_container_width=True
+                        )
+                    else:
+                        st.warning("⚠️ No signals to export")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
             
             else:
                 st.warning(f"🌸 No 3Jasmines signals found in {len(stock_list)} stocks")
                 st.info("""
                 **Why no signals?**
-                
                 3Jasmines is VERY selective (all 3 criteria must match):
                 - Stock must be within 0.5% of support
                 - RSI must be < 35 (deeply oversold)
@@ -2404,10 +2432,9 @@ elif page == "Orchid Trend Matrix":
             
             # Step 1: Run 3Jasmines Screener
             st.markdown("#### 🌸 Step 1: Running 3Jasmines Screener...")
-            st.caption(f"📊 Min 3Jasmines Confidence: {min_confidence_jasmines}%")
             for idx, symbol in enumerate(stock_list):
                 try:
-                    status_text.text(f"🌸 3Jasmines (Min {min_confidence_jasmines}%): {symbol}... ({idx+1}/{len(stock_list)})")
+                    status_text.text(f"3Jasmines: {symbol}... ({idx+1}/{len(stock_list)})")
                     
                     ticker = yf.Ticker(get_yfinance_symbol(symbol))
                     df_raw = ticker.history(period="6mo", interval="1d")
@@ -2439,12 +2466,11 @@ elif page == "Orchid Trend Matrix":
             # Step 2: Run Hybrid Signal Generator on 3Jasmines signals
             if jasmines_signals:
                 st.markdown("#### 💎 Step 2: Running Hybrid Signal Generator on 3Jasmines stocks...")
-                st.caption(f"📊 Min Hybrid Confidence: {min_confidence_hybrid}% | Min R:R: {min_rr_hybrid}")
                 jasmines_symbols = list(jasmines_signals.keys())
                 
                 for idx, symbol in enumerate(jasmines_symbols):
                     try:
-                        status_text.text(f"💎 Hybrid (Min {min_confidence_hybrid}%, R:R {min_rr_hybrid}): {symbol}... ({idx+1}/{len(jasmines_symbols)})")
+                        status_text.text(f"Hybrid: {symbol}... ({idx+1}/{len(jasmines_symbols)})")
                         
                         ticker = yf.Ticker(get_yfinance_symbol(symbol))
                         df_raw = ticker.history(period="6mo", interval="1d")
