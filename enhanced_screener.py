@@ -702,6 +702,18 @@ elif page == "Chart Analysis":
                                 st.caption(f"  • {pattern['pattern']}: {pattern['description']}")
                                 if 'strength' in pattern:
                                     st.caption(f"  • Strength: {pattern['strength']}")
+                                # Add date of pattern formation
+                                pattern_date = ''
+                                if pattern.get('detected_date_str'):
+                                    pattern_date = pattern.get('detected_date_str')
+                                elif pattern.get('detected_date'):
+                                    date_val = pattern.get('detected_date')
+                                    if hasattr(date_val, 'strftime'):
+                                        pattern_date = date_val.strftime('%Y-%m-%d')
+                                    else:
+                                        pattern_date = str(date_val)
+                                if pattern_date:
+                                    st.caption(f"  • 📅 Date of Formation: {pattern_date}")
                             else:
                                 st.markdown(f"**⚪ Chart Pattern ({result['chart_pattern']['confidence_pct']:.0f}%):**")
                                 st.caption(f"  • No pattern detected")
@@ -1004,9 +1016,22 @@ elif page == "Chart Analysis":
                         tech_factors = ", ".join(result['technical']['factors'][:2])
                         sr_factors = ", ".join(result['sr_analysis']['factors'][:1])
                         
+                        # Extract pattern date
+                        pattern_date = ''
+                        if pattern_info:
+                            if pattern_info.get('detected_date_str'):
+                                pattern_date = pattern_info.get('detected_date_str')
+                            elif pattern_info.get('detected_date'):
+                                date_val = pattern_info.get('detected_date')
+                                if hasattr(date_val, 'strftime'):
+                                    pattern_date = date_val.strftime('%Y-%m-%d')
+                                else:
+                                    pattern_date = str(date_val)
+                        
                         pattern_report_data.append({
                             'Stock': result['symbol'],
                             'Pattern': pattern_name,
+                            'Date_of_Pattern_Formed': pattern_date,
                             'Type': pattern_type,
                             'Strength': pattern_strength,
                             'Action': action,
@@ -1482,7 +1507,7 @@ elif page == "Lotus Momentum Trio":
                 if EXPANDED_UNIVERSE_AVAILABLE:
                     universe_choice = st.selectbox(
                         "Select Universe:",
-                        ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "Small Cap 250 (250 stocks)", "ALL Stocks (750+)"]
+                        ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "Small Cap 250 (250 stocks)", "Commodity", "ALL Stocks (750+)"]
                     )
                 else:
                     universe_choice = "Nifty 50 (51 stocks)"
@@ -1494,6 +1519,8 @@ elif page == "Lotus Momentum Trio":
                     stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
                 elif "Small Cap 250" in universe_choice:
                     stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+                elif "Commodity" in universe_choice:
+                    stock_list = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else ['GOLD', 'SILVER']
                 else:
                     stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
             
@@ -2066,7 +2093,7 @@ elif page == "3Jasmines 🌸":
     
     selection_mode = st.radio(
         "Choose stock universe:",
-        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
+        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "Commodity", "ALL Stocks (750+)", "Manual Selection"],
         horizontal=True
     )
     
@@ -2081,6 +2108,8 @@ elif page == "3Jasmines 🌸":
         stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
     elif selection_mode == "Small Cap 250":
         stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "Commodity":
+        stock_list = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else ['GOLD', 'SILVER']
     elif selection_mode == "ALL Stocks (750+)":
         stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
     else:  # Manual Selection
@@ -2352,7 +2381,7 @@ elif page == "Orchid Trend Matrix":
     
     selection_mode = st.radio(
         "Choose stock universe:",
-        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "ALL Stocks (750+)", "Manual Selection"],
+        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "Commodity", "ALL Stocks (750+)", "Manual Selection"],
         horizontal=True
     )
     
@@ -2367,6 +2396,8 @@ elif page == "Orchid Trend Matrix":
         stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
     elif selection_mode == "Small Cap 250":
         stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "Commodity":
+        stock_list = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else ['GOLD', 'SILVER']
     elif selection_mode == "ALL Stocks (750+)":
         stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
     else:  # Manual Selection
