@@ -2242,6 +2242,18 @@ elif page == "3Jasmines 🌸":
                             j1 = s.get('jasmine1_support', {}) if isinstance(s.get('jasmine1_support'), dict) else {}
                             j2 = s.get('jasmine2_rsi', {}) if isinstance(s.get('jasmine2_rsi'), dict) else {}
                             j3 = s.get('jasmine3_pattern', {}) if isinstance(s.get('jasmine3_pattern'), dict) else {}
+                            # Extract pattern date
+                            pattern_date = ''
+                            if j3:
+                                if j3.get('detected_date_str'):
+                                    pattern_date = str(j3.get('detected_date_str'))
+                                elif j3.get('detected_date'):
+                                    date_val = j3.get('detected_date')
+                                    if hasattr(date_val, 'strftime'):
+                                        pattern_date = date_val.strftime('%Y-%m-%d')
+                                    else:
+                                        pattern_date = str(date_val)
+                            
                             export_data.append({
                                 'Symbol': str(s.get('symbol', '')),
                                 'Current_Price': float(s.get('current_price', 0)),
@@ -2256,6 +2268,7 @@ elif page == "3Jasmines 🌸":
                                 'Position_Size': int(s.get('position_size', 0)),
                                 'Potential_Profit': float(s.get('potential_profit', 0)),
                                 'Confidence': float(s.get('confidence', 0)),
+                                'Date_of_Pattern_Formed': pattern_date,
                                 'Jasmine1_Score': float(j1.get('score', 0)),
                                 'Jasmine1_Reason': str(j1.get('reason', '')),
                                 'Jasmine2_RSI': float(j2.get('rsi_value', 0)),
