@@ -164,18 +164,10 @@ class ChartPatternDetector:
         prev_is_large_red = not prev['is_bullish'] and prev['body'] / prev['range'] > 0.6
         
         # 2. Current candle is smaller green (bullish) inside previous body
-        # For bearish prev candle: open (high) > close (low)
-        # Current must be: open > prev['close'] (prev's low) AND close < prev['open'] (prev's high)
         current_is_green = current['is_bullish']
-        
-        # More strict: Current must be COMPLETELY inside prev's body (not just overlapping)
-        # Also check that current body is significantly smaller (at least 50% smaller)
-        prev_body_high = max(prev['open'], prev['close'])  # Higher of open/close for bearish
-        prev_body_low = min(prev['open'], prev['close'])   # Lower of open/close for bearish
-        
-        current_inside_prev = (current['open'] > prev_body_low and 
-                               current['close'] < prev_body_high and
-                               current['body'] < prev['body'] * 0.7)  # Current must be at least 30% smaller
+        current_inside_prev = (current['open'] > prev['close'] and 
+                               current['close'] < prev['open'] and
+                               current['body'] < prev['body'])
         
         if prev_is_large_red and current_is_green and current_inside_prev:
             # Calculate confidence
@@ -209,23 +201,16 @@ class ChartPatternDetector:
         prev = self.get_candle_parts(df.iloc[idx-1])
         current = self.get_candle_parts(df.iloc[idx])
         
-        # Engulfing criteria (STRICT)
+        # Engulfing criteria
         prev_is_bearish = not prev['is_bullish']
         current_is_bullish = current['is_bullish']
-        
-        # For bearish prev: open (high) > close (low)
-        # Current must open below prev's close (low) and close above prev's open (high)
-        prev_high = max(prev['open'], prev['close'])
-        prev_low = min(prev['open'], prev['close'])
-        
-        current_opens_below = current['open'] < prev_low
-        current_closes_above = current['close'] > prev_high
+        current_opens_below = current['open'] < prev['close']
+        current_closes_above = current['close'] > prev['open']
         body_ratio = current['body'] / prev['body'] if prev['body'] > 0 else 0
         
-        # Current body must be at least 1.2x larger (more strict than 1.0x)
         if (prev_is_bearish and current_is_bullish and 
             current_opens_below and current_closes_above and
-            body_ratio >= 1.2):  # More strict: 1.2x instead of 1.0x
+            body_ratio >= 1.0):
             
             # Confidence based on engulfing strength
             confidence = min(100, 65 + (body_ratio * 15))
@@ -350,23 +335,15 @@ class ChartPatternDetector:
         prev = self.get_candle_parts(df.iloc[idx-1])
         current = self.get_candle_parts(df.iloc[idx])
         
-        # Engulfing criteria (STRICT)
         prev_is_bullish = prev['is_bullish']
         current_is_bearish = not current['is_bullish']
-        
-        # For bullish prev: close (high) > open (low)
-        # Current must open above prev's close (high) and close below prev's open (low)
-        prev_high = max(prev['open'], prev['close'])
-        prev_low = min(prev['open'], prev['close'])
-        
-        current_opens_above = current['open'] > prev_high
-        current_closes_below = current['close'] < prev_low
+        current_opens_above = current['open'] > prev['close']
+        current_closes_below = current['close'] < prev['open']
         body_ratio = current['body'] / prev['body'] if prev['body'] > 0 else 0
         
-        # Current body must be at least 1.2x larger (more strict than 1.0x)
         if (prev_is_bullish and current_is_bearish and 
             current_opens_above and current_closes_below and
-            body_ratio >= 1.2):  # More strict: 1.2x instead of 1.0x
+            body_ratio >= 1.0):
             
             confidence = min(100, 65 + (body_ratio * 15))
             
@@ -438,13 +415,13 @@ class ChartPatternDetector:
         """
         current = self.get_candle_parts(df.iloc[idx])
         
-        # Siga Doji criteria: body ≤ 5% of range (STRICT - was 10%, too loose)
+        # Siga Doji criteria: body ≤ 10% of range
         if current['range'] == 0:
             return None
         
         body_to_range_ratio = current['body'] / current['range']
         
-        is_doji = body_to_range_ratio <= 0.05  # STRICT: Body ≤ 5% of range (was 10%)
+        is_doji = body_to_range_ratio <= 0.10  # SIGA: Body ≤ 10% of range
         
         # Check if both wicks present (classic Doji)
         has_upper_wick = current['upper_wick'] > 0
@@ -544,67 +521,48 @@ class ChartPatternDetector:
         
         # Check last N candles for patterns
         for i in range(max(5, len(df) - check_last_n_candles), len(df)):
-            # Get date for this candle
-            candle_date = None
-            if 'time' in df.columns:
-                candle_date = df.iloc[i]['time']
-            elif hasattr(df.index[i], 'strftime'):
-                candle_date = df.index[i]
-            elif hasattr(df.index[i], 'date'):
-                candle_date = df.index[i]
-            
-            # Helper to add date to pattern
-            def add_date_to_pattern(pattern_dict):
-                if pattern_dict and candle_date:
-                    pattern_dict['detected_date'] = candle_date
-                    if hasattr(candle_date, 'strftime'):
-                        pattern_dict['detected_date_str'] = candle_date.strftime('%Y-%m-%d')
-                    else:
-                        pattern_dict['detected_date_str'] = str(candle_date)
-                return pattern_dict
-            
             # Bullish patterns
             hammer = self.detect_hammer(df, i)
             if hammer:
-                patterns_found.append(add_date_to_pattern(hammer))
+                patterns_found.append(hammer)
             
             harami_bull = self.detect_bullish_harami(df, i)
             if harami_bull:
-                patterns_found.append(add_date_to_pattern(harami_bull))
+                patterns_found.append(harami_bull)
             
             engulfing_bull = self.detect_bullish_engulfing(df, i)
             if engulfing_bull:
-                patterns_found.append(add_date_to_pattern(engulfing_bull))
+                patterns_found.append(engulfing_bull)
             
             morning_star = self.detect_morning_star(df, i)
             if morning_star:
-                patterns_found.append(add_date_to_pattern(morning_star))
+                patterns_found.append(morning_star)
             
             three_white = self.detect_three_white_soldiers(df, i)
             if three_white:
-                patterns_found.append(add_date_to_pattern(three_white))
+                patterns_found.append(three_white)
             
             # Bearish patterns
             shooting = self.detect_shooting_star(df, i)
             if shooting:
-                patterns_found.append(add_date_to_pattern(shooting))
+                patterns_found.append(shooting)
             
             engulfing_bear = self.detect_bearish_engulfing(df, i)
             if engulfing_bear:
-                patterns_found.append(add_date_to_pattern(engulfing_bear))
+                patterns_found.append(engulfing_bear)
             
             evening = self.detect_evening_star(df, i)
             if evening:
-                patterns_found.append(add_date_to_pattern(evening))
+                patterns_found.append(evening)
             
             three_black = self.detect_three_black_crows(df, i)
             if three_black:
-                patterns_found.append(add_date_to_pattern(three_black))
+                patterns_found.append(three_black)
             
             # Neutral patterns
             doji = self.detect_doji(df, i)
             if doji:
-                patterns_found.append(add_date_to_pattern(doji))
+                patterns_found.append(doji)
         
         # Remove duplicates (keep highest confidence)
         if patterns_found:
