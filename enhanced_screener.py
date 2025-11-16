@@ -819,37 +819,56 @@ elif page == "Chart Analysis":
             help="Pattern Report: Shows patterns and their meaning | Full Signals: Complete entry/SL/targets"
         )
         
-        col1, col2 = st.columns([2, 1])
+        # Stock selection mode (match Technical Screener style)
+        st.markdown("### 📈 Stock Selection")
+        batch_selection_mode = st.radio(
+            "Choose how to select stocks:",
+            ["⭐ My Stocks", "Universe (Batch Analysis)", "Manual Selection"],
+            horizontal=True
+        )
         
-        with col2:
-            st.markdown("**Quick Presets:**")
-            
-            # Nifty 50 preset
-            with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
-                nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK"
-                st.code(nifty50_list, language=None)
-                st.caption("👆 Copy and paste")
-            
-            # Nifty Bank
-            with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
-                bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
-                st.code(bank_list, language=None)
-                st.caption("👆 Copy and paste")
-            
-            # Top 10 Most Active
-            with st.expander("🔥 Top 10 Most Active", expanded=False):
-                active_list = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nBHARTIARTL\nITC\nSBIN\nHINDUNILVR\nKOTAKBANK"
-                st.code(active_list, language=None)
-                st.caption("👆 Copy and paste")
+        batch_stock_list: List[str] = []
         
-        with col1:
-            st.markdown("**Enter Stock Symbols (one per line):**")
-            batch_stocks_input = st.text_area(
-                "Stock Symbols:",
-                placeholder="RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK",
-                height=200,
-                help="Enter NSE stock symbols, one per line"
-            )
+        if batch_selection_mode == "⭐ My Stocks":
+            batch_stock_list = get_my_stocks()
+            render_my_stocks_manager()
+        elif batch_selection_mode == "Universe (Batch Analysis)":
+            batch_stock_list = select_universe_for_batch("chart_batch")
+        else:
+            col1, col2 = st.columns([2, 1])
+            
+            with col2:
+                st.markdown("**Quick Presets (Copy-Paste):**")
+                
+                # Nifty 50 preset
+                with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
+                    nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK"
+                    st.code(nifty50_list, language=None)
+                    st.caption("👆 Copy and paste")
+                
+                # Nifty Bank
+                with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
+                    bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
+                    st.code(bank_list, language=None)
+                    st.caption("👆 Copy and paste")
+                
+                # Top 10 Most Active
+                with st.expander("🔥 Top 10 Most Active", expanded=False):
+                    active_list = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nBHARTIARTL\nITC\nSBIN\nHINDUNILVR\nKOTAKBANK"
+                    st.code(active_list, language=None)
+                    st.caption("👆 Copy and paste")
+            
+            with col1:
+                st.markdown("**Enter Stock Symbols (one per line):**")
+                batch_stocks_input = st.text_area(
+                    "Stock Symbols:",
+                    placeholder="RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK",
+                    height=200,
+                    help="Enter NSE stock symbols, one per line"
+                )
+            
+            if batch_stocks_input:
+                batch_stock_list = [s.strip().upper() for s in batch_stocks_input.split('\n') if s.strip()]
         
         # Chart Pattern Selection
         st.markdown("#### 📊 Chart Pattern Filter")
@@ -881,13 +900,11 @@ elif page == "Chart Analysis":
         with col2:
             batch_min_rr = st.slider("Min R:R", 1.0, 5.0, 1.5, 0.5, help="Minimum Risk:Reward ratio")
         
-        # Parse stock list
-        if batch_stocks_input:
-            batch_stock_list = [s.strip().upper() for s in batch_stocks_input.split('\n') if s.strip()]
+        # Final check
+        if batch_stock_list:
             st.caption(f"✅ Ready to analyze {len(batch_stock_list)} stocks")
         else:
-            batch_stock_list = []
-            st.warning("⚠️ Please enter stock symbols")
+            st.warning("⚠️ Please select or enter stocks to scan")
         
         if st.button("🔍 Scan Stocks for Patterns", type="primary", disabled=(len(batch_stock_list) == 0)):
             if len(batch_stock_list) == 0:
