@@ -3321,24 +3321,6 @@ elif page == "S&R Analysis":
                     st.code(top20_list, language=None)
                     st.caption("👆 Copy and paste in text area")
 
-                st.markdown("**Analysis Settings:**")
-                sensitivity = st.slider(
-                    "Sensitivity",
-                    3,
-                    10,
-                    3,
-                    help="Lower = more nearby levels (recommended), Higher = fewer major levels",
-                    key="batch_sens",
-                )
-                min_touches = st.slider(
-                    "Min Touches",
-                    2,
-                    5,
-                    2,
-                    help="Minimum times price must touch a level",
-                    key="batch_touch",
-                )
-
             with col1:
                 st.markdown("**Enter stock symbols** (one per line or comma-separated):")
                 default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
@@ -3356,6 +3338,25 @@ elif page == "S&R Analysis":
                         symbol = line.strip().upper()
                         if symbol:
                             symbols_list.append(symbol)
+
+        # Analysis settings (apply to all batch modes)
+        st.markdown("**Analysis Settings:**")
+        sensitivity = st.slider(
+            "Sensitivity",
+            3,
+            10,
+            3,
+            help="Lower = more nearby levels (recommended), Higher = fewer major levels",
+            key="batch_sens",
+        )
+        min_touches = st.slider(
+            "Min Touches",
+            2,
+            5,
+            2,
+            help="Minimum times price must touch a level",
+            key="batch_touch",
+        )
     
     if st.button("🔍 Analyze Support & Resistance", type="primary"):
         # Handle batch vs single analysis
