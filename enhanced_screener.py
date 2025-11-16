@@ -3360,13 +3360,6 @@ elif page == "S&R Analysis":
     if st.button("🔍 Analyze Support & Resistance", type="primary"):
         # Handle batch vs single analysis
         if analysis_mode == "Batch Analysis (Multiple Stocks)":
-            # Parse symbols
-            symbols_list = []
-            for line in symbols_input.replace(',', '\n').split('\n'):
-                symbol = line.strip().upper()
-                if symbol:
-                    symbols_list.append(symbol)
-            
             if not symbols_list:
                 st.error("❌ Please enter at least one stock symbol!")
             else:
