@@ -4200,21 +4200,19 @@ elif page == "VWAP Strategy":
                         with col2:
                             st.metric("Final Capital", f"₹{summary['final_capital']:,.2f}", delta=f"₹{summary['total_profit']:,.2f}")
                         
-                        # Detailed Results - Completed trades + current open position
+                        # Detailed Results - Closed trades + separate open-position table
                         if system.daily_transactions:
                             st.markdown("---")
-                            st.subheader("📊 Trades Summary (Closed + Current Positions)")
+                            st.subheader("📊 Completed Trades Summary")
                             
                             transactions_df = pd.DataFrame(system.daily_transactions)
                             
                             # Filter only sell transactions (completed trades)
                             trades_df = transactions_df[transactions_df['execution'] == 'Sell'].copy()
                             
-                            display_df = pd.DataFrame()
-
                             if not trades_df.empty:
                                 # Prepare display columns for completed trades
-                                display_df = pd.DataFrame({
+                                closed_display_df = pd.DataFrame({
                                     'Buy Date': trades_df['entry_date'].apply(lambda x: x.date() if pd.notna(x) and x is not None else ''),
                                     'Buy Qty': trades_df['sell_qty'],  # Total qty that was sold (same as bought)
                                     'Avg Buy Price': trades_df['average_cost'],
@@ -4225,62 +4223,9 @@ elif page == "VWAP Strategy":
                                     'Profit': trades_df['profit'],
                                     'Return %': trades_df['return_pct']
                                 })
-                            
-                            # Derive current open position (if any)
-                            open_pos_df = transactions_df[transactions_df['total_shares_held'] > 0].copy()
-                            if not open_pos_df.empty:
-                                # Use first day with position as entry, last day as current
-                                first_row = open_pos_df.iloc[0]
-                                last_row = open_pos_df.iloc[-1]
                                 
-                                buy_date = first_row.get('entry_date') or first_row.get('date')
-                                current_date = last_row.get('date')
-                                
-                                # Holding quantity and buy qty (same for single laddered position)
-                                holding_qty = int(last_row.get('total_shares_held', 0))
-                                buy_qty = holding_qty
-                                avg_buy_price = float(last_row.get('average_cost', 0.0))
-                                
-                                # Approximate current market price using VWAP if available, else midpoint of high/low
-                                vwap_val = float(last_row.get('vwap', 0.0) or 0.0)
-                                high_val = float(last_row.get('high', 0.0) or 0.0)
-                                low_val = float(last_row.get('low', 0.0) or 0.0)
-                                if vwap_val > 0:
-                                    current_price = vwap_val
-                                elif high_val > 0 and low_val > 0:
-                                    current_price = (high_val + low_val) / 2.0
-                                else:
-                                    current_price = avg_buy_price
-                                
-                                # Holding period from first entry to latest date
-                                if pd.notna(buy_date) and hasattr(current_date, 'date'):
-                                    holding_days = (current_date - buy_date).days if hasattr(current_date, 'days') or hasattr(current_date, 'to_pydatetime') else 0
-                                else:
-                                    holding_days = 0
-                                
-                                # Unrealised P&L as on date
-                                investment = avg_buy_price * holding_qty
-                                profit_live = (current_price - avg_buy_price) * holding_qty
-                                return_live = (profit_live / investment * 100) if investment > 0 else 0.0
-                                
-                                open_display = pd.DataFrame([{
-                                    'Buy Date': buy_date.date() if hasattr(buy_date, 'date') else buy_date,
-                                    'Buy Qty': buy_qty,
-                                    'Avg Buy Price': avg_buy_price,
-                                    'Sell Date': 0,  # Not sold yet
-                                    'Sell Qty': 0,
-                                    'Avg Sell Price': current_price,
-                                    'Holding Period': f"{int(holding_days)} days" if holding_days else '',
-                                    'Profit': profit_live,
-                                    'Return %': return_live
-                                }])
-                                
-                                # Append open position row under completed trades (if any)
-                                display_df = pd.concat([display_df, open_display], ignore_index=True) if not display_df.empty else open_display
-
-                            if not display_df.empty:
                                 st.dataframe(
-                                    display_df.style.format({
+                                    closed_display_df.style.format({
                                         'Avg Buy Price': '₹{:.2f}',
                                         'Avg Sell Price': '₹{:.2f}',
                                         'Profit': '₹{:.2f}',
@@ -4290,11 +4235,68 @@ elif page == "VWAP Strategy":
                                     height=400
                                 )
                                 
-                                # Summary stats for completed trades only
-                                if not trades_df.empty:
-                                    st.info(f"**Total Completed Trades:** {len(trades_df)} | **Avg Holding Period:** {trades_df['holding_days'].mean():.1f} days")
+                                # Summary stats for completed trades
+                                st.info(f"**Total Completed Trades:** {len(trades_df)} | **Avg Holding Period:** {trades_df['holding_days'].mean():.1f} days")
                             else:
-                                st.warning("No completed or open trades to display. Adjust parameters or check data.")
+                                st.warning("No completed trades yet. Adjust parameters or check data.")
+
+                            # Open position table (live P&L)
+                            open_pos_df = transactions_df[transactions_df['total_shares_held'] > 0].copy()
+                            if not open_pos_df.empty:
+                                st.markdown("---")
+                                st.subheader("🟢 Open Position (Live)")
+
+                                first_row = open_pos_df.iloc[0]
+                                last_row = open_pos_df.iloc[-1]
+
+                                buy_date = first_row.get('entry_date') or first_row.get('date')
+                                current_date = last_row.get('date')
+
+                                holding_qty = int(last_row.get('total_shares_held', 0))
+                                avg_buy_price = float(last_row.get('average_cost', 0.0))
+
+                                # Current market price (CMP): VWAP if available, else mid of high/low, else avg buy
+                                vwap_val = float(last_row.get('vwap', 0.0) or 0.0)
+                                high_val = float(last_row.get('high', 0.0) or 0.0)
+                                low_val = float(last_row.get('low', 0.0) or 0.0)
+                                if vwap_val > 0:
+                                    cmp_price = vwap_val
+                                elif high_val > 0 and low_val > 0:
+                                    cmp_price = (high_val + low_val) / 2.0
+                                else:
+                                    cmp_price = avg_buy_price
+
+                                sell_target = float(last_row.get('target_price', 0.0) or 0.0)
+
+                                # Live profit metrics
+                                investment = avg_buy_price * holding_qty
+                                running_profit = (cmp_price - avg_buy_price) * holding_qty
+                                profit_pct_from_cmp = ((cmp_price - avg_buy_price) / avg_buy_price * 100) if avg_buy_price > 0 else 0.0
+                                pct_to_target_from_cmp = ((sell_target - cmp_price) / cmp_price * 100) if cmp_price > 0 and sell_target > 0 else 0.0
+
+                                open_table = pd.DataFrame([{
+                                    'S.No': 1,
+                                    'Buy Date': buy_date.date() if hasattr(buy_date, 'date') else buy_date,
+                                    'Buy Avg Price': avg_buy_price,
+                                    'CMP': cmp_price,
+                                    'Sell Target': sell_target,
+                                    '% of Sell Target from CMP': pct_to_target_from_cmp,
+                                    '% Profit from CMP': profit_pct_from_cmp,
+                                    'Running Profit': running_profit,
+                                }])
+
+                                st.dataframe(
+                                    open_table.style.format({
+                                        'Buy Avg Price': '₹{:.2f}',
+                                        'CMP': '₹{:.2f}',
+                                        'Sell Target': '₹{:.2f}',
+                                        '% of Sell Target from CMP': '{:.2f}%',
+                                        '% Profit from CMP': '{:.2f}%',
+                                        'Running Profit': '₹{:.2f}',
+                                    }),
+                                    use_container_width=True,
+                                    height=150,
+                                )
                             
                             # Download Full Excel Report
                             st.markdown("---")
