@@ -491,7 +491,7 @@ if page == "Dashboard":
     st.error("""
     **📢 NOT A SEBI REGISTERED ANALYST**
     
-    J Swarnalakshmi is **NOT a SEBI (Securities and Exchange Board of India) registered analyst** or investment advisor. 
+    Jeyakumar R is **NOT a SEBI (Securities and Exchange Board of India) registered analyst** or investment advisor. 
     This system is developed for **educational and research purposes only**.
     """)
     
