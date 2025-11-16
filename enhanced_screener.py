@@ -879,6 +879,12 @@ elif page == "Chart Analysis":
             
             if batch_stocks_input:
                 batch_stock_list = [s.strip().upper() for s in batch_stocks_input.split('\n') if s.strip()]
+
+        # NSE Index reference list for batch analysis
+        if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
+            with st.expander("📊 NSE Index List (reference only)", expanded=False):
+                st.caption("Major NSE indices you can use as guides for batch pattern scans:")
+                st.code("\\n".join(NSE_INDICES), language=None)
         
         # Chart Pattern Selection
         st.markdown("#### 📊 Chart Pattern Filter")
@@ -2800,6 +2806,12 @@ elif page == "Technical Screener":
             stocks = TOP_50_STOCKS
         
         st.caption(f"🔍 Ready to analyze {len(stocks)} stocks from the {universe_size} universe")
+
+    # NSE Index reference list (for context only)
+    if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
+        with st.expander("📊 NSE Index List (reference only)", expanded=False):
+            st.caption("Major NSE indices you can track alongside this screener:")
+            st.code("\\n".join(NSE_INDICES), language=None)
     
     elif selection_mode == "Manual Selection":
         manual_input = st.text_area(
@@ -3349,6 +3361,12 @@ elif page == "S&R Analysis":
                         symbol = line.strip().upper()
                         if symbol:
                             symbols_list.append(symbol)
+
+        # NSE Index reference list for S&R batch
+        if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
+            with st.expander("📊 NSE Index List (reference only)", expanded=False):
+                st.caption("Major NSE indices that pair well with S&R batch analysis:")
+                st.code("\\n".join(NSE_INDICES), language=None)
 
         # Analysis settings (apply to all batch modes)
         st.markdown("**Analysis Settings:**")
