@@ -237,6 +237,44 @@ COMMODITIES = [
 ]
 
 # ============================================================
+# NSE INDEX UNIVERSE (MAJOR INDICES)
+# ============================================================
+# Note: These are index identifiers for analysis / presets.
+# They are kept separate from stock universes so normal stock
+# scans are not affected.
+NSE_INDICES = [
+    # Broad Market
+    'NIFTY 50',
+    'NIFTY NEXT 50',
+    'NIFTY 100',
+    'NIFTY 200',
+    'NIFTY 500',
+    'NIFTY MIDCAP 150',
+    'NIFTY MIDCAP 100',
+    'NIFTY SMALLCAP 250',
+    'NIFTY SMALLCAP 100',
+
+    # Sectoral & Thematic
+    'NIFTY BANK',
+    'NIFTY PSU BANK',
+    'NIFTY FINANCIAL SERVICES',
+    'NIFTY IT',
+    'NIFTY AUTO',
+    'NIFTY PHARMA',
+    'NIFTY METAL',
+    'NIFTY FMCG',
+    'NIFTY ENERGY',
+    'NIFTY REALTY',
+    'NIFTY MEDIA',
+
+    # Others commonly used
+    'NIFTY HEALTHCARE INDEX',
+    'NIFTY CONSUMER DURABLES',
+    'NIFTY OIL & GAS',
+    'NIFTY INFRASTRUCTURE',
+]
+
+# ============================================================
 # COMBINED UNIVERSE
 # ============================================================
 ALL_STOCKS = list(set(NIFTY_500 + SMALLCAP_250))  # Remove duplicates
