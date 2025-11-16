@@ -1467,12 +1467,13 @@ elif page == "Chart Analysis":
 elif page == "Lotus Momentum Trio":
     st.header("🪷 Lotus Momentum Trio")
     
-    # Mode selection: Manual Entry OR Hybrid Analysis
+    # Mode selection: Hybrid Analysis only (Manual Entry hidden for production)
     signal_generation_mode = st.radio(
         "Signal Generation Mode:",
-        ["Manual Entry", "Hybrid Mode (Treasure Signals 💎)"],
+        ["Hybrid Mode (Treasure Signals 💎)"],
+        index=0,
         horizontal=True,
-        help="Manual: Enter signal details manually | Hybrid: Auto-detect high-accuracy signals"
+        help="Hybrid: Auto-detect high-accuracy treasure signals across your selected universe"
     )
     
     if signal_generation_mode == "Manual Entry":
@@ -5054,7 +5055,18 @@ elif page == "Backtest (Multi-Mode)":
         st.stop()  # Stop here if backtesting saved signals
     
     # Mode selection for new signal generation
-    mode = st.radio("📊 Select Strategy Mode:", ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🚀 High-Growth Strategy (35% CAGR)", "🔄 Compare All Modes"], horizontal=True)
+    mode = st.radio(
+        "📊 Select Strategy Mode:",
+        [
+            "🌸 3Jasmines",
+            "💎 Treasure Signals",
+            "🌺 Orchid Trend Matrix",
+            "🚀 High-Growth Strategy (35% CAGR)",
+            "🔄 Compare All Modes",
+            "🌌 50% CAGR Optimizer (All Strategies)",
+        ],
+        horizontal=True,
+    )
     
     st.markdown("---")
     
@@ -5132,6 +5144,11 @@ elif page == "Backtest (Multi-Mode)":
         st.warning("⚠️ **Aggressive Strategy:** Higher returns but higher risk. Uses 20% target, 4% stop, 20-day holding period.")
     elif mode == "🔄 Compare All Modes":
         st.info("🔄 **Compare All Modes:** Runs backtests for all four strategies simultaneously and shows comparative results")
+    elif mode == "🌌 50% CAGR Optimizer (All Strategies)":
+        st.info(
+            "🌌 **50% CAGR Optimizer:** Runs all strategies together and highlights the combination whose CAGR is closest to 50% "
+            "over the selected backtest period."
+        )
     
     st.markdown("---")
     
@@ -5255,7 +5272,7 @@ elif page == "Backtest (Multi-Mode)":
                                     help="1.5 R:R minimum (aggressive for high returns)")
         st.info("💡 **High-Growth Strategy:** Uses Hybrid mode (AI + Technical + S&R + Chart Patterns) for maximum accuracy")
     
-    elif mode == "🔄 Compare All Modes":
+    elif mode in ["🔄 Compare All Modes", "🌌 50% CAGR Optimizer (All Strategies)"]:
         st.markdown("**Configure parameters for all modes:**")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -5285,8 +5302,8 @@ elif page == "Backtest (Multi-Mode)":
     st.markdown("---")
     
     # Run backtest button
-    if mode == "🔄 Compare All Modes":
-        button_text = "🚀 Run Comparison Backtest (All 3 Modes)"
+    if mode in ["🔄 Compare All Modes", "🌌 50% CAGR Optimizer (All Strategies)"]:
+        button_text = "🚀 Run Comparison Backtest (All Strategies)"
     else:
         button_text = f"🚀 Run {mode} Backtest"
     
@@ -5308,8 +5325,8 @@ elif page == "Backtest (Multi-Mode)":
                     from support_resistance.sr_calculator import SupportResistanceCalculator
                     SR_CALC_CLASS = SupportResistanceCalculator
                 
-                # Handle "Compare All Modes" separately
-                if mode == "🔄 Compare All Modes":
+                # Handle multi-strategy comparison modes separately
+                if mode in ["🔄 Compare All Modes", "🌌 50% CAGR Optimizer (All Strategies)"]:
                     # Run backtests for all four modes
                     modes_to_test = ["🌸 3Jasmines", "💎 Treasure Signals", "🌺 Orchid Trend Matrix", "🚀 High-Growth Strategy (35% CAGR)"]
                     all_results = {}
@@ -5594,6 +5611,30 @@ elif page == "Backtest (Multi-Mode)":
                     
                     df_comparison = pd.DataFrame(comparison_data)
                     st.dataframe(df_comparison, use_container_width=True)
+
+                    # 50% CAGR optimizer highlight
+                    if mode == "🌌 50% CAGR Optimizer (All Strategies)":
+                        best_mode_name = None
+                        best_mode_results = None
+                        smallest_gap = None
+
+                        for mode_name, results in all_results.items():
+                            if not results:
+                                continue
+                            gap = abs(results["cagr"] - 50.0)
+                            if smallest_gap is None or gap < smallest_gap:
+                                smallest_gap = gap
+                                best_mode_name = mode_name
+                                best_mode_results = results
+
+                        if best_mode_name and best_mode_results:
+                            st.markdown("---")
+                            st.subheader("🧠 Suggested 50% CAGR Combination")
+                            st.success(
+                                f"Best match: **{best_mode_name}** with CAGR **{best_mode_results['cagr']:.2f}%** "
+                                f"and total return **{best_mode_results['total_return_pct']:.2f}%** over the "
+                                f"last {lookback_months} months."
+                            )
                     
                     # Show individual results
                     st.markdown("---")
