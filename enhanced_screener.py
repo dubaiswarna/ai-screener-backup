@@ -4246,10 +4246,14 @@ elif page == "VWAP Strategy":
                                 st.markdown("---")
                                 st.subheader("🟢 Open Position (Live)")
 
-                                first_row = open_pos_df.iloc[0]
+                                # Determine true buy date: first non-null entry_date, else first date with position
+                                if 'entry_date' in open_pos_df and open_pos_df['entry_date'].notna().any():
+                                    buy_date = open_pos_df.loc[open_pos_df['entry_date'].notna(), 'entry_date'].iloc[0]
+                                else:
+                                    buy_date = open_pos_df['date'].iloc[0]
+
                                 last_row = open_pos_df.iloc[-1]
 
-                                buy_date = first_row.get('entry_date') or first_row.get('date')
                                 current_date = last_row.get('date')
 
                                 holding_qty = int(last_row.get('total_shares_held', 0))
