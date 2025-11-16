@@ -470,7 +470,7 @@ if page == "Dashboard":
     
     st.markdown("""
     <div style='background-color: #f0f2f6; padding: 1.75rem; border-radius: 10px; border-left: 5px solid #667eea;'>
-        <h3 style='margin-top: 0; color: #667eea;'>J Swarnalakshmi</h3>
+        <h3 style='margin-top: 0; color: #667eea;'>Jeyakumar R</h3>
         <p style='font-size: 1rem; color: #4a4a4a; margin-bottom: 0.6rem;'><strong>Developer, Professional AI Screener v3.0</strong></p>
         <p style='font-size: 0.95rem; line-height: 1.7; color: #555; margin-bottom: 1rem;'>
             Crafts AI-assisted trading tools that blend quantitative research with live market experience. 
