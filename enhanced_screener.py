@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import sys
 import time
 from pathlib import Path
+from typing import List
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent))
@@ -110,6 +111,79 @@ def render_my_stocks_manager():
                         st.warning(f"⚠️ {new_stock.upper()} is already in your list or invalid")
         
         st.caption(f"📊 Total: {len(st.session_state.my_stocks)} stocks in My Stocks")
+
+
+# ============================================================
+# HELPER: Shared Universe Selection for Batch Analyses
+# ============================================================
+
+TOP_50_STOCKS: List[str] = [
+    'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
+    'ITC', 'HINDUNILVR', 'KOTAKBANK', 'LT', 'ASIANPAINTS', 'MARUTI', 'HCLTECH',
+    'WIPRO', 'TITAN', 'SUNPHARMA', 'AXISBANK', 'BAJFINANCE', 'NESTLEIND',
+    'ULTRACEMCO', 'M&M', 'NTPC', 'POWERGRID', 'ONGC', 'TATASTEEL', 'TECHM',
+    'ADANIPORTS', 'JSWSTEEL', 'BAJAJFINSV', 'INDUSINDBK', 'COALINDIA', 'DIVISLAB',
+    'GRASIM', 'HINDALCO', 'BRITANNIA', 'DRREDDY', 'SHREECEM', 'EICHERMOT', 'CIPLA',
+    'TATACONSUM', 'HEROMOTOCO', 'UPL', 'APOLLOHOSP', 'BPCL', 'BAJAJ-AUTO', 'TATAMOTORS',
+    'ADANIENT', 'SBILIFE', 'HDFCLIFE', 'JIOFIN'
+]
+
+
+def select_universe_for_batch(page_key: str,
+                              label: str = "Universe:") -> List[str]:
+    """
+    Shared universe selector used by all batch-analysis pages.
+
+    Returns the list of symbols for the chosen universe.
+    """
+    if EXPANDED_UNIVERSE_AVAILABLE:
+        universe_options = [
+            "Top 10 (Quick Test)",
+            "Top 20 (Standard)",
+            "Nifty 50 (50 stocks)",
+            "Nifty 200 (200 stocks) ⭐",
+            "Nifty 500 (500 stocks)",
+            "Smallcap 250 (250 stocks)",
+            "Commodities (Gold, Silver)",
+            "ALL Stocks (750+)",
+            "ALL Assets (Stocks + Commodities) 🚀",
+        ]
+    else:
+        universe_options = ["Top 10 (Quick)", "Top 20 (Standard)", "Top 50"]
+
+    universe_choice = st.selectbox(
+        label,
+        universe_options,
+        key=f"{page_key}_universe_choice",
+    )
+
+    # Map universe choice to actual symbol list
+    if "Top 10" in universe_choice:
+        symbols = TOP_50_STOCKS[:10]
+    elif "Top 20" in universe_choice:
+        symbols = TOP_50_STOCKS[:20]
+    elif "Nifty 50" in universe_choice:
+        symbols = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    elif "Nifty 200" in universe_choice:
+        symbols = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    elif "Nifty 500" in universe_choice:
+        symbols = NIFTY_500 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    elif "Smallcap 250" in universe_choice:
+        symbols = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    elif "Commodities" in universe_choice:
+        symbols = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else []
+    elif "ALL Assets" in universe_choice:
+        symbols = ALL_ASSETS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    elif "ALL" in universe_choice:
+        symbols = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
+    else:
+        symbols = TOP_50_STOCKS
+
+    st.caption(
+        f"🔍 Ready to analyze {len(symbols)} stocks from the {universe_choice} universe"
+    )
+
+    return symbols
 
 # ============================================================
 # HELPER: Symbol Mapping for Yahoo Finance
@@ -1498,32 +1572,13 @@ elif page == "Lotus Momentum Trio":
                 help="My Stocks: Your favorites | Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
             )
             
-            stock_list = []
+            stock_list: List[str] = []
             
             if selection_mode == "⭐ My Stocks":
                 stock_list = get_my_stocks()
                 render_my_stocks_manager()
             elif selection_mode == "Universe (Batch Analysis)":
-                if EXPANDED_UNIVERSE_AVAILABLE:
-                    universe_choice = st.selectbox(
-                        "Select Universe:",
-                        ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "Small Cap 250 (250 stocks)", "Commodity", "ALL Stocks (750+)"]
-                    )
-                else:
-                    universe_choice = "Nifty 50 (51 stocks)"
-                
-                # Get stock list based on universe
-                if "Nifty 50" in universe_choice:
-                    stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
-                elif "Nifty 200" in universe_choice:
-                    stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-                elif "Small Cap 250" in universe_choice:
-                    stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-                elif "Commodity" in universe_choice:
-                    stock_list = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else ['GOLD', 'SILVER']
-                else:
-                    stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-            
+                stock_list = select_universe_for_batch("lotus_hybrid")
             else:  # Manual Selection
                 st.info("💡 Enter stock symbols separated by commas (e.g., RELIANCE, TCS, INFY, HDFCBANK)")
                 manual_input = st.text_input(
@@ -1784,30 +1839,13 @@ elif page == "Hybrid Signal Generator 💎":
             help="My Stocks: Your favorites | Universe: Analyze entire Nifty 50/200 | Manual: Pick specific stocks"
         )
         
-        stock_list = []
+        stock_list: List[str] = []
         
         if selection_mode == "⭐ My Stocks":
             stock_list = get_my_stocks()
             render_my_stocks_manager()
         elif selection_mode == "Universe (Batch Analysis)":
-            if EXPANDED_UNIVERSE_AVAILABLE:
-                universe_choice = st.selectbox(
-                    "Select Universe:",
-                    ["Nifty 50 (51 stocks)", "Nifty 200 (200 stocks)", "Small Cap 250 (250 stocks)", "ALL Stocks (750+)"]
-                )
-            else:
-                universe_choice = "Nifty 50 (51 stocks)"
-            
-            # Get stock list based on universe
-            if "Nifty 50" in universe_choice:
-                stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
-            elif "Nifty 200" in universe_choice:
-                stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-            elif "Small Cap 250" in universe_choice:
-                stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-            else:
-                stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-        
+            stock_list = select_universe_for_batch("hybrid_signals")
         else:  # Manual Selection
             st.info("💡 Enter stock symbols separated by commas (e.g., RELIANCE, TCS, INFY, HDFCBANK)")
             manual_input = st.text_input(
@@ -2092,26 +2130,18 @@ elif page == "3Jasmines 🌸":
     st.markdown("### 📈 Stock Selection")
     
     selection_mode = st.radio(
-        "Choose stock universe:",
-        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "Commodity", "ALL Stocks (750+)", "Manual Selection"],
+        "Choose how to select stocks:",
+        ["⭐ My Stocks", "Universe (Batch Analysis)", "Manual Selection"],
         horizontal=True
     )
     
-    stock_list = []
+    stock_list: List[str] = []
     
     if selection_mode == "⭐ My Stocks":
         stock_list = get_my_stocks()
         render_my_stocks_manager()
-    elif selection_mode == "Nifty 50":
-        stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
-    elif selection_mode == "Nifty 200":
-        stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-    elif selection_mode == "Small Cap 250":
-        stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-    elif selection_mode == "Commodity":
-        stock_list = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else ['GOLD', 'SILVER']
-    elif selection_mode == "ALL Stocks (750+)":
-        stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "Universe (Batch Analysis)":
+        stock_list = select_universe_for_batch("three_jasmines")
     else:  # Manual Selection
         manual_input = st.text_input(
             "Enter Stock Symbols (comma-separated):",
@@ -2311,10 +2341,10 @@ elif page == "3Jasmines 🌸":
                             })
                         df_export = pd.DataFrame(export_data)
                         csv_data = df_export.to_csv(index=False)
-                        st.download_button(
+                    st.download_button(
                             "📥 Download 3Jasmines Signals (CSV)",
                             csv_data,
-                            f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                             "text/csv",
                             key="download_jasmines_csv",
                             type="primary",
@@ -2380,26 +2410,18 @@ elif page == "Orchid Trend Matrix":
     st.markdown("### 📈 Stock Selection")
     
     selection_mode = st.radio(
-        "Choose stock universe:",
-        ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Small Cap 250", "Commodity", "ALL Stocks (750+)", "Manual Selection"],
+        "Choose how to select stocks:",
+        ["⭐ My Stocks", "Universe (Batch Analysis)", "Manual Selection"],
         horizontal=True
     )
     
-    stock_list = []
+    stock_list: List[str] = []
     
     if selection_mode == "⭐ My Stocks":
         stock_list = get_my_stocks()
         render_my_stocks_manager()
-    elif selection_mode == "Nifty 50":
-        stock_list = NIFTY_50 if EXPANDED_UNIVERSE_AVAILABLE else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
-    elif selection_mode == "Nifty 200":
-        stock_list = NIFTY_200 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-    elif selection_mode == "Small Cap 250":
-        stock_list = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
-    elif selection_mode == "Commodity":
-        stock_list = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else ['GOLD', 'SILVER']
-    elif selection_mode == "ALL Stocks (750+)":
-        stock_list = ALL_STOCKS if EXPANDED_UNIVERSE_AVAILABLE else NIFTY_50
+    elif selection_mode == "Universe (Batch Analysis)":
+        stock_list = select_universe_for_batch("orchid_trend")
     else:  # Manual Selection
         manual_input = st.text_input(
             "Enter Stock Symbols (comma-separated):",
