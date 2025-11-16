@@ -4200,18 +4200,20 @@ elif page == "VWAP Strategy":
                         with col2:
                             st.metric("Final Capital", f"₹{summary['final_capital']:,.2f}", delta=f"₹{summary['total_profit']:,.2f}")
                         
-                        # Detailed Results - Show only completed trades
+                        # Detailed Results - Completed trades + current open position
                         if system.daily_transactions:
                             st.markdown("---")
-                            st.subheader("📊 Completed Trades Summary")
+                            st.subheader("📊 Trades Summary (Closed + Current Positions)")
                             
                             transactions_df = pd.DataFrame(system.daily_transactions)
                             
                             # Filter only sell transactions (completed trades)
                             trades_df = transactions_df[transactions_df['execution'] == 'Sell'].copy()
                             
+                            display_df = pd.DataFrame()
+
                             if not trades_df.empty:
-                                # Prepare display columns
+                                # Prepare display columns for completed trades
                                 display_df = pd.DataFrame({
                                     'Buy Date': trades_df['entry_date'].apply(lambda x: x.date() if pd.notna(x) and x is not None else ''),
                                     'Buy Qty': trades_df['sell_qty'],  # Total qty that was sold (same as bought)
@@ -4223,7 +4225,60 @@ elif page == "VWAP Strategy":
                                     'Profit': trades_df['profit'],
                                     'Return %': trades_df['return_pct']
                                 })
+                            
+                            # Derive current open position (if any)
+                            open_pos_df = transactions_df[transactions_df['total_shares_held'] > 0].copy()
+                            if not open_pos_df.empty:
+                                # Use first day with position as entry, last day as current
+                                first_row = open_pos_df.iloc[0]
+                                last_row = open_pos_df.iloc[-1]
                                 
+                                buy_date = first_row.get('entry_date') or first_row.get('date')
+                                current_date = last_row.get('date')
+                                
+                                # Holding quantity and buy qty (same for single laddered position)
+                                holding_qty = int(last_row.get('total_shares_held', 0))
+                                buy_qty = holding_qty
+                                avg_buy_price = float(last_row.get('average_cost', 0.0))
+                                
+                                # Approximate current market price using VWAP if available, else midpoint of high/low
+                                vwap_val = float(last_row.get('vwap', 0.0) or 0.0)
+                                high_val = float(last_row.get('high', 0.0) or 0.0)
+                                low_val = float(last_row.get('low', 0.0) or 0.0)
+                                if vwap_val > 0:
+                                    current_price = vwap_val
+                                elif high_val > 0 and low_val > 0:
+                                    current_price = (high_val + low_val) / 2.0
+                                else:
+                                    current_price = avg_buy_price
+                                
+                                # Holding period from first entry to latest date
+                                if pd.notna(buy_date) and hasattr(current_date, 'date'):
+                                    holding_days = (current_date - buy_date).days if hasattr(current_date, 'days') or hasattr(current_date, 'to_pydatetime') else 0
+                                else:
+                                    holding_days = 0
+                                
+                                # Unrealised P&L as on date
+                                investment = avg_buy_price * holding_qty
+                                profit_live = (current_price - avg_buy_price) * holding_qty
+                                return_live = (profit_live / investment * 100) if investment > 0 else 0.0
+                                
+                                open_display = pd.DataFrame([{
+                                    'Buy Date': buy_date.date() if hasattr(buy_date, 'date') else buy_date,
+                                    'Buy Qty': buy_qty,
+                                    'Avg Buy Price': avg_buy_price,
+                                    'Sell Date': 0,  # Not sold yet
+                                    'Sell Qty': 0,
+                                    'Avg Sell Price': current_price,
+                                    'Holding Period': f"{int(holding_days)} days" if holding_days else '',
+                                    'Profit': profit_live,
+                                    'Return %': return_live
+                                }])
+                                
+                                # Append open position row under completed trades (if any)
+                                display_df = pd.concat([display_df, open_display], ignore_index=True) if not display_df.empty else open_display
+
+                            if not display_df.empty:
                                 st.dataframe(
                                     display_df.style.format({
                                         'Avg Buy Price': '₹{:.2f}',
@@ -4235,10 +4290,11 @@ elif page == "VWAP Strategy":
                                     height=400
                                 )
                                 
-                                # Summary stats
-                                st.info(f"**Total Completed Trades:** {len(trades_df)} | **Avg Holding Period:** {trades_df['holding_days'].mean():.1f} days")
+                                # Summary stats for completed trades only
+                                if not trades_df.empty:
+                                    st.info(f"**Total Completed Trades:** {len(trades_df)} | **Avg Holding Period:** {trades_df['holding_days'].mean():.1f} days")
                             else:
-                                st.warning("No completed trades yet. Adjust parameters or check data.")
+                                st.warning("No completed or open trades to display. Adjust parameters or check data.")
                             
                             # Download Full Excel Report
                             st.markdown("---")
