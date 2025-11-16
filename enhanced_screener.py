@@ -32,7 +32,16 @@ except ImportError:
 
 # Import expanded stock universe
 try:
-    from config.stock_universe import NIFTY_50, NIFTY_200, NIFTY_500, SMALLCAP_250, ALL_STOCKS, COMMODITIES, ALL_ASSETS
+    from config.stock_universe import (
+        NIFTY_50,
+        NIFTY_200,
+        NIFTY_500,
+        SMALLCAP_250,
+        ALL_STOCKS,
+        COMMODITIES,
+        ALL_ASSETS,
+        NSE_INDICES,
+    )
     EXPANDED_UNIVERSE_AVAILABLE = True
 except ImportError:
     EXPANDED_UNIVERSE_AVAILABLE = False
@@ -43,6 +52,7 @@ except ImportError:
     ALL_STOCKS = []
     COMMODITIES = []
     ALL_ASSETS = []
+    NSE_INDICES = []
 
 # ============================================================
 # HELPER: My Stocks Management
@@ -5076,8 +5086,18 @@ elif page == "Backtest (Multi-Mode)":
     if EXPANDED_UNIVERSE_AVAILABLE:
         universe_selection = st.radio(
             "Choose Stock Universe:",
-            ["⭐ My Stocks", "Nifty 50", "Nifty 200", "Nifty 500", "Smallcap 250", "Commodities (Gold, Silver)", "ALL Stocks (750+)", "ALL Assets (Stocks + Commodities)", "Custom Selection"],
-            horizontal=True
+            [
+                "⭐ My Stocks",
+                "Nifty 50",
+                "Nifty 200",
+                "Nifty 500",
+                "Smallcap 250",
+                "Commodities (Gold, Silver)",
+                "ALL Stocks (750+)",
+                "ALL Assets (Stocks + Commodities)",
+                "Custom Selection",
+            ],
+            horizontal=True,
         )
         
         # Map selection to stock list
@@ -5115,6 +5135,12 @@ elif page == "Backtest (Multi-Mode)":
                            'ASIANPAINTS', 'MARUTI', 'TITAN', 'SUNPHARMA', 'WIPRO', 'HCLTECH', 'AXISBANK']
         default_selection = available_stocks[:5]
         universe_selection = "Top 15"
+    
+    # Show NSE indices as a reference list (does not change stock selection)
+    if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
+        with st.expander("📊 NSE Index List (for reference)", expanded=False):
+            st.caption("Major NSE indices you can track alongside this backtest:")
+            st.code("\n".join(NSE_INDICES), language=None)
     
     # Quick selection buttons
     st.markdown("**Quick Selection:**")
