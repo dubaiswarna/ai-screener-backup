@@ -38,7 +38,7 @@ data:
   train_split: 0.70          # 70% for training
   val_split: 0.15            # 15% for validation
   test_split: 0.15           # 15% for testing
-  data_dir: "../Nify50_data" # Directory with CSV files (10 year data)
+  data_dir: "Nify50_data" # Directory with CSV files (10 year data)
   use_vwap_strategy: true    # Use VWAP ladder strategy for labeling
 
 # Feature selection
