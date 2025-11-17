@@ -3285,82 +3285,82 @@ elif page == "S&R Analysis":
         elif batch_selection_mode == "Universe (Batch Analysis)":
             symbols_list = select_universe_for_batch("sr_batch")
         else:
-        col1, col2 = st.columns([2, 1])
-        
-        with col2:
-            st.markdown("**Quick Presets (Copy-Paste):**")
+            col1, col2 = st.columns([2, 1])
             
-            # Nifty 50 preset
-            with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
-                nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE\nJIOFIN"
-                st.code(nifty50_list, language=None)
-                st.caption("👆 Copy and paste in text area")
+            with col2:
+                st.markdown("**Quick Presets (Copy-Paste):**")
+                
+                # Nifty 50 preset
+                with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
+                    nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE\nJIOFIN"
+                    st.code(nifty50_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty Bank
+                with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
+                    bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
+                    st.code(bank_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty IT
+                with st.expander("💻 Nifty IT (10 stocks)", expanded=False):
+                    it_list = "TCS\nINFY\nHCLTECH\nWIPRO\nTECHM\nLTIM\nCOFORGE\nPERSISTENT\nMPHASIS\nLTTS"
+                    st.code(it_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty Auto
+                with st.expander("🚗 Nifty Auto (15 stocks)", expanded=False):
+                    auto_list = "MARUTI\nTATAMOTORS\nM&M\nBAJAJ-AUTO\nEICHERMOT\nHEROMOTOCO\nTVSMOTOR\nASHOKLEY\nMOTHERSON\nBOSCHLTD\nEXIDEIND\nMRF\nAPOLLOTYRE\nBALKRISIND\nBHFORGE"
+                    st.code(auto_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty Pharma
+                with st.expander("💊 Nifty Pharma (20 stocks)", expanded=False):
+                    pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nDIVISLAB\nAUROPHARMA\nLUPIN\nTORNTPHARM\nALKEM\nBIOCON\nCADILAHC\nGLENMARK\nIPCALAB\nLAURUSLABS\nGRANULES\nALEMBIC\nSYNGENE\nNATCOPHARM\nLALPATHLAB\nMAXHEALTH\nFORTIS"
+                    st.code(pharma_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty Metal
+                with st.expander("🔩 Nifty Metal (15 stocks)", expanded=False):
+                    metal_list = "TATASTEEL\nJSWSTEEL\nHINDALCO\nVEDL\nCOALINDIA\nNMDC\nJINDALSTEL\nSAIL\nHINDZINC\nNALCO\nNMDC\nAPL\nRATNAMANI\nMOIL\nJSPL"
+                    st.code(metal_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty Energy
+                with st.expander("⚡ Nifty Energy (10 stocks)", expanded=False):
+                    energy_list = "RELIANCE\nONGC\nNTPC\nPOWERGRID\nBPCL\nIOC\nGAIL\nHINDPETRO\nADANIGREEN\nTATAPOWER"
+                    st.code(energy_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Nifty FMCG
+                with st.expander("🛒 Nifty FMCG (15 stocks)", expanded=False):
+                    fmcg_list = "HINDUNILVR\nITC\nNESTLEIND\nBRITANNIA\nDABUR\nGODREJCP\nMARICO\nCOLGATE\nTATACONSUM\nVBL\nPIDILITIND\nHAVELLS\nGODREJAGRO\nEMAMILTD\nJYOTHYLAB"
+                    st.code(fmcg_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
+                
+                # Top 20 preset
+                with st.expander("⚡ Top 20 Liquid Stocks", expanded=False):
+                    top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
+                    st.code(top20_list, language=None)
+                    st.caption("👆 Copy and paste in text area")
             
-            # Nifty Bank
-            with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
-                bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
-                st.code(bank_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Nifty IT
-            with st.expander("💻 Nifty IT (10 stocks)", expanded=False):
-                it_list = "TCS\nINFY\nHCLTECH\nWIPRO\nTECHM\nLTIM\nCOFORGE\nPERSISTENT\nMPHASIS\nLTTS"
-                st.code(it_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Nifty Auto
-            with st.expander("🚗 Nifty Auto (15 stocks)", expanded=False):
-                auto_list = "MARUTI\nTATAMOTORS\nM&M\nBAJAJ-AUTO\nEICHERMOT\nHEROMOTOCO\nTVSMOTOR\nASHOKLEY\nMOTHERSON\nBOSCHLTD\nEXIDEIND\nMRF\nAPOLLOTYRE\nBALKRISIND\nBHFORGE"
-                st.code(auto_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Nifty Pharma
-            with st.expander("💊 Nifty Pharma (20 stocks)", expanded=False):
-                pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nDIVISLAB\nAUROPHARMA\nLUPIN\nTORNTPHARM\nALKEM\nBIOCON\nCADILAHC\nGLENMARK\nIPCALAB\nLAURUSLABS\nGRANULES\nALEMBIC\nSYNGENE\nNATCOPHARM\nLALPATHLAB\nMAXHEALTH\nFORTIS"
-                st.code(pharma_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Nifty Metal
-            with st.expander("🔩 Nifty Metal (15 stocks)", expanded=False):
-                metal_list = "TATASTEEL\nJSWSTEEL\nHINDALCO\nVEDL\nCOALINDIA\nNMDC\nJINDALSTEL\nSAIL\nHINDZINC\nNALCO\nNMDC\nAPL\nRATNAMANI\nMOIL\nJSPL"
-                st.code(metal_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Nifty Energy
-            with st.expander("⚡ Nifty Energy (10 stocks)", expanded=False):
-                energy_list = "RELIANCE\nONGC\nNTPC\nPOWERGRID\nBPCL\nIOC\nGAIL\nHINDPETRO\nADANIGREEN\nTATAPOWER"
-                st.code(energy_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Nifty FMCG
-            with st.expander("🛒 Nifty FMCG (15 stocks)", expanded=False):
-                fmcg_list = "HINDUNILVR\nITC\nNESTLEIND\nBRITANNIA\nDABUR\nGODREJCP\nMARICO\nCOLGATE\nTATACONSUM\nVBL\nPIDILITIND\nHAVELLS\nGODREJAGRO\nEMAMILTD\nJYOTHYLAB"
-                st.code(fmcg_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-            
-            # Top 20 preset
-            with st.expander("⚡ Top 20 Liquid Stocks", expanded=False):
-                top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
-                st.code(top20_list, language=None)
-                st.caption("👆 Copy and paste in text area")
-        
-        with col1:
-            st.markdown("**Enter stock symbols** (one per line or comma-separated):")
-            default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
-            symbols_input = st.text_area(
-                "Stock Symbols:",
-                value=default_stocks,
-                height=300,
-                help="Enter one symbol per line, or separate with commas. Use presets on the right →",
+            with col1:
+                st.markdown("**Enter stock symbols** (one per line or comma-separated):")
+                default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
+                symbols_input = st.text_area(
+                    "Stock Symbols:",
+                    value=default_stocks,
+                    height=300,
+                    help="Enter one symbol per line, or separate with commas. Use presets on the right →",
                     key="batch_symbols_input",
-            )
-    
+                )
+        
                 if symbols_input:
-            symbols_list = []
+                    symbols_list = []
                     for line in symbols_input.replace(",", "\n").split("\n"):
-                symbol = line.strip().upper()
-                if symbol:
-                    symbols_list.append(symbol)
+                        symbol = line.strip().upper()
+                        if symbol:
+                            symbols_list.append(symbol)
             
         # NSE Index reference list for S&R batch
         if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
