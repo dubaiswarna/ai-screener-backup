@@ -2373,25 +2373,25 @@ elif page == "3Jasmines 🌸":
                                 'Strategy': str(s.get('strategy', '')),
                                 'Holding_Period': str(s.get('holding_period', ''))
                             })
+                        
                         if export_data:
                             df_export = pd.DataFrame(export_data)
                             csv_data = df_export.to_csv(index=False)
-                            
-                                st.download_button(
-                                    "📥 Download 3Jasmines Signals (CSV)",
+                            st.download_button(
+                                "📥 Download 3Jasmines Signals (CSV)",
                                 csv_data,
-                                    f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                    "text/csv",
-                                    key="download_jasmines_csv",
-                                    type="primary",
+                                f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                "text/csv",
+                                key="download_jasmines_csv",
+                                type="primary",
                                 use_container_width=True
-                                )
-                            else:
+                            )
+                        else:
                             st.warning("⚠️ No signals to export")
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
                     import traceback
-                        st.code(traceback.format_exc())
+                    st.code(traceback.format_exc())
             
             else:
                 st.warning(f"🌸 No 3Jasmines signals found in {len(stock_list)} stocks")
