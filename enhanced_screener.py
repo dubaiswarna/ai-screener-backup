@@ -3276,13 +3276,14 @@ elif page == "S&R Analysis":
         
         with col1:
             if EXPANDED_UNIVERSE_AVAILABLE:
-                # Create categorized stock list
+                # Create categorized stock list (including indices)
                 stock_categories = {
                     '--- COMMODITIES (Gold, Silver) ---': COMMODITIES,
                     '--- NIFTY 50 ---': NIFTY_50,
                     '--- NIFTY 200 (Mid-cap) ---': [s for s in NIFTY_200 if s not in NIFTY_50],
                     '--- NIFTY 500 ---': [s for s in NIFTY_500 if s not in NIFTY_200],
-                    '--- SMALLCAP 250 ---': SMALLCAP_250
+                    '--- SMALLCAP 250 ---': SMALLCAP_250,
+                    '--- NSE INDICES (Major Indices) 📊 ---': NSE_INDICES
                 }
                 
                 # Build options list
@@ -3293,18 +3294,18 @@ elif page == "S&R Analysis":
                         stock_options.extend(sorted(stocks))
                 
                 symbol_input = st.selectbox(
-                    "Select Stock:", 
+                    "Select Stock or Index:", 
                     stock_options,
                     index=stock_options.index('RELIANCE') if 'RELIANCE' in stock_options else 0,
-                    help="Select from 750+ stocks (Nifty 50/200/500 + Smallcap 250)"
+                    help="Select from 750+ stocks, commodities, or NSE indices"
                 )
                 
                 # Skip if category header selected
                 if symbol_input.startswith('---'):
-                    st.warning("⚠️ Please select a stock symbol, not a category header")
+                    st.warning("⚠️ Please select a stock/index symbol, not a category header")
                     symbol_input = 'RELIANCE'
             else:
-                symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock symbol (e.g., RELIANCE, TCS, INFY)")
+                symbol_input = st.text_input("Enter Symbol", "RELIANCE", help="Enter stock/index symbol (e.g., RELIANCE, TCS, NIFTY 50)")
         
         with col2:
             sensitivity = st.slider("Sensitivity", 3, 10, 3, help="Lower = more nearby levels (recommended), Higher = fewer major levels")
@@ -3402,15 +3403,22 @@ elif page == "S&R Analysis":
                     top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
                     st.code(top20_list, language=None)
                     st.caption("👆 Copy and paste in text area")
+                
+                # NSE Indices preset
+                if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
+                    with st.expander("📊 NSE Indices (All Major Indices)", expanded=False):
+                        indices_list = "\n".join(NSE_INDICES)
+                        st.code(indices_list, language=None)
+                        st.caption("👆 Copy and paste in text area")
             
             with col1:
-                st.markdown("**Enter stock symbols** (one per line or comma-separated):")
+                st.markdown("**Enter stock/index symbols** (one per line or comma-separated):")
                 default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
                 symbols_input = st.text_area(
-                    "Stock Symbols:",
+                    "Stock/Index Symbols:",
                     value=default_stocks,
                     height=300,
-                    help="Enter one symbol per line, or separate with commas. Use presets on the right →",
+                    help="Enter one symbol per line, or separate with commas. Use presets on the right → (Can include indices like 'NIFTY 50')",
                     key="batch_symbols_input",
                 )
         
