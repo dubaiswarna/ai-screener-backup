@@ -577,7 +577,18 @@ class VWAPFlexibleSystem:
         self.create_daily_transactions_sheet(wb)
         self.create_yearly_summary_sheet(wb)
         self.create_performance_summary_sheet(wb)
-        self.create_open_positions_sheet(wb)
+        
+        # Try to create open positions sheet, but don't fail if it errors
+        try:
+            self.create_open_positions_sheet(wb)
+        except Exception as e:
+            # If open positions sheet fails, create a simple error sheet instead
+            try:
+                ws = wb.create_sheet("Open Positions")
+                ws.cell(row=1, column=1, value="Unable to generate open positions")
+                ws.cell(row=2, column=1, value=f"Error: {str(e)}")
+            except:
+                pass  # If even error sheet creation fails, just skip it
         
         wb.save(output)
         output.seek(0)
@@ -941,7 +952,16 @@ class VWAPFlexibleSystem:
             ws.cell(row=1, column=1, value="No transactions available")
             return
         
-        df = pd.DataFrame(self.daily_transactions)
+        try:
+            df = pd.DataFrame(self.daily_transactions)
+        except Exception as e:
+            ws.cell(row=1, column=1, value=f"Error creating DataFrame: {str(e)}")
+            return
+        
+        # Check if required column exists
+        if 'total_shares_held' not in df.columns:
+            ws.cell(row=1, column=1, value="No position data available")
+            return
         
         # Filter open positions (total_shares_held > 0)
         open_pos_df = df[df['total_shares_held'] > 0].copy()
@@ -963,31 +983,54 @@ class VWAPFlexibleSystem:
             return
         
         # Get the last row for current position status
-        last_row = open_pos_df.iloc[-1]
+        try:
+            last_row = open_pos_df.iloc[-1]
+        except (IndexError, KeyError):
+            ws.cell(row=1, column=1, value="No valid open position data")
+            return
         
         # Determine buy date: first non-null entry_date in this segment, else first date with position
-        if 'entry_date' in open_pos_df and open_pos_df['entry_date'].notna().any():
-            buy_date = open_pos_df.loc[open_pos_df['entry_date'].notna(), 'entry_date'].iloc[0]
-        else:
-            buy_date = open_pos_df['date'].iloc[0]
+        try:
+            if 'entry_date' in open_pos_df.columns and open_pos_df['entry_date'].notna().any():
+                buy_date = open_pos_df.loc[open_pos_df['entry_date'].notna(), 'entry_date'].iloc[0]
+            elif 'date' in open_pos_df.columns:
+                buy_date = open_pos_df['date'].iloc[0]
+            else:
+                buy_date = None
+        except (IndexError, KeyError):
+            buy_date = None
         
-        # Extract position data
-        holding_qty = int(last_row.get('total_shares_held', 0))
-        avg_buy_price = float(last_row.get('average_cost', 0.0))
+        # Extract position data with safe defaults
+        try:
+            holding_qty = int(last_row.get('total_shares_held', 0) or 0)
+            avg_buy_price = float(last_row.get('average_cost', 0.0) or 0.0)
+        except (ValueError, TypeError):
+            holding_qty = 0
+            avg_buy_price = 0.0
         
         # Current market price (CMP): VWAP if available, else mid of high/low, else avg buy
-        vwap_val = float(last_row.get('vwap', 0.0) or 0.0)
-        high_val = float(last_row.get('high', 0.0) or 0.0)
-        low_val = float(last_row.get('low', 0.0) or 0.0)
-        if vwap_val > 0:
-            cmp_price = vwap_val
-        elif high_val > 0 and low_val > 0:
-            cmp_price = (high_val + low_val) / 2.0
-        else:
+        try:
+            vwap_val = float(last_row.get('vwap', 0.0) or 0.0)
+            high_val = float(last_row.get('high', 0.0) or 0.0)
+            low_val = float(last_row.get('low', 0.0) or 0.0)
+            if vwap_val > 0:
+                cmp_price = vwap_val
+            elif high_val > 0 and low_val > 0:
+                cmp_price = (high_val + low_val) / 2.0
+            else:
+                cmp_price = avg_buy_price
+        except (ValueError, TypeError):
             cmp_price = avg_buy_price
         
-        sell_target = float(last_row.get('target_price', 0.0) or 0.0)
-        current_date = last_row.get('date')
+        try:
+            sell_target = float(last_row.get('target_price', 0.0) or 0.0)
+        except (ValueError, TypeError):
+            sell_target = 0.0
+        
+        try:
+            current_date = last_row.get('date')
+        except (KeyError, AttributeError):
+            current_date = None
         
         # Calculate live profit metrics
         investment = avg_buy_price * holding_qty
@@ -997,28 +1040,35 @@ class VWAPFlexibleSystem:
         
         # Calculate holding period and format dates
         try:
-            if hasattr(buy_date, 'date'):
+            if buy_date is None:
+                buy_date_val = None
+            elif hasattr(buy_date, 'date'):
                 buy_date_val = buy_date.date()
             elif pd.notna(buy_date):
                 buy_date_val = pd.to_datetime(buy_date).date()
             else:
                 buy_date_val = None
-        except:
+        except Exception:
             buy_date_val = None
         
         try:
-            if hasattr(current_date, 'date'):
+            if current_date is None:
+                current_date_val = None
+            elif hasattr(current_date, 'date'):
                 current_date_val = current_date.date()
             elif pd.notna(current_date):
                 current_date_val = pd.to_datetime(current_date).date()
             else:
                 current_date_val = None
-        except:
+        except Exception:
             current_date_val = None
         
         try:
-            holding_period = (pd.to_datetime(current_date) - pd.to_datetime(buy_date)).days if pd.notna(buy_date) and pd.notna(current_date) else 0
-        except:
+            if buy_date is not None and current_date is not None and pd.notna(buy_date) and pd.notna(current_date):
+                holding_period = (pd.to_datetime(current_date) - pd.to_datetime(buy_date)).days
+            else:
+                holding_period = 0
+        except Exception:
             holding_period = 0
         
         # Define columns
