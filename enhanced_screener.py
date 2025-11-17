@@ -61,7 +61,7 @@ except ImportError:
 def initialize_my_stocks():
     """Initialize My Stocks list with default favorites"""
     if 'my_stocks' not in st.session_state:
-        st.session_state.my_stocks = ['MGL', 'LEMONTREE', 'CAPLINPOINT', 'PFC', 'REC', 'HAL']
+        st.session_state.my_stocks = ['MGL', 'LEMONTREE', 'CAPLINPOINT', 'PFC', 'REC', 'HAL', 'RELINFRA', 'RPOWER', 'NEWGEN', 'ZIMLAB']
     return st.session_state.my_stocks
 
 def get_my_stocks():
@@ -208,20 +208,40 @@ def fetch_fresh_data(ticker_symbol, period="1y", interval="1d"):
     This function disables caching to get the most up-to-date data.
     
     IMPORTANT: yfinance uses requests-cache by default which can return stale data.
-    This function forces a fresh fetch by using a non-cached session.
+    This function forces a fresh fetch by:
+    1. Using a non-cached requests session
+    2. Clearing yfinance's internal cache
+    3. Adding cache-busting headers
     """
     import yfinance as yf
     import requests
     
     try:
-        # Create a regular requests session (NOT cached) to force fresh data
-        # This bypasses yfinance's default requests-cache behavior
+        # Clear yfinance's global cache if it exists
+        try:
+            # yfinance uses requests_cache internally, try to clear it
+            import requests_cache
+            requests_cache.clear()  # Clear global cache
+        except:
+            pass  # If requests_cache is not available or clearing fails, continue
+        
+        # Create a completely fresh requests session with cache-busting headers
         session = requests.Session()
         
-        # Use the non-cached session with yfinance
+        # Add cache-busting headers to force fresh data
+        session.headers.update({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        })
+        
+        # Create ticker with the non-cached session
         ticker = yf.Ticker(ticker_symbol, session=session)
         
-        # Fetch data - this will always get fresh data from Yahoo Finance
+        # Fetch data with cache-busting parameters
+        # prepost=False: exclude pre/post market data
+        # actions=False: exclude dividends/splits (faster)
+        # auto_adjust=True: auto-adjust for splits
         df = ticker.history(period=period, interval=interval, prepost=False, actions=False, auto_adjust=True)
         
         # Close session to free resources
@@ -231,6 +251,13 @@ def fetch_fresh_data(ticker_symbol, period="1y", interval="1d"):
     except Exception as e:
         # Fallback: try without explicit session (might still be cached but better than nothing)
         try:
+            # Clear cache first
+            try:
+                import requests_cache
+                requests_cache.clear()
+            except:
+                pass
+            
             ticker = yf.Ticker(ticker_symbol)
             df = ticker.history(period=period, interval=interval, prepost=False, actions=False, auto_adjust=True)
             return df
