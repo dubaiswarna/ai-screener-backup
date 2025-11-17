@@ -4312,7 +4312,7 @@ elif page == "VWAP Strategy":
                             # Download Full Excel Report
                             st.markdown("---")
                             st.subheader("💾 Download Complete Excel Report")
-                            st.info("📊 Includes: Daily Transactions, Yearly Summary, Performance Summary (Full Details)")
+                            st.info("📊 Includes: Daily Transactions, Yearly Summary, Performance Summary, Open Positions (Full Details)")
                             
                             # Generate complete Excel report
                             excel_output = system.export_to_bytesio()

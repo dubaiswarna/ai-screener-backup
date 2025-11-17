@@ -577,6 +577,7 @@ class VWAPFlexibleSystem:
         self.create_daily_transactions_sheet(wb)
         self.create_yearly_summary_sheet(wb)
         self.create_performance_summary_sheet(wb)
+        self.create_open_positions_sheet(wb)
         
         wb.save(output)
         output.seek(0)
@@ -930,6 +931,164 @@ class VWAPFlexibleSystem:
                 except:
                     pass
             adjusted_width = min(max_length + 2, 40)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def create_open_positions_sheet(self, wb):
+        """Create open positions sheet with live P&L"""
+        ws = wb.create_sheet("Open Positions")
+        
+        if not self.daily_transactions:
+            ws.cell(row=1, column=1, value="No transactions available")
+            return
+        
+        df = pd.DataFrame(self.daily_transactions)
+        
+        # Filter open positions (total_shares_held > 0)
+        open_pos_df = df[df['total_shares_held'] > 0].copy()
+        
+        if open_pos_df.empty:
+            ws.cell(row=1, column=1, value="No open positions")
+            ws.cell(row=2, column=1, value="All positions have been closed")
+            return
+        
+        # Get the last open segment: rows after the most recent flat period (total_shares_held == 0)
+        zero_pos = df[df['total_shares_held'] == 0]
+        if not zero_pos.empty:
+            last_flat_idx = zero_pos.index.max()
+            open_pos_df = open_pos_df[open_pos_df.index > last_flat_idx]
+        
+        if open_pos_df.empty:
+            ws.cell(row=1, column=1, value="No open positions")
+            ws.cell(row=2, column=1, value="All positions have been closed")
+            return
+        
+        # Get the last row for current position status
+        last_row = open_pos_df.iloc[-1]
+        
+        # Determine buy date: first non-null entry_date in this segment, else first date with position
+        if 'entry_date' in open_pos_df and open_pos_df['entry_date'].notna().any():
+            buy_date = open_pos_df.loc[open_pos_df['entry_date'].notna(), 'entry_date'].iloc[0]
+        else:
+            buy_date = open_pos_df['date'].iloc[0]
+        
+        # Extract position data
+        holding_qty = int(last_row.get('total_shares_held', 0))
+        avg_buy_price = float(last_row.get('average_cost', 0.0))
+        
+        # Current market price (CMP): VWAP if available, else mid of high/low, else avg buy
+        vwap_val = float(last_row.get('vwap', 0.0) or 0.0)
+        high_val = float(last_row.get('high', 0.0) or 0.0)
+        low_val = float(last_row.get('low', 0.0) or 0.0)
+        if vwap_val > 0:
+            cmp_price = vwap_val
+        elif high_val > 0 and low_val > 0:
+            cmp_price = (high_val + low_val) / 2.0
+        else:
+            cmp_price = avg_buy_price
+        
+        sell_target = float(last_row.get('target_price', 0.0) or 0.0)
+        current_date = last_row.get('date')
+        
+        # Calculate live profit metrics
+        investment = avg_buy_price * holding_qty
+        running_profit = (cmp_price - avg_buy_price) * holding_qty
+        profit_pct_from_cmp = ((cmp_price - avg_buy_price) / avg_buy_price * 100) if avg_buy_price > 0 else 0.0
+        pct_to_target_from_cmp = ((sell_target - cmp_price) / cmp_price * 100) if cmp_price > 0 and sell_target > 0 else 0.0
+        
+        # Calculate holding period and format dates
+        try:
+            if hasattr(buy_date, 'date'):
+                buy_date_val = buy_date.date()
+            elif pd.notna(buy_date):
+                buy_date_val = pd.to_datetime(buy_date).date()
+            else:
+                buy_date_val = None
+        except:
+            buy_date_val = None
+        
+        try:
+            if hasattr(current_date, 'date'):
+                current_date_val = current_date.date()
+            elif pd.notna(current_date):
+                current_date_val = pd.to_datetime(current_date).date()
+            else:
+                current_date_val = None
+        except:
+            current_date_val = None
+        
+        try:
+            holding_period = (pd.to_datetime(current_date) - pd.to_datetime(buy_date)).days if pd.notna(buy_date) and pd.notna(current_date) else 0
+        except:
+            holding_period = 0
+        
+        # Define columns
+        headers = [
+            'S.No',
+            'Buy Date',
+            'Buy Avg Price',
+            'Buy Qty',
+            'CMP',
+            'Sell Target',
+            '% of Sell Target from CMP',
+            '% Profit from CMP',
+            'Running Profit',
+            'Holding Period (Days)',
+            'Investment Value'
+        ]
+        
+        # Add headers
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")  # Light green
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Add data row
+        row_data = [
+            1,
+            buy_date_val,
+            round(avg_buy_price, 2),
+            holding_qty,
+            round(cmp_price, 2),
+            round(sell_target, 2),
+            round(pct_to_target_from_cmp, 2),
+            round(profit_pct_from_cmp, 2),
+            round(running_profit, 2),
+            holding_period,
+            round(investment, 2)
+        ]
+        
+        for col, value in enumerate(row_data, 1):
+            cell = ws.cell(row=2, column=col, value=value)
+            if col == 2:  # Buy Date column
+                if value:
+                    cell.value = value
+                    cell.number_format = 'yyyy-mm-dd'
+            elif col == 3 or col == 5 or col == 6 or col == 9 or col == 11:  # Price/amount columns
+                cell.number_format = '0.00'
+            elif col == 7 or col == 8:  # Percentage columns (already in % form, e.g., 5.25 = 5.25%)
+                cell.number_format = '0.00'
+            elif col == 4:  # Quantity (integer)
+                cell.number_format = '0'
+            elif col == 10:  # Holding Period (integer)
+                cell.number_format = '0'
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if cell.value:
+                        if isinstance(cell.value, (int, float)):
+                            length = len(f"{cell.value:.2f}")
+                        else:
+                            length = len(str(cell.value))
+                        if length > max_length:
+                            max_length = length
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 25)
             ws.column_dimensions[column_letter].width = adjusted_width
     
     def get_summary(self):
