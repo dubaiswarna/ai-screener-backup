@@ -2376,6 +2376,8 @@ elif page == "3Jasmines 🌸":
                         
                         if export_data:
                             df_export = pd.DataFrame(export_data)
+                            
+                            # CSV Export
                             csv_data = df_export.to_csv(index=False)
                             st.download_button(
                                 "📥 Download 3Jasmines Signals (CSV)",
@@ -2383,6 +2385,24 @@ elif page == "3Jasmines 🌸":
                                 f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                 "text/csv",
                                 key="download_jasmines_csv",
+                                type="primary",
+                                use_container_width=True
+                            )
+                            
+                            # Excel Export
+                            from io import BytesIO
+                            excel_output = BytesIO()
+                            with pd.ExcelWriter(excel_output, engine='openpyxl') as writer:
+                                df_export.to_excel(writer, sheet_name='3Jasmines Signals', index=False)
+                            excel_output.seek(0)
+                            excel_data = excel_output.getvalue()
+                            
+                            st.download_button(
+                                "📥 Download 3Jasmines Signals (Excel)",
+                                excel_data,
+                                f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="download_jasmines_excel",
                                 type="primary",
                                 use_container_width=True
                             )
