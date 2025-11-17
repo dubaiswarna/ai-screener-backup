@@ -304,7 +304,8 @@ def get_stock_universe(universe_type: str = 'nifty50') -> list:
         'smallcap250': SMALLCAP_250,
         'commodities': COMMODITIES,
         'all': ALL_STOCKS,
-        'all_assets': ALL_ASSETS  # Stocks + Commodities
+        'all_assets': ALL_ASSETS,  # Stocks + Commodities
+        'indices': NSE_INDICES,
     }
     
     return universe_map.get(universe_type.lower(), NIFTY_50)

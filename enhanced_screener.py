@@ -877,8 +877,8 @@ elif page == "Chart Analysis":
                     help="Enter NSE stock symbols, one per line"
                 )
             
-            if batch_stocks_input:
-                batch_stock_list = [s.strip().upper() for s in batch_stocks_input.split('\n') if s.strip()]
+                if batch_stocks_input:
+                    batch_stock_list = [s.strip().upper() for s in batch_stocks_input.split('\n') if s.strip()]
 
         # NSE Index reference list for batch analysis
         if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
@@ -2377,21 +2377,21 @@ elif page == "3Jasmines 🌸":
                             df_export = pd.DataFrame(export_data)
                             csv_data = df_export.to_csv(index=False)
                             
-                            st.download_button(
-                                "📥 Download 3Jasmines Signals (CSV)",
+                                st.download_button(
+                                    "📥 Download 3Jasmines Signals (CSV)",
                                 csv_data,
-                                f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                "text/csv",
-                                key="download_jasmines_csv",
-                                type="primary",
+                                    f"3jasmines_signals_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    "text/csv",
+                                    key="download_jasmines_csv",
+                                    type="primary",
                                 use_container_width=True
-                            )
-                        else:
+                                )
+                            else:
                             st.warning("⚠️ No signals to export")
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
                     import traceback
-                    st.code(traceback.format_exc())
+                        st.code(traceback.format_exc())
             
             else:
                 st.warning(f"🌸 No 3Jasmines signals found in {len(stock_list)} stocks")
@@ -3267,7 +3267,7 @@ elif page == "S&R Analysis":
     
     else:  # Batch Analysis
         st.subheader("📋 Batch Analysis - Multiple Stocks")
-
+        
         # Unified stock selection (like Technical Screener)
         st.markdown("### 📈 Stock Selection")
         batch_selection_mode = st.radio(
@@ -3285,83 +3285,83 @@ elif page == "S&R Analysis":
         elif batch_selection_mode == "Universe (Batch Analysis)":
             symbols_list = select_universe_for_batch("sr_batch")
         else:
-            col1, col2 = st.columns([2, 1])
-
-            with col2:
-                st.markdown("**Quick Presets (Copy-Paste):**")
-
-                # Nifty 50 preset
-                with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
-                    nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE\nJIOFIN"
-                    st.code(nifty50_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty Bank
-                with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
-                    bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
-                    st.code(bank_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty IT
-                with st.expander("💻 Nifty IT (10 stocks)", expanded=False):
-                    it_list = "TCS\nINFY\nHCLTECH\nWIPRO\nTECHM\nLTIM\nCOFORGE\nPERSISTENT\nMPHASIS\nLTTS"
-                    st.code(it_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty Auto
-                with st.expander("🚗 Nifty Auto (15 stocks)", expanded=False):
-                    auto_list = "MARUTI\nTATAMOTORS\nM&M\nBAJAJ-AUTO\nEICHERMOT\nHEROMOTOCO\nTVSMOTOR\nASHOKLEY\nMOTHERSON\nBOSCHLTD\nEXIDEIND\nMRF\nAPOLLOTYRE\nBALKRISIND\nBHFORGE"
-                    st.code(auto_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty Pharma
-                with st.expander("💊 Nifty Pharma (20 stocks)", expanded=False):
-                    pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nDIVISLAB\nAUROPHARMA\nLUPIN\nTORNTPHARM\nALKEM\nBIOCON\nCADILAHC\nGLENMARK\nIPCALAB\nLAURUSLABS\nGRANULES\nALEMBIC\nSYNGENE\nNATCOPHARM\nLALPATHLAB\nMAXHEALTH\nFORTIS"
-                    st.code(pharma_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty Metal
-                with st.expander("🔩 Nifty Metal (15 stocks)", expanded=False):
-                    metal_list = "TATASTEEL\nJSWSTEEL\nHINDALCO\nVEDL\nCOALINDIA\nNMDC\nJINDALSTEL\nSAIL\nHINDZINC\nNALCO\nNMDC\nAPL\nRATNAMANI\nMOIL\nJSPL"
-                    st.code(metal_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty Energy
-                with st.expander("⚡ Nifty Energy (10 stocks)", expanded=False):
-                    energy_list = "RELIANCE\nONGC\nNTPC\nPOWERGRID\nBPCL\nIOC\nGAIL\nHINDPETRO\nADANIGREEN\nTATAPOWER"
-                    st.code(energy_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Nifty FMCG
-                with st.expander("🛒 Nifty FMCG (15 stocks)", expanded=False):
-                    fmcg_list = "HINDUNILVR\nITC\nNESTLEIND\nBRITANNIA\nDABUR\nGODREJCP\nMARICO\nCOLGATE\nTATACONSUM\nVBL\nPIDILITIND\nHAVELLS\nGODREJAGRO\nEMAMILTD\nJYOTHYLAB"
-                    st.code(fmcg_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-                # Top 20 preset
-                with st.expander("⚡ Top 20 Liquid Stocks", expanded=False):
-                    top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
-                    st.code(top20_list, language=None)
-                    st.caption("👆 Copy and paste in text area")
-
-            with col1:
-                st.markdown("**Enter stock symbols** (one per line or comma-separated):")
-                default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
-                symbols_input = st.text_area(
-                    "Stock Symbols:",
-                    value=default_stocks,
-                    height=300,
-                    help="Enter one symbol per line, or separate with commas. Use presets on the right →",
+        col1, col2 = st.columns([2, 1])
+        
+        with col2:
+            st.markdown("**Quick Presets (Copy-Paste):**")
+            
+            # Nifty 50 preset
+            with st.expander("📊 Nifty 50 (51 stocks)", expanded=False):
+                nifty50_list = "\n".join(NIFTY_50) if EXPANDED_UNIVERSE_AVAILABLE else "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND\nBAJFINANCE\nJIOFIN"
+                st.code(nifty50_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Bank
+            with st.expander("🏦 Nifty Bank (12 stocks)", expanded=False):
+                bank_list = "HDFCBANK\nICICIBANK\nSBIN\nKOTAKBANK\nAXISBANK\nINDUSINDBK\nBANDHANBNK\nFEDERALBNK\nIDFCFIRSTB\nPNB\nBANKBARODA\nCANBK"
+                st.code(bank_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty IT
+            with st.expander("💻 Nifty IT (10 stocks)", expanded=False):
+                it_list = "TCS\nINFY\nHCLTECH\nWIPRO\nTECHM\nLTIM\nCOFORGE\nPERSISTENT\nMPHASIS\nLTTS"
+                st.code(it_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Auto
+            with st.expander("🚗 Nifty Auto (15 stocks)", expanded=False):
+                auto_list = "MARUTI\nTATAMOTORS\nM&M\nBAJAJ-AUTO\nEICHERMOT\nHEROMOTOCO\nTVSMOTOR\nASHOKLEY\nMOTHERSON\nBOSCHLTD\nEXIDEIND\nMRF\nAPOLLOTYRE\nBALKRISIND\nBHFORGE"
+                st.code(auto_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Pharma
+            with st.expander("💊 Nifty Pharma (20 stocks)", expanded=False):
+                pharma_list = "SUNPHARMA\nDRREDDY\nCIPLA\nDIVISLAB\nAUROPHARMA\nLUPIN\nTORNTPHARM\nALKEM\nBIOCON\nCADILAHC\nGLENMARK\nIPCALAB\nLAURUSLABS\nGRANULES\nALEMBIC\nSYNGENE\nNATCOPHARM\nLALPATHLAB\nMAXHEALTH\nFORTIS"
+                st.code(pharma_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Metal
+            with st.expander("🔩 Nifty Metal (15 stocks)", expanded=False):
+                metal_list = "TATASTEEL\nJSWSTEEL\nHINDALCO\nVEDL\nCOALINDIA\nNMDC\nJINDALSTEL\nSAIL\nHINDZINC\nNALCO\nNMDC\nAPL\nRATNAMANI\nMOIL\nJSPL"
+                st.code(metal_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty Energy
+            with st.expander("⚡ Nifty Energy (10 stocks)", expanded=False):
+                energy_list = "RELIANCE\nONGC\nNTPC\nPOWERGRID\nBPCL\nIOC\nGAIL\nHINDPETRO\nADANIGREEN\nTATAPOWER"
+                st.code(energy_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Nifty FMCG
+            with st.expander("🛒 Nifty FMCG (15 stocks)", expanded=False):
+                fmcg_list = "HINDUNILVR\nITC\nNESTLEIND\nBRITANNIA\nDABUR\nGODREJCP\nMARICO\nCOLGATE\nTATACONSUM\nVBL\nPIDILITIND\nHAVELLS\nGODREJAGRO\nEMAMILTD\nJYOTHYLAB"
+                st.code(fmcg_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+            
+            # Top 20 preset
+            with st.expander("⚡ Top 20 Liquid Stocks", expanded=False):
+                top20_list = "RELIANCE\nTCS\nHDFCBANK\nINFY\nICICIBANK\nHINDUNILVR\nITC\nSBIN\nBHARTIARTL\nAXISBANK\nKOTAKBANK\nLT\nHCLTECH\nASIANPAINTS\nMARUTI\nBAJFINANCE\nSUNPHARMA\nTITAN\nULTRACEMCO\nNESTLEIND"
+                st.code(top20_list, language=None)
+                st.caption("👆 Copy and paste in text area")
+        
+        with col1:
+            st.markdown("**Enter stock symbols** (one per line or comma-separated):")
+            default_stocks = "RELIANCE\nTCS\nINFY\nHDFCBANK\nICICIBANK\nSBIN\nBHARTIARTL\nITC\nHINDUNILVR\nAXISBANK"
+            symbols_input = st.text_area(
+                "Stock Symbols:",
+                value=default_stocks,
+                height=300,
+                help="Enter one symbol per line, or separate with commas. Use presets on the right →",
                     key="batch_symbols_input",
-                )
-
+            )
+    
                 if symbols_input:
-                    symbols_list = []
+            symbols_list = []
                     for line in symbols_input.replace(",", "\n").split("\n"):
-                        symbol = line.strip().upper()
-                        if symbol:
-                            symbols_list.append(symbol)
-
+                symbol = line.strip().upper()
+                if symbol:
+                    symbols_list.append(symbol)
+            
         # NSE Index reference list for S&R batch
         if EXPANDED_UNIVERSE_AVAILABLE and NSE_INDICES:
             with st.expander("📊 NSE Index List (reference only)", expanded=False):
@@ -4243,16 +4243,23 @@ elif page == "VWAP Strategy":
                             # Open position table (live P&L)
                             open_pos_df = transactions_df[transactions_df['total_shares_held'] > 0].copy()
                             if not open_pos_df.empty:
-                                st.markdown("---")
-                                st.subheader("🟢 Open Position (Live)")
+                                # Keep only the last open segment: rows after the most recent flat period (total_shares_held == 0)
+                                zero_pos = transactions_df[transactions_df['total_shares_held'] == 0]
+                                if not zero_pos.empty:
+                                    last_flat_idx = zero_pos.index.max()
+                                    open_pos_df = open_pos_df[open_pos_df.index > last_flat_idx]
 
-                                # Determine true buy date: first non-null entry_date, else first date with position
-                                if 'entry_date' in open_pos_df and open_pos_df['entry_date'].notna().any():
-                                    buy_date = open_pos_df.loc[open_pos_df['entry_date'].notna(), 'entry_date'].iloc[0]
-                                else:
-                                    buy_date = open_pos_df['date'].iloc[0]
+                                if not open_pos_df.empty:
+                                    st.markdown("---")
+                                    st.subheader("🟢 Open Position (Live)")
 
-                                last_row = open_pos_df.iloc[-1]
+                                    # Determine true buy date: first non-null entry_date in this final segment, else first date with position
+                                    if 'entry_date' in open_pos_df and open_pos_df['entry_date'].notna().any():
+                                        buy_date = open_pos_df.loc[open_pos_df['entry_date'].notna(), 'entry_date'].iloc[0]
+                                    else:
+                                        buy_date = open_pos_df['date'].iloc[0]
+
+                                    last_row = open_pos_df.iloc[-1]
 
                                 current_date = last_row.get('date')
 
