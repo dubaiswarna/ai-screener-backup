@@ -202,6 +202,41 @@ def select_universe_for_batch(page_key: str,
 # HELPER: Symbol Mapping for Yahoo Finance
 # ============================================================
 
+def fetch_fresh_data(ticker_symbol, period="1y", interval="1d"):
+    """
+    Fetch fresh data from yfinance with cache-busting to ensure latest EOD data.
+    This function disables caching to get the most up-to-date data.
+    
+    IMPORTANT: yfinance uses requests-cache by default which can return stale data.
+    This function forces a fresh fetch by using a non-cached session.
+    """
+    import yfinance as yf
+    import requests
+    
+    try:
+        # Create a regular requests session (NOT cached) to force fresh data
+        # This bypasses yfinance's default requests-cache behavior
+        session = requests.Session()
+        
+        # Use the non-cached session with yfinance
+        ticker = yf.Ticker(ticker_symbol, session=session)
+        
+        # Fetch data - this will always get fresh data from Yahoo Finance
+        df = ticker.history(period=period, interval=interval, prepost=False, actions=False, auto_adjust=True)
+        
+        # Close session to free resources
+        session.close()
+        
+        return df
+    except Exception as e:
+        # Fallback: try without explicit session (might still be cached but better than nothing)
+        try:
+            ticker = yf.Ticker(ticker_symbol)
+            df = ticker.history(period=period, interval=interval, prepost=False, actions=False, auto_adjust=True)
+            return df
+        except:
+            return pd.DataFrame()  # Return empty DataFrame on error
+
 def get_yfinance_symbol(symbol):
     """
     Convert symbol to Yahoo Finance format.
@@ -749,8 +784,7 @@ elif page == "Chart Analysis":
                     
                     # Fetch data from Yahoo Finance (SAME as S&R Analysis)
                     try:
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol_input))
-                        df_raw = ticker.history(period="1y", interval="1d")
+                        df_raw = fetch_fresh_data(get_yfinance_symbol(symbol_input), period="1y", interval="1d")
                         
                         if not df_raw.empty and len(df_raw) > 50:
                             # Convert to expected format
@@ -997,9 +1031,8 @@ elif page == "Chart Analysis":
                     try:
                         status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(batch_stock_list)})")
                         
-                        # Fetch data from Yahoo Finance
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                        df_raw = ticker.history(period="6mo", interval="1d")
+                        # Fetch data from Yahoo Finance (fresh data, no cache)
+                        df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                         
                         if not df_raw.empty and len(df_raw) >= 5:
                             # Convert to expected format
@@ -1709,8 +1742,7 @@ elif page == "Lotus Momentum Trio":
                     
                     try:
                         # Fetch data
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                        df_raw = ticker.history(period="6mo", interval="1d")
+                        df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                         
                         if df_raw.empty or len(df_raw) < 50:
                             progress_bar.progress((idx + 1) / len(stock_list))
@@ -1976,8 +2008,7 @@ elif page == "Hybrid Signal Generator 💎":
                 
                 try:
                     # Fetch data
-                    ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                    df_raw = ticker.history(period="6mo", interval="1d")
+                    df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                     
                     if df_raw.empty or len(df_raw) < 50:
                         progress_bar.progress((idx + 1) / len(stock_list))
@@ -2271,8 +2302,7 @@ elif page == "3Jasmines 🌸":
                     status_text.text(f"Analyzing {symbol}... ({idx+1}/{len(stock_list)})")
                     
                     # Fetch data
-                    ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                    df_raw = ticker.history(period="6mo", interval="1d")
+                    df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                     
                     if not df_raw.empty and len(df_raw) >= 20:
                         # Convert to expected format
@@ -2597,8 +2627,7 @@ elif page == "Orchid Trend Matrix":
                 try:
                     status_text.text(f"3Jasmines: {symbol}... ({idx+1}/{len(stock_list)})")
                     
-                    ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                    df_raw = ticker.history(period="6mo", interval="1d")
+                    df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                     
                     if not df_raw.empty and len(df_raw) >= 20:
                         df = pd.DataFrame({
@@ -2633,8 +2662,7 @@ elif page == "Orchid Trend Matrix":
                     try:
                         status_text.text(f"Hybrid: {symbol}... ({idx+1}/{len(jasmines_symbols)})")
                         
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                        df_raw = ticker.history(period="6mo", interval="1d")
+                        df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                         
                         if not df_raw.empty and len(df_raw) >= 50:
                             df = pd.DataFrame({
@@ -3015,12 +3043,10 @@ elif page == "Technical Screener":
                         hist = load_local_data(symbol, lookback_days + 50)  # Extra days for MA calculation
                         if hist is None or hist.empty or len(hist) < 20:
                             # Fall back to Yahoo Finance if local data not available
-                            ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                            hist = ticker.history(period=f"{lookback_days}d")
+                            hist = fetch_fresh_data(get_yfinance_symbol(symbol), period=f"{lookback_days}d", interval="1d")
                     if not use_local_data or hist is None or hist.empty or len(hist) < 20:
                         # Fetch from Yahoo Finance
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                        hist = ticker.history(period=f"{lookback_days}d")
+                        hist = fetch_fresh_data(get_yfinance_symbol(symbol), period=f"{lookback_days}d", interval="1d")
                     
                     if hist.empty or len(hist) < 20:
                         continue
@@ -3487,8 +3513,7 @@ elif page == "S&R Analysis":
                         
                         # Fetch from Yahoo Finance
                         try:
-                            ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                            df_raw = ticker.history(period="6mo", interval="1d")
+                            df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                             
                             if not df_raw.empty and len(df_raw) > 50:
                                 df = pd.DataFrame({
@@ -3652,10 +3677,8 @@ elif page == "S&R Analysis":
                         st.info(f"📡 Fetching REAL data from Yahoo Finance for {symbol_input}...")
                         
                         # yfinance uses .NS suffix for NSE stocks
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol_input))
-                        
-                        # Fetch 1 year of data
-                        df_raw = ticker.history(period="1y", interval="1d")
+                        # Fetch 1 year of data (fresh, no cache)
+                        df_raw = fetch_fresh_data(get_yfinance_symbol(symbol_input), period="1y", interval="1d")
                         
                         if not df_raw.empty and len(df_raw) > 50:
                             # Convert to expected format
@@ -5059,8 +5082,7 @@ elif page == "Backtest (Multi-Mode)":
                                 signal_date = datetime.now() - timedelta(days=30)  # Fallback
                             
                             # Fetch historical data from signal date
-                            ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                            df_raw = ticker.history(start=signal_date, period="6mo", interval="1d")
+                            df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period="6mo", interval="1d")
                             
                             if df_raw.empty or len(df_raw) < 5:
                                 continue
@@ -5540,8 +5562,7 @@ elif page == "Backtest (Multi-Mode)":
                         all_data = {}
                         for symbol in selected_stocks:
                             try:
-                                ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                                df_raw = ticker.history(period=f"{lookback_months}mo", interval="1d")
+                                df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period=f"{lookback_months}mo", interval="1d")
                                 
                                 if not df_raw.empty and len(df_raw) >= 50:
                                     df = pd.DataFrame({
@@ -5870,8 +5891,7 @@ elif page == "Backtest (Multi-Mode)":
                 
                 for idx, symbol in enumerate(selected_stocks):
                     try:
-                        ticker = yf.Ticker(get_yfinance_symbol(symbol))
-                        df_raw = ticker.history(period=f"{lookback_months}mo", interval="1d")
+                        df_raw = fetch_fresh_data(get_yfinance_symbol(symbol), period=f"{lookback_months}mo", interval="1d")
                         
                         if not df_raw.empty and len(df_raw) >= 50:
                             df = pd.DataFrame({
