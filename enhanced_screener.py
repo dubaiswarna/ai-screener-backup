@@ -155,6 +155,7 @@ def select_universe_for_batch(page_key: str,
             "Nifty 500 (500 stocks)",
             "Smallcap 250 (250 stocks)",
             "Commodities (Gold, Silver)",
+            "NSE Indices (All Major Indices) 📊",
             "ALL Stocks (750+)",
             "ALL Assets (Stocks + Commodities) 🚀",
         ]
@@ -182,6 +183,8 @@ def select_universe_for_batch(page_key: str,
         symbols = SMALLCAP_250 if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
     elif "Commodities" in universe_choice:
         symbols = COMMODITIES if EXPANDED_UNIVERSE_AVAILABLE else []
+    elif "NSE Indices" in universe_choice:
+        symbols = NSE_INDICES if EXPANDED_UNIVERSE_AVAILABLE else []
     elif "ALL Assets" in universe_choice:
         symbols = ALL_ASSETS if EXPANDED_UNIVERSE_AVAILABLE else TOP_50_STOCKS
     elif "ALL" in universe_choice:
@@ -190,7 +193,7 @@ def select_universe_for_batch(page_key: str,
         symbols = TOP_50_STOCKS
 
     st.caption(
-        f"🔍 Ready to analyze {len(symbols)} stocks from the {universe_choice} universe"
+        f"🔍 Ready to analyze {len(symbols)} {'indices' if 'NSE Indices' in universe_choice else 'stocks'} from the {universe_choice} universe"
     )
 
     return symbols
@@ -207,11 +210,40 @@ def get_yfinance_symbol(symbol):
     - GOLD -> GC=F (Gold Futures)
     - SILVER -> SI=F (Silver Futures)
     - Stocks -> SYMBOL.NS (NSE stocks)
+    - Indices -> ^NSEI, ^NSEBANK, etc.
     
     Special cases (Yahoo Finance has different symbol names):
     - ASIANPAINTS -> ASIANPAINT.NS (no S)
     - M&M -> M&M.NS (keep &)
     """
+    # NSE Index to Yahoo Finance mapping
+    index_map = {
+        'NIFTY 50': '^NSEI',
+        'NIFTY NEXT 50': '^NSMIDCP',
+        'NIFTY 100': '^CNX100',
+        'NIFTY 200': '^NSE200',
+        'NIFTY 500': '^NSE500',
+        'NIFTY MIDCAP 150': '^NSEMDCP150',
+        'NIFTY MIDCAP 100': '^NSEMDCP100',
+        'NIFTY SMALLCAP 250': '^NSESC250',
+        'NIFTY SMALLCAP 100': '^NSESC100',
+        'NIFTY BANK': '^NSEBANK',
+        'NIFTY PSU BANK': '^NSEPSU',
+        'NIFTY FINANCIAL SERVICES': '^NSEFIN',
+        'NIFTY IT': '^CNXIT',
+        'NIFTY AUTO': '^NSEAUTO',
+        'NIFTY PHARMA': '^NSEPHARMA',
+        'NIFTY METAL': '^NSEMETAL',
+        'NIFTY FMCG': '^NSEFMCG',
+        'NIFTY ENERGY': '^NSEENERGY',
+        'NIFTY REALTY': '^NSEREAL',
+        'NIFTY MEDIA': '^NSEMEDIA',
+        'NIFTY HEALTHCARE INDEX': '^NSEHEALTH',
+        'NIFTY CONSUMER DURABLES': '^NSEDURAB',
+        'NIFTY OIL & GAS': '^NSEOILGAS',
+        'NIFTY INFRASTRUCTURE': '^NSEINFRA',
+    }
+    
     commodity_map = {
         'GOLD': 'GC=F',      # Gold Futures (COMEX)
         'SILVER': 'SI=F',    # Silver Futures (COMEX)
@@ -224,12 +256,19 @@ def get_yfinance_symbol(symbol):
         'M&M': 'M&M',                 # Keep ampersand
     }
     
-    if symbol.upper() in commodity_map:
-        return commodity_map[symbol.upper()]
-    else:
-        # Check if we need to map the symbol
-        mapped_symbol = stock_symbol_map.get(symbol.upper(), symbol)
-        return f"{mapped_symbol}.NS"
+    symbol_upper = symbol.upper()
+    
+    # Check if it's an index first
+    if symbol_upper in index_map:
+        return index_map[symbol_upper]
+    
+    # Check if it's a commodity
+    if symbol_upper in commodity_map:
+        return commodity_map[symbol_upper]
+    
+    # Otherwise, it's a stock
+    mapped_symbol = stock_symbol_map.get(symbol_upper, symbol)
+    return f"{mapped_symbol}.NS"
 
 # ============================================================
 # PAGE CONFIGURATION
