@@ -16,6 +16,19 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Try to import MySQL connectors
+try:
+    import pymysql
+    PYMySQL_AVAILABLE = True
+    MYSQL_CONNECTOR_AVAILABLE = False
+except ImportError:
+    PYMySQL_AVAILABLE = False
+    try:
+        import mysql.connector
+        MYSQL_CONNECTOR_AVAILABLE = True
+    except ImportError:
+        MYSQL_CONNECTOR_AVAILABLE = False
+
 # Try to import psycopg2
 try:
     import psycopg2
@@ -24,46 +37,82 @@ try:
     PSYCOPG2_AVAILABLE = True
 except ImportError:
     PSYCOPG2_AVAILABLE = False
-    logger.warning("⚠️ psycopg2 not available, using SQLite")
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from config.db_config import (
-    DB_CONFIG, POOL_CONFIG, USE_POSTGRESQL,
+    DB_CONFIG, POOL_CONFIG, USE_MYSQL, USE_POSTGRESQL, USE_SQLITE,
+    MYSQL_CONFIG, POSTGRESQL_CONFIG,
     get_postgresql_url, get_sqlite_url, Tables
 )
+from database.mysql_manager import create_mysql_tables
 
 
 class DatabaseManager:
     """
     Professional database manager with connection pooling and error handling.
-    Supports both PostgreSQL (production) and SQLite (testing/offline).
+    Supports MySQL, PostgreSQL (production) and SQLite (testing/offline).
     """
     
-    def __init__(self, use_postgresql: bool = USE_POSTGRESQL):
+    def __init__(self, db_type: str = None):
         """Initialize database manager."""
-        # Force SQLite if psycopg2 not available
-        if use_postgresql and not PSYCOPG2_AVAILABLE:
-            logger.warning("⚠️ PostgreSQL requested but psycopg2 not available, using SQLite")
-            use_postgresql = False
+        if db_type is None:
+            if USE_MYSQL:
+                db_type = 'mysql'
+            elif USE_POSTGRESQL:
+                db_type = 'postgresql'
+            else:
+                db_type = 'sqlite'
         
-        self.use_postgresql = use_postgresql
+        self.db_type = db_type
         self.connection_pool = None
         
-        if self.use_postgresql:
+        if self.db_type == 'mysql':
+            self._init_mysql()
+        elif self.db_type == 'postgresql':
             self._init_postgresql_pool()
         else:
             self._init_sqlite()
         
-        logger.info(f"✅ Database Manager initialized ({'PostgreSQL' if use_postgresql else 'SQLite'})")
+        db_name = {'mysql': 'MySQL', 'postgresql': 'PostgreSQL', 'sqlite': 'SQLite'}.get(db_type, 'SQLite')
+        logger.info(f"✅ Database Manager initialized ({db_name})")
+    
+    def _init_mysql(self):
+        """Initialize MySQL connection."""
+        if not PYMySQL_AVAILABLE and not MYSQL_CONNECTOR_AVAILABLE:
+            logger.error("❌ MySQL connector not installed")
+            logger.info("⚠️ Install: pip install pymysql or mysql-connector-python")
+            logger.info("⚠️ Falling back to SQLite")
+            self.db_type = 'sqlite'
+            self._init_sqlite()
+            return
+        
+        try:
+            # Test connection first
+            if PYMySQL_AVAILABLE:
+                conn = pymysql.connect(**MYSQL_CONFIG)
+            else:
+                conn = mysql.connector.connect(**MYSQL_CONFIG)
+            
+            # Create tables if they don't exist
+            create_mysql_tables(conn)
+            conn.close()
+            
+            logger.info("✅ MySQL connection successful")
+            logger.info(f"✅ Connected to MySQL database: {MYSQL_CONFIG['database']}")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MySQL: {e}")
+            logger.info("⚠️ Falling back to SQLite")
+            self.db_type = 'sqlite'
+            self._init_sqlite()
     
     def _init_postgresql_pool(self):
         """Initialize PostgreSQL connection pool."""
         if not PSYCOPG2_AVAILABLE:
             logger.error("❌ psycopg2 not installed")
             logger.info("⚠️ Falling back to SQLite")
-            self.use_postgresql = False
+            self.db_type = 'sqlite'
             self._init_sqlite()
             return
             
@@ -71,13 +120,13 @@ class DatabaseManager:
             self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
                 POOL_CONFIG['min_connections'],
                 POOL_CONFIG['max_connections'],
-                **DB_CONFIG
+                **POSTGRESQL_CONFIG
             )
             logger.info("✅ PostgreSQL connection pool created")
         except Exception as e:
             logger.error(f"❌ Failed to create PostgreSQL pool: {e}")
             logger.info("⚠️ Falling back to SQLite")
-            self.use_postgresql = False
+            self.db_type = 'sqlite'
             self._init_sqlite()
     
     def _init_sqlite(self):
@@ -92,7 +141,14 @@ class DatabaseManager:
         """Get database connection from pool."""
         conn = None
         try:
-            if self.use_postgresql:
+            if self.db_type == 'mysql':
+                if PYMySQL_AVAILABLE:
+                    conn = pymysql.connect(**MYSQL_CONFIG)
+                else:
+                    conn = mysql.connector.connect(**MYSQL_CONFIG)
+                yield conn
+                conn.commit()
+            elif self.db_type == 'postgresql':
                 conn = self.connection_pool.getconn()
                 yield conn
                 conn.commit()
@@ -109,7 +165,7 @@ class DatabaseManager:
             raise
         finally:
             if conn:
-                if self.use_postgresql:
+                if self.db_type == 'postgresql':
                     self.connection_pool.putconn(conn)
                 else:
                     conn.close()
@@ -118,7 +174,12 @@ class DatabaseManager:
     def get_cursor(self, dict_cursor: bool = True):
         """Get database cursor."""
         with self.get_connection() as conn:
-            if self.use_postgresql:
+            if self.db_type == 'mysql':
+                if PYMySQL_AVAILABLE:
+                    cursor = conn.cursor(pymysql.cursors.DictCursor if dict_cursor else None)
+                else:
+                    cursor = conn.cursor(dictionary=dict_cursor)
+            elif self.db_type == 'postgresql':
                 cursor = conn.cursor(cursor_factory=RealDictCursor if dict_cursor else None)
             else:
                 cursor = conn.cursor()

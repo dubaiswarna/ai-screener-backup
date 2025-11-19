@@ -1,0 +1,17 @@
+# Railway Configuration for Next.js Frontend
+[build]
+builder = "nixpacks"
+buildCommand = "cd frontend && npm install && npm run build"
+
+[deploy]
+startCommand = "cd frontend && npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+healthcheckPath = "/"
+healthcheckTimeout = 300
+
+# Environment variables will be set in Railway dashboard
+# Required:
+# - NEXT_PUBLIC_API_URL (Railway backend URL)
+# - PORT (auto-set by Railway)
+

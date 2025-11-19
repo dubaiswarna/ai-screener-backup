@@ -1,0 +1,21 @@
+# Railway Configuration for Backend API (FastAPI)
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python api_server.py"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+
+# Environment variables will be set in Railway dashboard
+# Required:
+# - DB_TYPE=mysql
+# - DB_HOST (from Railway MySQL service)
+# - DB_PORT (from Railway MySQL service)
+# - DB_NAME (from Railway MySQL service)
+# - DB_USER (from Railway MySQL service)
+# - DB_PASSWORD (from Railway MySQL service)
+# - PORT (auto-set by Railway)
+

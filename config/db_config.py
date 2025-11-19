@@ -1,24 +1,52 @@
 """
 Database Configuration
 ======================
-PostgreSQL connection configuration and settings
+MySQL/PostgreSQL connection configuration and settings
 """
 
 import os
 from typing import Dict, Any
 
 # ============================================================
-# DATABASE CONFIGURATION
+# DATABASE TYPE CONFIGURATION
+# ============================================================
+
+# Database type: 'mysql', 'postgresql', or 'sqlite'
+DB_TYPE = os.getenv('DB_TYPE', 'mysql').lower()
+
+# ============================================================
+# MYSQL CONFIGURATION
+# ============================================================
+
+# MySQL connection parameters
+# Railway MySQL uses: MYSQLHOST, MYSQLPORT, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE
+# Local MySQL uses: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+MYSQL_CONFIG: Dict[str, Any] = {
+    'host': os.getenv('MYSQLHOST') or os.getenv('DB_HOST', 'localhost'),
+    'port': int(os.getenv('MYSQLPORT') or os.getenv('DB_PORT', 3306)),
+    'database': os.getenv('MYSQLDATABASE') or os.getenv('DB_NAME', 'ai_screenr_db'),
+    'user': os.getenv('MYSQLUSER') or os.getenv('DB_USER', 'root'),
+    'password': os.getenv('MYSQLPASSWORD') or os.getenv('DB_PASSWORD', 'TradingDB@2025!Secure'),
+    'charset': 'utf8mb4',
+    'collation': 'utf8mb4_unicode_ci',
+    'autocommit': False,
+}
+
+# ============================================================
+# POSTGRESQL CONFIGURATION (Legacy)
 # ============================================================
 
 # PostgreSQL connection parameters
-DB_CONFIG: Dict[str, Any] = {
+POSTGRESQL_CONFIG: Dict[str, Any] = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': int(os.getenv('DB_PORT', 5432)),
     'database': os.getenv('DB_NAME', 'ai_screener_pro'),
     'user': os.getenv('DB_USER', 'postgres'),
     'password': os.getenv('DB_PASSWORD', 'your_password_here'),
 }
+
+# Use MySQL config by default, fallback to PostgreSQL config for compatibility
+DB_CONFIG = MYSQL_CONFIG if DB_TYPE == 'mysql' else POSTGRESQL_CONFIG
 
 # Connection pool settings
 POOL_CONFIG: Dict[str, Any] = {
@@ -33,18 +61,28 @@ SQLITE_CONFIG: Dict[str, str] = {
     'database': 'data/ai_screener.db',
 }
 
-# Default to PostgreSQL, fallback to SQLite if not available
-USE_POSTGRESQL = os.getenv('USE_POSTGRESQL', 'true').lower() == 'true'
+# Database selection
+USE_MYSQL = DB_TYPE == 'mysql'
+USE_POSTGRESQL = DB_TYPE == 'postgresql'
+USE_SQLITE = DB_TYPE == 'sqlite' or (not USE_MYSQL and not USE_POSTGRESQL)
 
 # ============================================================
 # CONNECTION STRING BUILDERS
 # ============================================================
 
+def get_mysql_url() -> str:
+    """Get MySQL connection URL."""
+    return (
+        f"mysql+pymysql://{MYSQL_CONFIG['user']}:{MYSQL_CONFIG['password']}"
+        f"@{MYSQL_CONFIG['host']}:{MYSQL_CONFIG['port']}/{MYSQL_CONFIG['database']}"
+        f"?charset={MYSQL_CONFIG['charset']}"
+    )
+
 def get_postgresql_url() -> str:
     """Get PostgreSQL connection URL."""
     return (
-        f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}"
-        f"@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+        f"postgresql://{POSTGRESQL_CONFIG['user']}:{POSTGRESQL_CONFIG['password']}"
+        f"@{POSTGRESQL_CONFIG['host']}:{POSTGRESQL_CONFIG['port']}/{POSTGRESQL_CONFIG['database']}"
     )
 
 def get_sqlite_url() -> str:
@@ -53,7 +91,12 @@ def get_sqlite_url() -> str:
 
 def get_database_url() -> str:
     """Get appropriate database URL based on configuration."""
-    return get_postgresql_url() if USE_POSTGRESQL else get_sqlite_url()
+    if USE_MYSQL:
+        return get_mysql_url()
+    elif USE_POSTGRESQL:
+        return get_postgresql_url()
+    else:
+        return get_sqlite_url()
 
 # ============================================================
 # TABLE NAMES (for easy reference)

@@ -1,0 +1,3 @@
+Activate evn file
+cd C:\python\ai-screener
+.\venv\Scripts\Activate.ps1
